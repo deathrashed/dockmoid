@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Docker companion configuration.
+
+  Entries that already existed keep both their name and their group so that
+  upgrading the plasmoid does not silently reset anyone's settings. New
+  settings are appended to the group they belong to.
+
+  Command entries may contain {placeholders}, which are substituted before the
+  command is handed to /bin/sh:
+      {id}      short container id
+      {name}    new container name (rename only)
+      {image}   image reference (pull only)
+      {shell}   shell binary (shell only)
+      {tail}    number of log lines (logs only)
+      {project} compose project name (group commands only)
+      {file}    compose file path (editor only)
+  Subshells ($()) are supported, so a group command can filter by label.
+-->
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+  http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+<kcfgfile name=""/>
+
+<group name="commandConfigPage">
+  <!-- Polling -->
+  <entry name="updateInterval" type="Int">
+    <default>30</default>
+  </entry>
+  <entry name="usageInterval" type="Int">
+    <default>5</default>
+  </entry>
+  <entry name="logTailLines" type="Int">
+    <default>500</default>
+  </entry>
+
+  <!-- Reads. The active check only looks at the exit status, so it works for
+       `docker info` as well as for `systemctl is-active docker`. -->
+  <entry name="checkActiveCommand" type="String">
+    <default>docker info --format {{.ServerVersion}}</default>
+  </entry>
+  <entry name="listCommand" type="String">
+    <default>docker ps --format json -a</default>
+  </entry>
+  <entry name="usageCommand" type="String">
+    <default>docker stats --no-stream --format json</default>
+  </entry>
+  <entry name="infoCommand" type="String">
+    <default>docker info --format '{{.ServerVersion}}|{{.NCPU}}|{{.MemTotal}}|{{.Images}}|{{.Containers}}|{{.ContainersRunning}}|{{.ContainersPaused}}|{{.ContainersStopped}}|{{.Name}}|{{.OSType}}|{{.Architecture}}'</default>
+  </entry>
+  <entry name="systemDfCommand" type="String">
+    <default>docker system df --format json</default>
+  </entry>
+
+  <!-- Per container control -->
+  <entry name="startOneCommand" type="String">
+    <default>docker start {id}</default>
+  </entry>
+  <entry name="stopOneCommand" type="String">
+    <default>docker stop {id}</default>
+  </entry>
+  <entry name="restartOneCommand" type="String">
+    <default>docker restart {id}</default>
+  </entry>
+  <entry name="killOneCommand" type="String">
+    <default>docker kill {id}</default>
+  </entry>
+  <entry name="pauseOneCommand" type="String">
+    <default>docker pause {id}</default>
+  </entry>
+  <entry name="unpauseOneCommand" type="String">
+    <default>docker unpause {id}</default>
+  </entry>
+  <entry name="removeOneCommand" type="String">
+    <default>docker rm -f {id}</default>
+  </entry>
+  <entry name="renameOneCommand" type="String">
+    <default>docker rename {id} {name}</default>
+  </entry>
+  <entry name="pullImageCommand" type="String">
+    <default>docker pull {image}</default>
+  </entry>
+
+  <!-- Diagnostics -->
+  <entry name="logsCommand" type="String">
+    <default>docker logs --timestamps --tail {tail} {id}</default>
+  </entry>
+  <entry name="logsFollowCommand" type="String">
+    <default>docker logs -f --timestamps {id}</default>
+  </entry>
+  <entry name="shellCommand" type="String">
+    <default>docker exec -it {id} {shell}</default>
+  </entry>
+  <entry name="inspectCommand" type="String">
+    <default>docker inspect {id}</default>
+  </entry>
+
+  <!-- Compose project control -->
+  <entry name="groupStartCommand" type="String">
+    <default>docker start $(docker ps -aq --filter "label=com.docker.compose.project={project}")</default>
+  </entry>
+  <entry name="groupStopCommand" type="String">
+    <default>docker stop $(docker ps -aq --filter "label=com.docker.compose.project={project}")</default>
+  </entry>
+  <entry name="groupRestartCommand" type="String">
+    <default>docker restart $(docker ps -aq --filter "label=com.docker.compose.project={project}")</default>
+  </entry>
+
+  <!-- Engine control -->
+  <entry name="startCommand" type="String">
+    <default>pkexec systemctl start docker</default>
+  </entry>
+  <entry name="stopServiceCommand" type="String">
+    <default>pkexec systemctl stop docker</default>
+  </entry>
+  <entry name="stopSocketCommand" type="String">
+    <default>pkexec systemctl stop docker.socket</default>
+  </entry>
+  <entry name="pruneCommand" type="String">
+    <default>docker system prune -a -f --volumes</default>
+  </entry>
+</group>
+
+<group name="generalConfigPage">
+  <entry name="fetchOnStartup" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="refreshOnExpand" type="Bool">
+    <default>true</default>
+  </entry>
+  <!-- docker stats samples CPU/memory over a couple of seconds, so running it
+       while collapsed just burns battery for a badge nobody is looking at. -->
+  <entry name="statsWhenCollapsed" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="useNotifications" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="confirmDestructive" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="showDiskUsage" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="notifyOnEngineChange" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="debugCommands" type="Bool">
+    <default>false</default>
+  </entry>
+</group>
+
+<group name="integrationConfigPage">
+  <!-- {command} is the fully expanded docker command to run. -->
+  <entry name="terminalCommand" type="String">
+    <default>konsole -e {command}</default>
+  </entry>
+  <entry name="editorCommand" type="String">
+    <default>kate {file}</default>
+  </entry>
+  <!-- Kept for compatibility with existing settings; Open in probes shells. -->
+  <entry name="shellList" type="String">
+    <default>bash,sh,ash,dash</default>
+  </entry>
+</group>
+
+<group name="networkConfigPage">
+  <entry name="lanHost" type="String">
+    <default>192.168.1.77</default>
+  </entry>
+  <entry name="tailscaleHost" type="String">
+    <default>100.90.68.14</default>
+  </entry>
+  <entry name="enableBrowserLinks" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="allowLanLinks" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="allowTailscaleLinks" type="Bool">
+    <default>true</default>
+  </entry>
+  <!-- Published ports treated as https. -->
+  <entry name="httpsPorts" type="String">
+    <default>443,8443,9443,3000,5601,8081</default>
+  </entry>
+</group>
+
+<group name="displayConfigPage">
+  <!-- 0 = rows, 1 = table, 2 = compose groups -->
+  <entry name="defaultViewMode" type="Int">
+    <default>0</default>
+  </entry>
+  <!-- 0 = minimal, 1 = normal, 2 = detailed, 3 = verbose -->
+  <entry name="defaultDetailLevel" type="Int">
+    <default>1</default>
+  </entry>
+  <entry name="sortRole" type="String">
+    <default>sortKey</default>
+  </entry>
+  <entry name="sortAscending" type="Bool">
+    <default>true</default>
+  </entry>
+
+  <entry name="showHeader" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="showStatusBar" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="showActivityBar" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="showHealth" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="showResourceBars" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="rowIconSize" type="Int">
+    <default>0</default>
+  </entry>
+
+  <!-- Panel label -->
+  <entry name="separateResult" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="separator" type="String">
+    <default>~</default>
+  </entry>
+  <entry name="mainDot" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="mainDotPosition" type="Enum">
+    <choices>
+      <choice name="Top Right" />
+      <choice name="Top Left" />
+      <choice name="Bottom Right" />
+      <choice name="Bottom Left" />
+    </choices>
+    <default>2</default>
+  </entry>
+  <entry name="mainDotColor" type="String">
+    <default>white</default>
+  </entry>
+  <entry name="mainDotUseCustomColor" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="iconColor" type="String">
+    <default>white</default>
+  </entry>
+  <entry name="iconUseCustomColor" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="wrapText" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="widthFit" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="hideWhenInactive" type="Bool">
+    <default>false</default>
+  </entry>
+</group>
+
+<group name="servicesConfigPage">
+  <!-- One "image-substring=glyph" pair per line. Listed before the bundled
+       rules, so an entry here wins. A bare substring with no "=" masks it. -->
+  <entry name="customIcons" type="String">
+    <default></default>
+  </entry>
+
+  <!-- Directory of coloured provider/service icons, e.g. ~/pictures/selfhst.
+       When set, a container whose image name matches a file there is drawn
+       with that artwork in full colour instead of the bundled monochrome
+       glyph. "~" is expanded. Leave empty to use only the bundled glyphs. -->
+  <entry name="serviceIconDirectory" type="String">
+    <default>/home/rd/pictures/selfhst</default>
+  </entry>
+
+  <!-- Colour the provider icons. Off means every icon is drawn as a themed
+       monochrome mask, which is what looks consistent with the panel. -->
+  <entry name="coloredServiceIcons" type="Bool">
+    <default>true</default>
+  </entry>
+</group>
+
+</kcfg>

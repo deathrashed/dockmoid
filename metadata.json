@@ -1,0 +1,33 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "dethrashed@gmail.com",
+                "Name": "deathrashed"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Docker and Compose companion for the panel: live container state with health awareness, CPU/memory and disk usage, per-container and per-project actions, inline logs, inspect output, and a detachable view with four levels of detail.",
+        "Icon": "icons/docker",
+        "Id": "dockmoid.plasmoid",
+        "License": "GPL-3.0+",
+        "Name": "Dockmoid",
+        "Version": "2.0.0",
+        "Website": "https://github.com/deathrashed/dockmoid",
+        "Depends": [],
+        "EnabledByDefault": false
+    },
+    "X-Plasma-NotificationArea": true,
+    "X-Plasma-NotificationAreaCategory": "SystemServices",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "KPackageStructure": "Plasma/Applet",
+    "X-KDE-Keywords": [
+        "docker",
+        "container",
+        "containers",
+        "compose",
+        "podman",
+        "monitoring",
+        "system information"
+    ]
+}
