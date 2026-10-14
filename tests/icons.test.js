@@ -7,6 +7,7 @@ function load(file) {
 }
 const icons = load("icons.js");
 const lib = icons.parseLibrary(["plex.svg","plex.png","pi-hole.svg","pi-hole-light.svg","pi-hole-dark.svg",
+  "beets.png","deemix.webp",
   "slskd.svg","portainer.svg","apache-couchdb.svg","only-light-light.svg","notes.txt"].join("\n"));
 const m = (n, s, i, p) => icons.libraryMatch(lib, icons.libraryCandidates(n, s, i, p));
 assert.strictEqual(m("pihole", "pihole", "pihole/pihole:latest", ""), "pi-hole");
@@ -19,6 +20,8 @@ assert.strictEqual(lib.plex.file, "plex.svg");
 assert.strictEqual(icons.libraryFile(lib, "pi-hole", 1, true), "pi-hole-light.svg");
 assert.strictEqual(icons.libraryFile(lib, "pi-hole", 1, false), "pi-hole-dark.svg");
 assert.strictEqual(icons.libraryFile(lib, "plex", 1, true), "plex.svg");
+assert.strictEqual(icons.libraryFile(lib, "beets", 0, true), "beets.png");
+assert.strictEqual(icons.libraryFile(lib, "deemix", 0, true), "deemix.webp");
 assert.strictEqual(icons.libraryFile(lib, "only-light", 0, true), "only-light-light.svg");
 // user rules
 const rules = icons.parseOverrides("myapp=plex\nsecret\n# c");

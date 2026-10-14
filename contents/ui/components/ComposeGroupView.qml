@@ -45,17 +45,10 @@ Item {
     /* Project-wide compose actions, run from the group header's menu. */
     function runCompose(groupKey, verb) {
         var rec = root.backend.findGroupRecord(groupKey)
-        if (!rec) return
-        var go = function () {
-            root.openOutput(i18n("Compose %1 — %2", verb, rec.project), i18n("Starting…"), false, rec.id)
-            root.backend.composeRun(rec, verb, rec.project)
-        }
-        if (verb === "down") {
-            root.dialogs.confirm(i18n("Take down %1?", rec.project),
-                i18n("Every container in this Compose project is stopped and removed, and its networks too. Volumes are kept."), go)
-        } else {
-            go()
-        }
+        if (rec) projectActions.runCompose(rec,verb,verb === "down")
+    }
+    ContainerActions { id: projectActions; backend: root.backend; dialogs: root.dialogs; record: null
+        onOpenOutput: function(title,content,live,recordId) { root.openOutput(title,content,live,recordId) }
     }
 
     KItemModels.KSortFilterProxyModel {
@@ -71,6 +64,7 @@ Item {
     }
 
     PlasmaComponents.ScrollView {
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
         id: scroll
         anchors.fill: parent
         background: null

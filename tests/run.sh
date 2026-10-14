@@ -1,10 +1,14 @@
 #!/bin/sh
-# Everything that can be checked without a Plasma session.
-cd "$(dirname "$0")/.." || exit 1
-set -e
-node tests/parsers.test.js
-node tests/icons.test.js
-python3 -I -c "import xml.dom.minidom as m; m.parse('contents/config/main.xml')" && echo "main.xml ok"
-tests/lint.sh >/tmp/dockmoid-lint.txt || true
-n=$(grep -E '^(Warning|Error)' /tmp/dockmoid-lint.txt | grep -vc 'ContainerActions.qml\|Expression statement\|implicitSize' || true)
-[ "$n" = "0" ] && echo "qmllint ok" || { echo "qmllint: $n new findings"; grep -E '^(Warning|Error)' /tmp/dockmoid-lint.txt | grep -v 'ContainerActions.qml\|Expression statement\|implicitSize'; exit 1; }
+# Development checks; none are runtime dependencies of the widget.
+set -eu
+cd "$(dirname "$0")/.."
+node --test tests/*.test.js
+python3 -m unittest discover -s tests -p "*_test.py"
+python3 -I -c "import xml.dom.minidom as m; m.parse('contents/config/main.xml')"
+sh -n install.sh package-release.sh translate/extract.sh translate/build.sh tests/run.sh tests/lint.sh
+appstreamcli validate --no-net packaging/dockmoid.plasmoid.appdata.xml
+if [ "${DOCKMOID_SKIP_QML_LINT:-0}" = 1 ]; then
+    echo 'QML lint explicitly skipped (fixture/package checks only).'
+else
+    tests/lint.sh
+fi

@@ -10,42 +10,32 @@ import org.kde.plasma.configuration
 ConfigModel {
     ConfigCategory {
         name: i18nc("@title", "General")
-        icon: "preferences-system-time"
+        icon: "configure"
         source: "config/configGeneral.qml"
     }
     ConfigCategory {
-        name: i18nc("@title", "Display")
-        icon: "video-display"
+        name: i18nc("@title", "Appearance")
+        icon: "preferences-desktop-theme"
         source: "config/configDisplay.qml"
     }
     ConfigCategory {
+        name: i18nc("@title", "Storage")
+        icon: "drive-harddisk"
+        source: "config/configStorage.qml"
+    }
+    ConfigCategory {
         name: i18nc("@title", "Monitoring")
-        icon: "view-statistics"
+        icon: "utilities-system-monitor"
         source: "config/configMonitoring.qml"
     }
     ConfigCategory {
-        name: i18nc("@title", "Notifications")
-        icon: "preferences-desktop-notification"
-        source: "config/configNotifications.qml"
-    }
-    ConfigCategory {
-        name: i18nc("@title", "Network")
-        icon: "network-wired-activated"
+        name: i18nc("@title", "Connections")
+        icon: "network-server"
         source: "config/configNetwork.qml"
     }
     ConfigCategory {
-        name: i18nc("@title", "Integration")
+        name: i18nc("@title", "Advanced")
         icon: "utilities-terminal"
-        source: "config/configIntegration.qml"
-    }
-    ConfigCategory {
-        name: i18nc("@title", "Icons")
-        icon: "preferences-desktop-icons"
-        source: "config/configServices.qml"
-    }
-    ConfigCategory {
-        name: i18nc("@title", "Engine and commands")
-        icon: "applications-development"
         source: "config/configCommand.qml"
     }
 }

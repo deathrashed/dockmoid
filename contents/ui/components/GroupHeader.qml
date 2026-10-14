@@ -3,6 +3,7 @@ import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
+import "../../lib/actionIcons.js" as ActionIcons
 
 /*
  * GroupHeader — the section bar above each compose project.
@@ -16,6 +17,15 @@ import org.kde.plasma.components as PlasmaComponents
 Item {
     id: root
 
+    component ComposeMenuItem: PlasmaComponents.MenuItem {
+        property string glyph: ""
+        icon.name: ""
+        icon.source: glyph !== "" ? Qt.resolvedUrl(ActionIcons.path(glyph)) : ""
+        icon.color: Kirigami.Theme.textColor
+        icon.width: Kirigami.Units.iconSizes.smallMedium
+        icon.height: Kirigami.Units.iconSizes.smallMedium
+    }
+
     required property var backend
     required property string groupKey
     /* Whether a search is narrowing the list right now. */
@@ -25,7 +35,7 @@ Item {
     readonly property bool isProject: backend.groupIsProject(groupKey)
     readonly property int runningCount: {
         var n = 0
-        for (var i = 0; i < root.members.length; i++) {
+        for (let i = 0; i < root.members.length; i++) {
             if (root.members[i].isRunning) n++
         }
         return n
@@ -89,55 +99,47 @@ Item {
 
         Item { Layout.fillWidth: true }
 
-        PlasmaComponents.ToolButton {
+        ActionToolButton {
             id: groupStart
-            display: PlasmaComponents.AbstractButton.IconOnly
-            icon.name: "media-playback-start"
+            glyph: "media-playback-start"
             text: i18n("Start all in this group")
-            enabled: !root.filtering
+            enabled: !root.backend.readOnly && !root.filtering
             onClicked: root.backend.startGroup(root.groupKey)
-            PlasmaComponents.ToolTip { text: groupStart.text }
         }
 
-        PlasmaComponents.ToolButton {
+        ActionToolButton {
             id: groupRestart
-            display: PlasmaComponents.AbstractButton.IconOnly
-            icon.name: "view-refresh"
+            glyph: "view-refresh"
             text: i18n("Restart all in this group")
-            enabled: !root.filtering
+            enabled: !root.backend.readOnly && !root.filtering
             onClicked: root.backend.restartGroup(root.groupKey)
-            PlasmaComponents.ToolTip { text: groupRestart.text }
         }
 
-        PlasmaComponents.ToolButton {
+        ActionToolButton {
             id: groupMore
             visible: root.isProject
-            display: PlasmaComponents.AbstractButton.IconOnly
-            icon.name: "overflow-menu"
+            glyph: "application-menu"
             text: i18n("More Compose actions")
-            enabled: !root.filtering
+            enabled: !root.backend.readOnly && !root.filtering
             onClicked: groupMenu.popup(groupMore, 0, groupMore.height)
-            PlasmaComponents.ToolTip { text: groupMore.text }
 
             PlasmaComponents.Menu {
                 id: groupMenu
-                PlasmaComponents.MenuItem { icon.name: "media-playback-start"; text: i18n("Up (create and start)"); onTriggered: root.composeRequested("up") }
-                PlasmaComponents.MenuItem { icon.name: "system-download"; text: i18n("Pull images"); onTriggered: root.composeRequested("pull") }
-                PlasmaComponents.MenuItem { icon.name: "package-upgrade"; text: i18n("Pull and recreate"); onTriggered: root.composeRequested("update") }
-                PlasmaComponents.MenuItem { icon.name: "view-refresh"; text: i18n("Force recreate"); onTriggered: root.composeRequested("recreate") }
+                ComposeMenuItem { glyph: "media-playback-start"; text: i18n("Up (create and start)"); onTriggered: root.composeRequested("up") }
+                ComposeMenuItem { glyph: "system-download"; text: i18n("Pull images"); onTriggered: root.composeRequested("pull") }
+                ComposeMenuItem { glyph: "package-upgrade"; text: i18n("Pull and recreate"); onTriggered: root.composeRequested("update") }
+                ComposeMenuItem { glyph: "view-refresh"; text: i18n("Force recreate"); onTriggered: root.composeRequested("recreate") }
                 PlasmaComponents.MenuSeparator {}
-                PlasmaComponents.MenuItem { icon.name: "edit-delete"; text: i18n("Down (remove containers)"); onTriggered: root.composeRequested("down") }
+                ComposeMenuItem { glyph: "edit-delete"; text: i18n("Down (remove containers)"); onTriggered: root.composeRequested("down") }
             }
         }
 
-        PlasmaComponents.ToolButton {
+        ActionToolButton {
             id: groupStop
-            display: PlasmaComponents.AbstractButton.IconOnly
-            icon.name: "media-playback-stop"
+            glyph: "media-playback-stop"
             text: i18n("Stop all in this group")
-            enabled: !root.filtering
+            enabled: !root.backend.readOnly && !root.filtering
             onClicked: root.backend.stopGroup(root.groupKey)
-            PlasmaComponents.ToolTip { text: groupStop.text }
         }
     }
 }

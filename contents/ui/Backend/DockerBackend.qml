@@ -6,6 +6,7 @@ import org.kde.kirigami as Kirigami
 
 import "../../lib/parsers.js" as Parsers
 import "../../lib/icons.js" as Icons
+import "../../lib/engines.js" as Engines
 
 /*
  * DockerBackend — everything the UI is allowed to know about Docker.
@@ -14,8 +15,8 @@ import "../../lib/icons.js" as Icons
  * free of command strings and gives us exactly one place where quoting,
  * placeholder expansion and error reporting are handled.
  *
- * Commands are all shell fragments, so they honour $DOCKER_HOST, contexts,
- * podman aliases and the user's PATH exactly like a terminal would. The only
+ * Commands are all shell fragments, so they inherit the Plasma session environment and PATH. Terminal shell aliases are
+ * not loaded by the noninteractive shell; use executable paths or wrappers. The only
  * rule is: never interpolate raw container data into a shell string.
  */
 Item {
@@ -30,6 +31,12 @@ Item {
     property var runner: null
 
     property var cfg: plasmoid.configuration
+    property string previewMode:"off"
+    property string previewRecordId:""
+    function previewContainer(id,selected) {
+        if(previewMode === "hover" || (previewMode === "selection" && selected)) previewRecordId=id
+    }
+
 
     // ----------------------------------------------------------- state ----
     property bool engineActive: false
@@ -39,10 +46,68 @@ Item {
     property bool refreshing: false
     property string lastError: ""
     property string actionError: ""
+    property bool dataStale: false
+    property int generation: 0
+    property int pendingActions: 0
+    property var operations: ({})
+    property int operationsRevision: 0
+    function operationFor(id) {
+        const rec = findRecord(id)
+        return operations[id] || (rec ? operations["name:" + rec.name] : null) || ({busy:false,label:"",ok:true,finishedAt:0})
+    }
+    function beginOperation(rec, label) {
+        if (!rec || operationFor(rec.id).busy) return false
+        const state = {busy:true,label:label,ok:true,finishedAt:0}
+        const next = Object.assign({}, operations)
+        next[rec.id] = state; next["name:" + rec.name] = state
+        operations = next; operationsRevision++
+        return true
+    }
+    function finishOperation(rec, ok, label) {
+        if (!rec) return
+        const state = {busy:false,label:label || (ok ? i18n("Done") : i18n("Failed")),ok:ok,finishedAt:Date.now()}
+        const next = Object.assign({}, operations)
+        next[rec.id] = state; next["name:" + rec.name] = state
+        operations = next; operationsRevision++
+    }
+    Timer {
+        interval: 1000; repeat: true; running: Object.keys(backend.operations).length > 0
+        onTriggered: {
+            let next = Object.assign({}, backend.operations), changed = false
+            Object.keys(next).forEach(function(key) {
+                if (!next[key].busy && Date.now() - next[key].finishedAt > 8000) { delete next[key]; changed = true }
+            })
+            if (changed) { backend.operations = next; backend.operationsRevision++ }
+        }
+    }
+    property bool initialized: false
+    property string endpointHost: ""
+    readonly property bool remoteEngine: /^(ssh|tcp|http|https):/.test(endpointHost)
+    readonly property bool canControlService: !remoteEngine && contextName === "" && !isPodman
+        && /^unix:\/\/(?:\/var)?\/run\/docker\.sock$/.test(endpointHost)
+    readonly property bool isPodman: /(?:^|\/)podman(?:\s|$)/.test(engineBase)
+    property bool composeAvailable: false
+    property bool buildxAvailable: false
+    property bool curlAvailable: false
+    readonly property bool canUseCompose: composeAvailable && /^unix:/.test(endpointHost) && !isPodman
+    readonly property bool readOnly: cfg.readOnly === true
+    readonly property string dataDir: decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, ""))
+    CustomIconStore { id: customStore; cfg: backend.cfg; runner: backend.runner }
+    readonly property var customIconStore: customStore
+    DeploymentController { id: deploymentController; backend: deploymentController.parent }
+    readonly property var deployment: deploymentController
+    DoctorController {id:doctorController;backend:doctorController.parent}
+    readonly property var doctor: doctorController
+
 
     property int running: 0
     property int total: 0
     property int stopped: 0
+    property int notCreated: 0
+    property var configuredServices: []
+    property string discoveryError: ""
+    property bool discovering: false
+    property double discoveryAt: 0
     property int pausedCount: 0
     property int unhealthy: 0
     property double cpuSum: 0
@@ -77,9 +142,11 @@ Item {
        it and re-resolve their record instead of holding a stale snapshot. */
     property int revision: 0
 
-    /* Title of the most recent output payload; lets a page decide whether an
-       outputReady() was meant for it. */
-    property string lastOutputTitle: ""
+    property int outputRequestCounter: 0
+    property var outputRequestSequences: ({})
+    property string activeBatchRequestId: ""
+    property var latestOutputRequest: null
+    property bool outputRequestPending: false
 
     /* Ordered list of container records; the ListModel is a mirror of it. */
     property var records: []
@@ -91,7 +158,33 @@ Item {
     /* Emitted when something the user did finished (or failed) so the UI can
        surface a notification. */
     signal actionDone(string title, string message, bool ok)
+    /* Legacy signal retained for the live update batch; other output is
+       delivered with stable request metadata below. */
     signal outputReady(string title, string content)
+    signal correlatedOutputReady(string kind, string recordId, int contextGeneration,
+                                 string requestId, int sequence, string title, string content)
+    signal recordOutput(string kind, string recordId, int contextGeneration,
+                        string requestId, int sequence, string content)
+
+    function newOutputRequest(kind, recordId) {
+        outputRequestCounter++
+        var requestId = String(generation) + ":" + String(outputRequestCounter)
+        latestOutputRequest = {kind: kind, recordId: recordId || "", generation: generation, requestId: requestId}
+        outputRequestPending = true
+        return requestId
+    }
+
+    function consumeOutputRequest(requestId) {
+        if (latestOutputRequest && latestOutputRequest.requestId === requestId)
+            outputRequestPending = false
+    }
+
+    function nextOutputSequence(requestId) {
+        var next = Object.assign({}, outputRequestSequences)
+        next[requestId] = (next[requestId] || 0) + 1
+        outputRequestSequences = next
+        return next[requestId]
+    }
 
     onActionDone: function (title, message, ok) {
         actionError = ok ? "" : title + ": " + message
@@ -120,12 +213,28 @@ Item {
         }
     }
 
+    function run(cmd, tag, done, options) {
+        if (!runner) return
+        var epoch = generation
+        var mutation = !runner.isPoll(tag) && !/^(icon-import|update-check|capabilities|validate-compose|diagnostic|lan-ip|tailscale-ip)/.test(tag)
+        if (mutation && readOnly) {
+            if (done) Qt.callLater(function () { done(126, "", i18n("Read-only mode is enabled")) })
+            return
+        }
+        if (mutation) pendingActions++
+        runner.run(cmd, tag, function (code, out, err) {
+            if (epoch !== backend.generation) return
+            if (mutation) backend.pendingActions = Math.max(0, backend.pendingActions - 1)
+            if (done) done(code, out, err)
+        }, options || (mutation ? {timeout: 600000} : {}))
+    }
+
     /* Substitute {placeholders} in a command. split/join rather than replace so
        a value containing "$" or "\" can never be re-interpreted. */
     function expand(cmd, vars) {
         if (!cmd) return ""
-        var out = String(cmd).split("{engine}").join(engineBinary)
-        for (var key in vars) {
+        var out = Engines.template(cmd, isPodman).split("{engine}").join(engineBinary)
+        for (let key in vars) {
             out = out.split("{" + key + "}").join(String(vars[key]))
         }
         return out
@@ -137,7 +246,7 @@ Item {
     property string contextHost: ""
 
     function fetchContexts() {
-        runner.run(expand(cfg.contextListCommand, {}), "contexts", function (code, out) {
+        run(isPodman ? engineBase + " system connection list --format '{{.Name}}'" : expand(cfg.contextListCommand, {}), "contexts", function (code, out) {
             if (code !== 0) { contexts = []; return }
             contexts = String(out || "").split("\n").map(function (l) { return l.trim() })
                 .filter(function (l) { return Parsers.isSafeToken(l) })
@@ -146,25 +255,63 @@ Item {
 
     /* Point everything at another engine and start over from a clean slate. */
     function setContext(name) {
+        if (pendingActions > 0) {
+            actionDone(i18n("Connection"), i18n("Wait for the current action to finish before switching hosts."), false)
+            return
+        }
         cfg.activeContext = name
-        records = []; syncModel()
-        policyCache = ({}); statsCache = ({}); history = ({}); alertState = ({})
-        probeState = ({}); updateState = ({}); lastSnapshot = null
-        engineKnown = false; engineActive = false
-        resources = ({ "images": [], "volumes": [], "networks": [] })
-        lastFullMs = 0; lastEventSec = 0
-        detectContextHost()
-        refresh({ "force": true, "withStats": true })
+        Qt.callLater(reconnect)
     }
+
+    function reconnect() {
+        if (!initialized) return
+        generation++
+        operations = ({}); operationsRevision++
+        if (batchUpdating) {
+            batchUpdating = false
+            batchStatus = i18n("Update batch cancelled because the connection changed")
+            batchResults = batchResults.concat([batchStatus])
+        }
+        if (runner) runner.cancelAll()
+        pendingTasks = 0; pendingActions = 0; refreshing = false
+        records = []; syncModel(); revision++
+        policyCache = ({}); statsCache = ({}); statsUpdatedMs = 0; statsInFlight=false; history = ({}); alertState = ({})
+        configuredServices = []; discoveryAt = 0; discoveryError = ""
+        probeState = ({}); updateState = ({}); updateQueue = []; updateRunning = false; updateCount = 0
+        lastSnapshot = null; engineInfo = ({}); diskUsage = []; diskUsageKnown = false
+        engineKnown = false; engineActive = false; dataStale = false
+        lastInfoMs = 0; lastDiskMs = 0; lastUpdatedMs = 0; lastLabelIds = ""; labelCache = ({})
+        resourceLists = ({images: [], volumes: [], networks: []}); resourceUpdatedAt=({})
+        resourcesBusy = false; lastFullMs = 0; lastEventSec = 0; eventsFailedMs = 0
+        detectContextHost(); detectCapabilities(); reloadIconLibrary()
+        loadUpdateCache()
+        refresh({force: true, withStats: true})
+    }
+
+    onEngineBinaryChanged: if (initialized) Qt.callLater(reconnect)
 
     /* A remote engine's own address is what published ports should link to. */
     function detectContextHost() {
-        contextHost = ""
-        if (contextName === "") return
-        runner.run(engineBase + " context inspect " + contextName
-                   + " --format '{{.Endpoints.docker.Host}}'", "context-host", function (code, out) {
-            var m = /^(?:ssh|tcp):\/\/(?:[^@\/]+@)?([^:\/]+)/.exec(String(out || "").trim())
-            if (code === 0 && m) contextHost = m[1]
+        contextHost = ""; endpointHost = ""
+        if (isPodman) return
+        var query = engineBase + " context inspect " + (contextName || "")
+            + " --format '{{.Endpoints.docker.Host}}'"
+        var cmd = contextName !== "" ? query : "if [ -n \"$DOCKER_HOST\" ]; then printf '%s' \"$DOCKER_HOST\"; else " + query + "; fi"
+        run(cmd, "context-host", function (code, out) {
+            backend.endpointHost = code === 0 ? String(out).trim() : ""
+            var m = /^(?:ssh|tcp|https?):\/\/(?:[^@\/]+@)?([^:\/]+)/.exec(backend.endpointHost)
+            if (m) backend.contextHost = m[1]
+        })
+    }
+
+    function detectCapabilities() {
+        var cmd = "if " + expand(cfg.composeCommand, {}) + " version >/dev/null 2>&1; then echo compose; fi; "
+            + "if " + engineBinary + " buildx version >/dev/null 2>&1; then echo buildx; fi; "
+            + "if command -v curl >/dev/null 2>&1; then echo curl; fi"
+        run(cmd, "capabilities", function (code, out) {
+            backend.composeAvailable = /(^|\n)compose(\n|$)/.test(out)
+            backend.buildxAvailable = !backend.isPodman && /(^|\n)buildx(\n|$)/.test(out)
+            backend.curlAvailable = /(^|\n)curl(\n|$)/.test(out)
         })
     }
 
@@ -196,9 +343,9 @@ Item {
 
     /* Pinned first (in the order you gave), then running, then the rest. */
     function applySort() {
-        for (var i = 0; i < records.length; i++) {
-            var r = records[i]
-            var pin = pinnedNames.indexOf(r.name)
+        for (let i = 0; i < records.length; i++) {
+            let r = records[i]
+            let pin = pinnedNames.indexOf(r.name)
             r.pinned = pin >= 0
             r.sortKey = (pin >= 0 ? "0" + ("000" + pin).slice(-3) : (r.isRunning ? "1" : "2"))
                 + r.name.toLowerCase()
@@ -218,6 +365,7 @@ Item {
     property double lastFullMs: 0
     property double lastEventSec: 0
     property double lastUpdatedMs: 0
+    property double statsUpdatedMs: 0
     property double eventsFailedMs: 0
     property int downTicks: 0
 
@@ -239,11 +387,11 @@ Item {
         }
         downTicks = 0
         var heartbeat = Math.max(5, cfg.updateInterval) * 1000
-        if (!eventsUsable || Date.now() - lastFullMs >= heartbeat) {
-            refresh({ "withStats": false, "skipDetect": true })
+        if (Date.now() - lastFullMs >= heartbeat) {
+            refresh({ "withStats": false })
             return
         }
-        checkForChanges()
+        if (eventsUsable) checkForChanges()
     }
 
     function poll() { tick() }
@@ -253,13 +401,13 @@ Item {
         var since = lastEventSec > 0 ? lastEventSec : until
         var cmd = expand(cfg.eventsCommand, { "since": since, "until": until })
         beginTask()
-        runner.run(cmd, "events", function (code, out) {
+        run(cmd, "events", function (code, out) {
             if (code !== 0) {
                 // Old engine, odd wrapper, wrong flags: fall back to plain
                 // polling for a while rather than failing every tick.
                 backend.eventsFailedMs = Date.now()
                 backend.endTask()
-                backend.refresh({ "withStats": false, "skipDetect": true })
+                backend.refresh({ "force": true, "withStats": false })
                 return
             }
             backend.eventsFailedMs = 0
@@ -280,6 +428,7 @@ Item {
         opts = opts || {}
         if (!runner) return
         if (refreshing) return
+        if (opts.force) discoveryAt = 0
         if (engineKnown && !engineActive && !opts.force) return
 
         beginTask()
@@ -288,15 +437,17 @@ Item {
             backend.endTask()
             return
         }
-        runner.run(expand(cfg.checkActiveCommand, {}), "detect", function (code, out, err) {
+        run(expand(cfg.checkActiveCommand, {}), "detect", function (code, out, err) {
             var active = detectActive(code, out)
             if (active !== backend.engineActive) {
                 backend.engineActive = active
                 backend.engineStateChanged(active)
             }
             backend.engineKnown = true
+            backend.dataStale = !active
             backend.engineProblem = active ? "" : backend.classifyProblem(code, out, err)
             if (!active) {
+                backend.lastError = err || String(out || "").trim() || i18n("The engine is unreachable")
                 backend.onEngineDown()
                 backend.endTask()
                 return
@@ -316,12 +467,22 @@ Item {
         return "down"
     }
 
+    function probeEngineOnly() {
+        run(expand(cfg.checkActiveCommand, {}), "detect", function (code, out, err) {
+            var active = backend.detectActive(code, out)
+            if (backend.engineActive !== active) backend.engineStateChanged(active)
+            backend.engineActive = active; backend.engineKnown = true
+            backend.engineProblem = active ? "" : backend.classifyProblem(code, out, err)
+            if (!active) backend.dataStale = true
+        })
+    }
+
     function loadEverything(opts) {
         lastFullMs = Date.now()
         lastEventSec = Math.floor(Date.now() / 1000)
         fetchList()
         fetchInfo()
-        if (updatesDue()) startUpdateCheck()
+
         if (opts.withStats !== false) fetchStats()
         if (opts.withDisk) fetchDiskUsage()
     }
@@ -343,33 +504,62 @@ Item {
     }
 
     function onEngineDown() {
-        records = []
-        syncModel()
-        engineInfo = {}
-        diskUsage = []
-        diskUsageKnown = false
-        running = 0
-        total = 0
-        stopped = 0
-        pausedCount = 0
-        unhealthy = 0
-        cpuSum = 0
-        memSum = 0
-        pids = 0
-        lastError = ""
+        // Keep the last successful snapshot visible only as explicitly stale data.
+        dataStale = true
+        engineActive = false
         lastSnapshot = null
-        if (runner) runner.cancelAll()
+    }
+
+    function discoverConfiguredServices(force) {
+        if (!canUseCompose || remoteEngine || discovering || (!force && Date.now() - discoveryAt < 60000)) return
+        discovering = true
+        const script = decodeURIComponent(String(Qt.resolvedUrl("../../scripts/discover_compose.py")).replace(/^file:\/\//,""))
+        run("python3 " + shellQuote(script) + " " + shellQuote(deployment.projectRoot), "discovery-compose", function(code,out,err) {
+            backend.discovering = false; backend.discoveryAt = Date.now()
+            try {
+                if (code !== 0) throw Error(i18n("Compose discovery could not run. Check Python and Compose availability."))
+                const result = JSON.parse(out)
+                backend.configuredServices = result.services || []
+                backend.discoveryError = (result.errors || []).join("\n")
+                backend.mergeConfiguredServices()
+                backend.applySort(); backend.syncModel(); backend.recomputeTotals(); backend.revision++
+            } catch(e) { backend.discoveryError = String(e) }
+        }, {timeout:120000})
+    }
+    function mergeConfiguredServices() {
+        const existing = records.filter(function(r) { return r.state !== "not-created" })
+        const configured = configuredServices.filter(function(service) {
+            return !existing.some(function(rec) {
+                return (rec.project === service.project && rec.service === service.service) || rec.name === service.name
+            })
+        }).map(function(service) {
+            const rec = Parsers.normalizeContainer({ID:"configured:" + service.project + ":" + service.service,
+                Names:service.name, Image:service.image, State:"not-created", Status:i18n("Not created")})
+            rec.project=service.project;rec.service=service.service;rec.composeFiles=service.composeFiles;rec.composeWorkDir=service.composeWorkDir
+            rec.composeProfile=(service.profiles || []).join(",")
+            return rec
+        })
+        records = existing.concat(configured)
     }
 
     function fetchList() {
         beginTask()
-        runner.run(expand(cfg.listCommand, {}), "list", function (code, out, err) {
+        run(expand(cfg.listCommand, {}), "list", function (code, out, err) {
             if (code !== 0) {
-                lastError = err || String(out || "").trim()
+                lastError = err || String(out || "").trim() || i18n("Could not read containers (exit %1)", code)
+                dataStale = true
+                backend.probeEngineOnly()
+            } else if (!Parsers.isValidRecords(out)) {
+                lastError = i18n("The container command did not return valid JSON")
+                dataStale = true
             } else {
+                dataStale = false
                 lastError = ""
                 lastUpdatedMs = Date.now()
                 records = Parsers.parseContainers(out)
+                enrichLabels()
+                mergeConfiguredServices()
+                discoverConfiguredServices(false)
                 Parsers.applyRestartPolicies(records, policyCache)
                 // Pinned first, then running, then alphabetical. Views may
                 // re-sort on top of this.
@@ -385,6 +575,40 @@ Item {
         })
     }
 
+    property string lastLabelIds: ""
+    property var labelCache: ({})
+
+    function enrichLabels() {
+        var ids = records.map(function (r) { return Parsers.shortId(r.id) }).filter(function (id) { return /^[a-f0-9]+$/.test(id) })
+        var key = ids.slice().sort().join(" ")
+        if (key === "") return
+        if (key === lastLabelIds) { applyStructuredLabels(); if (updatesDue()) Qt.callLater(startUpdateCheck); return }
+        lastLabelIds = key
+        var format = "{\"Id\":{{json .Id}},\"Labels\":{{json .Config.Labels}},\"ImageId\":{{json .Image}},\"ImageRef\":{{json .Config.Image}}}"
+        beginTask()
+        run(engineBinary + " inspect --format " + shellQuote(format) + " " + ids.join(" "), "labels", function (code, out) {
+            if (code === 0) {
+                backend.labelCache = ({})
+                Parsers.jsonRecords(out).forEach(function (r) { backend.labelCache[Parsers.shortId(r.Id)] = r })
+                backend.applyStructuredLabels(); backend.syncModel(); backend.revision++
+                if (backend.updatesDue()) backend.startUpdateCheck()
+            } else { backend.lastLabelIds = "" }
+            backend.endTask()
+        })
+    }
+
+    function applyStructuredLabels() {
+        records.forEach(function (r) {
+            var data = backend.labelCache[Parsers.shortId(r.id)]
+            if (!data) return
+            var labels = data.Labels || {}
+            r.composeFiles = labels["com.docker.compose.project.config_files"] || r.composeFiles
+            r.composeWorkDir = labels["com.docker.compose.project.working_dir"] || r.composeWorkDir
+            r.imageId = data.ImageId || ""
+            if (data.ImageRef) r.image = data.ImageRef
+        })
+    }
+
     // ============================================== restart policies ======
 
     property var policyCache: ({})
@@ -394,7 +618,7 @@ Item {
        when a container shows up that has no entry yet. */
     function refreshRestartPoliciesIfNeeded() {
         var missing = false
-        for (var i = 0; i < records.length; i++) {
+        for (let i = 0; i < records.length; i++) {
             if (policyCache[Parsers.shortId(records[i].id)] === undefined) { missing = true; break }
         }
         var due = Date.now() - lastPolicyMs >= Math.max(10, cfg.restartPolicyInterval) * 1000
@@ -402,9 +626,10 @@ Item {
     }
 
     function fetchRestartPolicies() {
+        if (!Engines.supports("restartPolicies", isPodman)) return
         lastPolicyMs = Date.now()
         beginTask()
-        runner.run(expand(cfg.restartPolicyCommand, {}), "policies", function (code, out) {
+        run(expand(cfg.restartPolicyCommand, {}), "policies", function (code, out) {
             if (code === 0) {
                 policyCache = Parsers.parseRestartPolicies(out)
                 Parsers.applyRestartPolicies(records, policyCache)
@@ -416,13 +641,14 @@ Item {
     }
 
     function setRestartPolicy(rec, policy) {
+        if (!Engines.supports("restartPolicies", isPodman)) return
         if (!rec || Parsers.RESTART_POLICIES.indexOf(policy) < 0) return
         var cmd = expand(cfg.setRestartPolicyCommand, {
             "id": Parsers.shortId(rec.id), "policy": policy,
             "name": shellQuote(rec.name)
         })
         muteContainer(rec.id)
-        runner.run(cmd, "restart-policy", function (code, out, err) {
+        run(cmd, "restart-policy", function (code, out, err) {
             if (code === 0) {
                 backend.actionDone(rec.name, i18n("Restart policy set to %1", policy), true)
                 backend.fetchRestartPolicies()
@@ -474,8 +700,8 @@ Item {
         }
         var lines = []
         var worst = "event"
-        for (var i = 0; i < events.length; i++) {
-            var ev = events[i]
+        for (let i = 0; i < events.length; i++) {
+            let ev = events[i]
             if (!enabled[ev.kind]) continue
             if (muted[ev.id] && muted[ev.id] > now) continue
             switch (ev.kind) {
@@ -487,18 +713,23 @@ Item {
             case "stopped": lines.push(i18n("%1 stopped", ev.name)); break
             }
         }
-        for (var id in muted) if (muted[id] <= now) delete muted[id]
+        for (let id in muted) if (muted[id] <= now) delete muted[id]
         if (lines.length === 0) return
         var title = lines.length === 1 ? i18n("Docker") : i18np("Docker: %1 change", "Docker: %1 changes", lines.length)
         notify(title, lines.slice(0, 6).join("\n") + (lines.length > 6 ? "\n" + i18n("…and %1 more", lines.length - 6) : ""), worst)
     }
 
+    property bool statsInFlight:false
     function fetchStats() {
+        if (statsInFlight || !runner) return
         if (running === 0 && records.length > 0) return
         beginTask()
-        runner.run(expand(cfg.usageCommand, {}), "stats", function (code, out, err) {
+        statsInFlight=true
+        run(expand(cfg.usageCommand, {}), "stats", function (code, out, err) {
+            backend.statsInFlight=false
             if (code === 0) {
                 statsCache = Parsers.parseStats(out)
+                statsUpdatedMs = Date.now()
                 applyStatsToRecords()
                 recordSamples()
                 checkResourceAlerts()
@@ -515,24 +746,29 @@ Item {
     property double lastInfoMs: 0
 
     function fetchInfo() {
+        if (!Engines.supports("info", isPodman)) return
         var now = Date.now()
         if (!String(cfg.infoCommand || "").trim()) return
         if (now - lastInfoMs < 60000) return
         lastInfoMs = now
         beginTask()
-        runner.run(expand(cfg.infoCommand, {}), "info", function (code, out, err) {
+        run(expand(cfg.infoCommand, {}), "info", function (code, out, err) {
             if (code === 0) engineInfo = Parsers.parseInfo(out)
             endTask()
         })
     }
 
+    property double lastDiskMs: 0
+
     function fetchDiskUsage() {
-        if (diskUsageKnown) return
+        if (!Engines.supports("systemDf", isPodman)) return
+        if (diskUsageKnown && Date.now() - lastDiskMs < 60000) return
         beginTask()
-        runner.run(expand(cfg.systemDfCommand, {}), "systemdf", function (code, out, err) {
+        run(expand(cfg.systemDfCommand, {}), "systemdf", function (code, out, err) {
             if (code === 0) {
                 diskUsage = Parsers.parseSystemDf(out)
                 diskUsageKnown = true
+                lastDiskMs = Date.now()
             }
             endTask()
         })
@@ -592,8 +828,8 @@ Item {
                    "groupKey", "searchKey"]
 
     function rowChanged(existing, row) {
-        for (var i = 0; i < rowKeys.length; i++) {
-            var k = rowKeys[i]
+        for (let i = 0; i < rowKeys.length; i++) {
+            let k = rowKeys[i]
             if (existing[k] !== row[k]) return true
         }
         return false
@@ -609,16 +845,16 @@ Item {
      */
     function syncModel() {
         var wanted = {}
-        for (var i = 0; i < records.length; i++) wanted[records[i].id] = true
+        for (let i = 0; i < records.length; i++) wanted[records[i].id] = true
 
-        for (var k = model.count - 1; k >= 0; k--) {
+        for (let k = model.count - 1; k >= 0; k--) {
             if (!wanted[model.get(k).id]) model.remove(k)
         }
 
-        for (var j = 0; j < records.length; j++) {
-            var row = copyRow(records[j])
-            var at = -1
-            for (var m = 0; m < model.count; m++) {
+        for (let j = 0; j < records.length; j++) {
+            let row = copyRow(records[j])
+            let at = j < model.count && model.get(j).id === row.id ? j : -1
+            for (let m = j; at === -1 && m < model.count; m++) {
                 if (model.get(m).id === row.id) { at = m; break }
             }
             if (at === -1) {
@@ -636,11 +872,13 @@ Item {
     function isProblem(row) {
         var state = row.containerState !== undefined ? row.containerState : row.state
         var status = row.status || ""
-        if (row.health === "unhealthy") return true
+        // Health can remain stale after a container exits; only active unhealthy
+        // containers should color the panel status ring red.
+        if (row.health === "unhealthy" && (row.isRunning === true || state === "running")) return true
         if (row.probe === "down" && (row.isRunning === true || state === "running")) return true
         if (state === "restarting" || state === "dead" || state === "paused") return true
         if (state === "exited") {
-            var code = Parsers.exitCodeFromStatus(status)
+            let code = Parsers.exitCodeFromStatus(status)
             return code !== null && !Parsers.isDeliberateExit(code)
         }
         return false
@@ -650,7 +888,7 @@ Item {
 
     function recomputeTotals() {
         var n = 0
-        for (var p = 0; p < records.length; p++) if (isProblem(records[p])) n++
+        for (let p = 0; p < records.length; p++) if (isProblem(records[p])) n++
         problemCount = n
         var agg = Parsers.aggregate(records)
         total = records.length
@@ -660,11 +898,12 @@ Item {
         cpuSum = agg.cpuSum
         memSum = agg.memSum
         pids = agg.pids
-        stopped = Math.max(0, records.length - running - pausedCount)
+        notCreated = records.filter(function(r) { return r.state === "not-created" }).length
+        stopped = Math.max(0, records.length - running - pausedCount - notCreated)
     }
 
     function findRecord(id) {
-        for (var i = 0; i < records.length; i++) {
+        for (let i = 0; i < records.length; i++) {
             if (records[i].id === id) return records[i]
         }
         return null
@@ -676,8 +915,8 @@ Item {
     readonly property var httpsPorts: {
         var raw = String(cfg.httpsPorts || "").split(",")
         var out = []
-        for (var i = 0; i < raw.length; i++) {
-            var v = parseInt(raw[i].trim(), 10)
+        for (let i = 0; i < raw.length; i++) {
+            let v = parseInt(raw[i].trim(), 10)
             if (!isNaN(v)) out.push(v)
         }
         return out
@@ -711,10 +950,16 @@ Item {
 
     function iconLibraryCandidates() {
         var configured = String(cfg.serviceIconDirectory || "").trim()
-        if (configured !== "") return [Icons.expandHome(configured, homeDir)]
-        var bundled = String(Qt.resolvedUrl("../../assets/library")).replace(/^file:\/\//, "")
-        return [homeDir + "/.local/share/dockmoid/icons/svg",
-                homeDir + "/.local/share/dockmoid/icons",
+        if (configured !== "") {
+            const expanded = Icons.expandHome(configured, homeDir)
+            const oldDefault = dataDir + "/dockmoid/icons/svg"
+            if (expanded === oldDefault)
+                return [dataDir + "/dockmoid/dashboard-icons/svg", expanded]
+            return [expanded]
+        }
+        var bundled = decodeURIComponent(String(Qt.resolvedUrl("../../assets/library")).replace(/^file:\/\//, ""))
+        return [dataDir + "/dockmoid/dashboard-icons/svg", dataDir + "/dockmoid/icons/selfhst/svg", dataDir + "/dockmoid/icons/svg",
+                dataDir + "/dockmoid/icons",
                 homeDir + "/Pictures/selfhst", homeDir + "/pictures/selfhst",
                 bundled]
     }
@@ -722,8 +967,8 @@ Item {
     function reloadIconLibrary() {
         var dirs = iconLibraryCandidates().map(shellQuote).join(" ")
         // First line is the folder that won, the rest is its listing.
-        var cmd = "for d in " + dirs + "; do if [ -d \"$d\" ]; then echo \"$d\"; ls -1 \"$d\"; break; fi; done"
-        runner.run(cmd, "icons", function (code, out) {
+        var cmd = "for d in " + dirs + "; do [ -d \"$d\" ] || continue; found=; for f in \"$d\"/*.svg \"$d\"/*.png \"$d\"/*.webp; do if [ -f \"$f\" ]; then found=1; break; fi; done; [ -n \"$found\" ] || continue; echo \"$d\"; ls -1 \"$d\"; break; done"
+        run(cmd, "icons", function (code, out) {
             var lines = String(out || "").split("\n")
             var dir = code === 0 ? lines.shift().trim() : ""
             iconLibraryDir = dir
@@ -737,6 +982,9 @@ Item {
     Connections {
         target: backend.cfg
         function onServiceIconDirectoryChanged() { backend.reloadIconLibrary() }
+        function onCustomIconsChanged() { backend.iconCache = ({}); backend.iconRevision++ }
+        function onCustomIconFilesChanged() { backend.iconCache = ({}); backend.iconRevision++ }
+
     }
 
     property var iconCache: ({})
@@ -754,22 +1002,25 @@ Item {
      */
     function iconFor(rec) {
         if (!rec) return ({ "url": "", "colored": false })
-        var key = rec.name + "|" + rec.image + "|" + rec.service + "|" + rec.project
+        var custom = customStore.urlFor(rec)
+        if (custom) return custom
+        var key = iconRevision + "|" + rec.name + "|" + rec.image + "|" + rec.service + "|" + rec.project
             + "|" + cfg.iconVariant + "|" + darkTheme + "|" + cfg.coloredServiceIcons + "|" + useIconLibrary
         var hit = iconCache[key]
         if (hit) return hit
-        var result = ({ "url": "", "colored": false })
+        var result = ({ "url": "", "colored": false, "hidden": false })
         if (useIconLibrary) {
-            var rule = Icons.ruleMatch(iconRules, rec.name + " " + rec.image + " " + rec.service)
-            var name = null
+            let rule = Icons.ruleMatch(iconRules, rec.name + " " + rec.image + " " + rec.service)
+            let name = null
             if (rule === undefined) {
                 name = Icons.libraryMatch(iconEntries,
                     Icons.libraryCandidates(rec.name, rec.service, rec.image, rec.project))
             } else if (rule !== null && iconEntries[rule.toLowerCase()]) {
                 name = rule.toLowerCase()
             }
+            if (rule === null) result.hidden = true
             if (name !== null) {
-                var file = Icons.libraryFile(iconEntries, name, cfg.iconVariant, darkTheme)
+                let file = Icons.libraryFile(iconEntries, name, cfg.iconVariant, darkTheme)
                 if (file !== "")
                     result = ({ "url": "file://" + iconLibraryDir + "/" + file,
                                 "colored": cfg.coloredServiceIcons })
@@ -788,15 +1039,39 @@ Item {
     }
 
     /* Centralised so every view builds identical links for the same container. */
-    function linksFor(rec) {
+    function browserKey(rec) { return engineBinary + "|" + (rec.project && rec.service ? rec.project + "/" + rec.service : rec.name) }
+    function browserSettings(value) { try { return JSON.parse(value || "{}") } catch(e) { return {} } }
+    function allLinksFor(rec) {
         if (!rec || !cfg.enableBrowserLinks) return []
-        return Parsers.buildLinks(rec.ports, {
-            "lanHost": lanHost,
-            "tailscaleHost": tailscaleHost,
-            "allowLan": cfg.allowLanLinks,
-            "allowTailscale": cfg.allowTailscaleLinks,
-            "httpsPorts": httpsPorts
+        const links = Parsers.buildLinks(rec.ports, {lanHost:lanHost,tailscaleHost:tailscaleHost,
+            allowLan:cfg.allowLanLinks,allowTailscale:cfg.allowTailscaleLinks,httpsPorts:httpsPorts})
+            .filter(function(link) { return !backend.remoteEngine || ["localhost","127.0.0.1","::1"].indexOf(link.host) < 0 })
+        return links.map(function(link) {
+            return Object.assign({}, link, {port:String(link.port),url:Parsers.linkUrl(link),
+                title:i18n("%1 · %2",link.label,String(link.port))})
         })
+    }
+    function linksFor(rec) {
+        if (!rec) return []
+        const key = browserKey(rec)
+        const hidden = browserSettings(cfg.hiddenBrowserPorts)[key] || []
+        const preferred = browserSettings(cfg.preferredBrowserLinks)[key] || ""
+        return allLinksFor(rec).filter(function(link) { return hidden.indexOf(String(link.port)) < 0 })
+            .sort(function(a,b) { return Number(b.url === preferred) - Number(a.url === preferred) })
+    }
+    function preferBrowserLink(rec, link) {
+        const next = browserSettings(cfg.preferredBrowserLinks)
+        if (link) next[browserKey(rec)] = link.url || Parsers.linkUrl(link)
+        else delete next[browserKey(rec)]
+        cfg.preferredBrowserLinks = JSON.stringify(next); revision++
+    }
+    function browserPortVisible(rec, port) { return (browserSettings(cfg.hiddenBrowserPorts)[browserKey(rec)] || []).indexOf(String(port)) < 0 }
+    function showBrowserPort(rec, port, visible) {
+        const next = browserSettings(cfg.hiddenBrowserPorts), key = browserKey(rec)
+        let ports = next[key] || []
+        ports = ports.filter(function(value) { return value !== String(port) })
+        if (!visible) ports.push(String(port))
+        next[key] = ports; cfg.hiddenBrowserPorts = JSON.stringify(next); revision++
     }
 
     function openLink(link) {
@@ -816,7 +1091,7 @@ Item {
             "name": shellQuote(rec.name),
             "image": shellQuote(rec.image)
         }
-        for (var k in (extra || {})) vars[k] = extra[k]
+        for (let k in (extra || {})) vars[k] = extra[k]
         return vars
     }
 
@@ -846,14 +1121,18 @@ Item {
         if (!rec) return
         var cmd = containerCommand(cfg[commandKey], rec)
         if (!cmd) return
+        const labels = {startOneCommand:i18n("Starting…"),stopOneCommand:i18n("Stopping…"),restartOneCommand:i18n("Restarting…"),killOneCommand:i18n("Stopping…"),pauseOneCommand:i18n("Pausing…"),unpauseOneCommand:i18n("Resuming…"),removeOneCommand:i18n("Removing…")}
+        if (!beginOperation(rec, labels[commandKey] || i18n("Working…"))) return
         muteContainer(rec.id)
-        runner.run(cmd, commandKey, function (code, out, err) {
+        run(cmd, commandKey, function (code, out, err) {
+            backend.finishOperation(rec, code === 0, code === 0 ? successText : backend.firstLine(err) || i18n("Action failed"))
             backend.reportResult(rec.name, successText, i18n("Command failed"), code, out, err)
             backend.refresh({ "withStats": false })
         })
     }
 
     function startContainer(rec) {
+        if (rec && rec.state === "not-created") { composeRun(rec, "create-service", rec.name); return }
         runOnContainer(rec, "startOneCommand", i18n("Container started"))
     }
 
@@ -888,7 +1167,7 @@ Item {
             "name": shellQuote(newName)
         })
         muteContainer(rec.id)
-        runner.run(cmd, "rename", function (code, out, err) {
+        run(cmd, "rename", function (code, out, err) {
             backend.reportResult(rec.name, i18n("Renamed to %1", newName),
                                  i18n("Could not rename container"), code, out, err)
             backend.refresh({ "withStats": false })
@@ -897,31 +1176,58 @@ Item {
 
     /* Pull runs long enough that its output is worth watching, so it is
        streamed to the shared output panel instead of being swallowed. */
-    function pullImage(rec) {
+    function pullImage(rec, done, requestId, requestGeneration) {
         if (!rec) return
+        var epoch = requestGeneration === undefined ? generation : requestGeneration
+        if (epoch !== generation) return
+        requestId = requestId || newOutputRequest("pull", rec.id)
+        consumeOutputRequest(requestId)
         var cmd = expand(cfg.pullImageCommand, containerVars(rec))
-        backend.outputReady(i18n("Pulling %1", rec.image), i18n("Starting…"))
-        runner.run(cmd, "pull", function (code, out, err) {
+        var title = i18n("Pulling %1", rec.image)
+        if (!beginOperation(rec, i18n("Pulling image…"))) { if (done) done(false, i18n("An action is already running")); return }
+        backend.correlatedOutputReady("pull", rec.id, epoch, requestId, 0, title, i18n("Starting…"))
+        run(cmd, "pull", function (code, out, err) {
             var text = (out || "") + (err ? (out ? "\n" : "") + err : "")
-            backend.outputReady(i18n("Pulling %1", rec.image), text || i18n("(no output)"))
-            backend.actionDone(rec.name, code === 0 ? i18n("Image pulled") : i18n("Pull failed"), code === 0)
+            backend.correlatedOutputReady("pull", rec.id, epoch, requestId, 0, title, text || i18n("(no output)"))
+            backend.finishOperation(rec, code === 0, code === 0 ? i18n("Image pulled only") : backend.firstLine(err) || i18n("Pull failed"))
+            backend.actionDone(rec.name, code === 0 ? i18n("Image pulled. Existing containers keep their current image until recreated.")
+                : firstLine(err) || i18n("Pull failed (exit %1)", code), code === 0)
+            if (code === 0) {
+                backend.invalidateImage(rec.image)
+                backend.updateState[rec.image] = {state: "unchecked", pulled: true}
+                backend.saveUpdateCache()
+            }
+            if (done) done(code === 0, text)
             backend.refresh({ "withStats": false })
         })
     }
 
     /*
      * opts.images  — also remove every unused image, not just dangling ones
-     * opts.volumes — also remove unused volumes (this can delete data)
-     * Both default to off; the flags are appended to the configured command.
+     * opts.containers — explicitly remove stopped container instances
+     * Both default to off. Volumes and networks are never pruned here.
      */
-    function prune(opts) {
+    function cleanupCommand(opts) {
         opts = opts || {}
-        var cmd = String(cfg.pruneCommand || "")
-        if (opts.images) cmd += " -a"
-        if (opts.volumes) cmd += " --volumes"
-        runner.run(cmd, "prune", function (code, out, err) {
+        // Deliberately avoid system prune: it always removes stopped containers.
+        let commands = []
+        if (opts.containers === true) commands.push(engineBinary + " container prune -f")
+        commands.push(engineBinary + " image prune -f" + (opts.images === true ? " -a" : ""))
+        commands.push(engineBinary + " builder prune -f")
+        return commands.join(" && ")
+    }
+    function prune(opts, requestId, requestGeneration) {
+        if (isPodman || !Engines.supports("resources", isPodman)) { actionDone(i18n("Clean up"), i18n("Cleanup is unavailable for this engine."), false); return }
+        var epoch = requestGeneration === undefined ? generation : requestGeneration
+        if (epoch !== generation) return
+        requestId = requestId || newOutputRequest("prune", "")
+        consumeOutputRequest(requestId)
+        opts = opts || {}
+        const cmd = cleanupCommand(opts)
+        run(cmd, "prune", function (code, out, err) {
             var text = (out || "") + (err ? (out ? "\n" : "") + err : "")
-            backend.outputReady(i18n("Prune"), text || i18n("(no output)"))
+            backend.correlatedOutputReady("prune", "", epoch, requestId, 0,
+                                          i18n("Prune"), text || i18n("(no output)"))
             backend.actionDone(i18n("Docker"), code === 0 ? i18n("Prune finished") : i18n("Prune failed"), code === 0)
             backend.diskUsageKnown = false
             backend.refresh({ "withStats": false, "withDisk": true })
@@ -969,14 +1275,14 @@ Item {
         var names = []
         terminalChoices.forEach(function (c) { names.push(c[0]) })
         editorChoices.forEach(function (c) { if (names.indexOf(c[0]) < 0) names.push(c[0]) })
-        runner.run("for b in " + names.join(" ") + "; do command -v \"$b\" >/dev/null 2>&1 && echo \"$b\"; done",
+        run("for b in " + names.join(" ") + "; do command -v \"$b\" >/dev/null 2>&1 && echo \"$b\"; done",
                    "tools", function (code, out) {
             var found = {}
             String(out || "").split("\n").forEach(function (l) { if (l.trim() !== "") found[l.trim()] = true })
-            for (var i = 0; i < terminalChoices.length; i++) {
+            for (let i = 0; i < terminalChoices.length; i++) {
                 if (found[terminalChoices[i][0]]) { detectedTerminal = terminalChoices[i][1]; break }
             }
-            for (var j = 0; j < editorChoices.length; j++) {
+            for (let j = 0; j < editorChoices.length; j++) {
                 if (found[editorChoices[j][0]]) { detectedEditor = editorChoices[j][1]; break }
             }
         })
@@ -1000,12 +1306,12 @@ Item {
     function detectLaunchers() {
         var seen = {}
         var names = []
-        for (var i = 0; i < launchers.length; i++) {
-            var bin = launchers[i].binary
+        for (let i = 0; i < launchers.length; i++) {
+            let bin = launchers[i].binary
             if (/^[A-Za-z0-9._+-]+$/.test(bin) && !seen[bin]) { seen[bin] = true; names.push(bin) }
         }
         if (names.length === 0) { installedBinaries = ({}); return }
-        runner.run("for b in " + names.join(" ") + "; do command -v \"$b\" >/dev/null 2>&1 && echo \"$b\"; done",
+        run("for b in " + names.join(" ") + "; do command -v \"$b\" >/dev/null 2>&1 && echo \"$b\"; done",
                    "launchers", function (code, out) {
             var found = {}
             String(out || "").split("\n").forEach(function (l) { if (l.trim() !== "") found[l.trim()] = true })
@@ -1019,8 +1325,8 @@ Item {
     function launchersFor(rec) {
         var out = []
         if (!rec) return out
-        for (var i = 0; i < launchers.length; i++) {
-            var l = launchers[i]
+        for (let i = 0; i < launchers.length; i++) {
+            let l = launchers[i]
             if (!installedBinaries[l.binary]) continue
             if (l.scope === "container" && !rec.isRunning) continue
             if (l.scope === "project" && !rec.composeWorkDir) continue
@@ -1035,6 +1341,7 @@ Item {
      * {dir} is quoted; {id} and {shell} are fixed safe tokens.
      */
     function launch(rec, launcher) {
+        if (readOnly) { actionDone(i18n("Dockmoid"), i18n("Read-only mode is enabled"), false); return }
         if (!rec || !launcher) return
         function fail(text) { backend.actionDone(rec.name, text, false) }
         function run(shell) {
@@ -1058,7 +1365,7 @@ Item {
         function tryShell(index) {
             if (index >= shells.length) { fail(i18n("This container has no supported shell")); return }
             var check = engineBinary + " exec " + Parsers.shortId(rec.id) + " " + shells[index] + " -c true"
-            runner.run(check, "shell-check", function (code) {
+            run(check, "shell-check", function (code) {
                 if (code !== 0) tryShell(index + 1)
                 else run(shells[index])
             })
@@ -1075,9 +1382,40 @@ Item {
         })
     }
 
+    function openContainerFolder(rec) {
+        if (!rec || remoteEngine) { actionDone(i18n("Open folder"), i18n("Remote folders cannot be opened locally."), false); return }
+        let directory = String(rec.composeWorkDir || "")
+        if (!directory && rec.composeFiles) {
+            const file = Parsers.firstFile(rec.composeFiles)
+            directory = file.slice(0, file.lastIndexOf("/"))
+        }
+        if (directory.charAt(0) === "/" && !/[\x00-\x1f]/.test(directory)) { Qt.openUrlExternally("file://" + directory.split("/").map(encodeURIComponent).join("/")); return }
+        const id = Parsers.shortId(rec.id)
+        if (!/^[0-9a-fA-F]+$/.test(id)) return
+        run(engineBinary + " inspect --format '{{json .Mounts}}' " + id, "inspect-folder", function(code,out,err) {
+            if (code === 0) {
+                try {
+                    const mounts = JSON.parse(out)
+                    const bind = mounts.find(function(m) { return m.Type === "bind" && String(m.Source).charAt(0) === "/" })
+                    if (bind && !/[\x00-\x1f]/.test(String(bind.Source))) {
+                        const source = String(bind.Source)
+                        const cmd = "if test -d " + backend.shellQuote(source) + "; then printf '%s' " + backend.shellQuote(source) + "; else dirname -- " + backend.shellQuote(source) + "; fi"
+                        backend.run(cmd, "inspect-folder-path", function(pathCode,pathOut) {
+                            const folder = String(pathOut).trim()
+                            if (pathCode === 0 && folder.charAt(0) === "/") Qt.openUrlExternally("file://" + folder.split("/").map(encodeURIComponent).join("/"))
+                            else backend.actionDone(rec.name, i18n("Could not locate the container folder."), false)
+                        })
+                        return
+                    }
+                } catch(e) { }
+            }
+            backend.actionDone(rec.name, i18n("No local project folder or bind mount was found."), false)
+        })
+    }
+
     /* Open the compose file that defines a container, if it has one. */
     function editCompose(rec) {
-        if (!rec) return
+        if (!rec || remoteEngine) { actionDone(i18n("Compose"), i18n("Remote files cannot be opened as local paths."), false); return }
         var file = Parsers.firstFile(rec.composeFiles)
         if (file === "") {
             actionDone(rec.name, i18n("This container has no compose file"), false)
@@ -1106,7 +1444,7 @@ Item {
     }
 
     function findGroupRecord(groupKey) {
-        for (var i = 0; i < records.length; i++) {
+        for (let i = 0; i < records.length; i++) {
             if (groupKeyOf(records[i]) === groupKey) return records[i]
         }
         return null
@@ -1119,7 +1457,7 @@ Item {
 
     function groupMembers(groupKey) {
         var out = []
-        for (var i = 0; i < records.length; i++) {
+        for (let i = 0; i < records.length; i++) {
             if (groupKeyOf(records[i]) === groupKey) out.push(records[i])
         }
         return out
@@ -1141,8 +1479,8 @@ Item {
         }
         var cmd = expand(cfg[commandKey], { "project": rec.project })
         var members = groupMembers(groupKey)
-        for (var i = 0; i < members.length; i++) muteContainer(members[i].id)
-        runner.run(cmd, commandKey, function (code, out, err) {
+        for (let i = 0; i < members.length; i++) muteContainer(members[i].id)
+        run(cmd, commandKey, function (code, out, err) {
             backend.reportResult(groupKey, successText, i18n("Command failed"), code, out, err)
             backend.refresh({ "withStats": false })
         })
@@ -1155,7 +1493,8 @@ Item {
     // ---- engine ----
 
     function startEngine() {
-        runner.run(expand(cfg.startCommand, {}), "engine-start", function (code, out, err) {
+        if (!canControlService) { actionDone(i18n("Docker"), i18n("Local service control is unavailable for this connection."), false); return }
+        run(expand(cfg.startCommand, {}), "engine-start", function (code, out, err) {
             // The daemon needs a moment before the socket answers; give it a
             // beat, then re-probe rather than reporting a stale failure.
             probeDelay.restart()
@@ -1166,12 +1505,20 @@ Item {
     }
 
     function stopEngine() {
-        runner.run(expand(cfg.stopServiceCommand, {}), "engine-stop", function (code, out, err) {
-            runner.run(expand(cfg.stopSocketCommand, {}), "engine-socket", function () {
-                backend.onEngineDown()
-                backend.engineActive = false
-                backend.engineStateChanged(false)
-                backend.actionDone(i18n("Docker"), i18n("Docker stopped"), code === 0)
+        if (!canControlService) {
+            actionDone(i18n("Docker"), i18n("Service control is only available for the local system engine."), false)
+            return
+        }
+        run(expand(cfg.stopServiceCommand, {}), "engine-stop", function (code, out, err) {
+            if (code !== 0) {
+                backend.actionDone(i18n("Docker"), firstLine(err) || i18n("Could not stop Docker"), false)
+                backend.refresh({force: true, withStats: false})
+                return
+            }
+            backend.run(expand(cfg.stopSocketCommand, {}), "engine-socket", function (socketCode, socketOut, socketErr) {
+                backend.actionDone(i18n("Docker"), socketCode === 0 ? i18n("Stop requested; checking engine state…")
+                    : firstLine(socketErr) || i18n("Could not stop the Docker socket"), socketCode === 0)
+                probeDelay.restart()
             })
         })
     }
@@ -1186,31 +1533,50 @@ Item {
     // ======================================================== output ======
 
     /* Log tail for the inline output panel. */
-    function fetchLogs(rec, tail) {
+    function fetchLogs(rec, tail, requestId, requestGeneration) {
         if (!rec) return
+        var epoch = requestGeneration === undefined ? generation : requestGeneration
+        if (epoch !== generation) return
+        requestId = requestId || newOutputRequest("logs", rec.id)
+        consumeOutputRequest(requestId)
+        var sequence = nextOutputSequence(requestId)
         var cmd = expand(cfg.logsCommand, containerVars(rec, { "tail": parseInt(tail, 10) || 200 }))
-        runner.run(cmd, "logs", function (code, out, err) {
+        run(cmd, "logs", function (code, out, err) {
+            if (epoch !== backend.generation || backend.outputRequestSequences[requestId] !== sequence) return
             var text = (out || "")
             if (err) text += (text ? "\n" : "") + err
-            backend.outputReady(logsTitle(rec), text || i18n("(no output)"))
+            var content = text || i18n("(no output)")
+            backend.recordOutput("logs", rec.id, epoch, requestId, sequence, content)
+            backend.correlatedOutputReady("logs", rec.id, epoch, requestId, sequence,
+                                          logsTitle(rec), content)
         })
     }
 
-    /* The single title format used for log payloads, so every page that shows
-       logs can recognise an outputReady() meant for it. */
+    /* The title is presentation only; pages correlate logs by request token. */
     function logsTitle(rec) {
         return i18n("Logs — %1", rec ? rec.name : "")
     }
 
-    function fetchInspect(rec) {
+    function fetchInspect(rec, requestId, requestGeneration) {
         if (!rec) return
+        var epoch = requestGeneration === undefined ? generation : requestGeneration
+        if (epoch !== generation) return
+        requestId = requestId || newOutputRequest("inspect", rec.id)
+        consumeOutputRequest(requestId)
+        var sequence = nextOutputSequence(requestId)
         var cmd = expand(cfg.inspectCommand, containerVars(rec))
-        runner.run(cmd, "inspect", function (code, out, err) {
+        run(cmd, "inspect", function (code, out, err) {
+            if (epoch !== backend.generation || backend.outputRequestSequences[requestId] !== sequence) return
+            var title = i18n("Inspect — %1", rec.name)
             if (code !== 0) {
-                backend.outputReady(i18n("Inspect"), firstLine(err) || i18n("Could not inspect container"))
+                const failure = firstLine(err) || i18n("Could not inspect container")
+                backend.recordOutput("inspect", rec.id, epoch, requestId, sequence, failure)
+                backend.correlatedOutputReady("inspect", rec.id, epoch, requestId, sequence, title, failure)
                 return
             }
-            backend.outputReady(i18n("Inspect — %1", rec.name), prettyJson(out))
+            var content = prettyJson(out)
+            backend.recordOutput("inspect", rec.id, epoch, requestId, sequence, content)
+            backend.correlatedOutputReady("inspect", rec.id, epoch, requestId, sequence, title, content)
         })
     }
 
@@ -1236,16 +1602,16 @@ Item {
     function recordSamples() {
         var max = Math.max(10, cfg.historySamples)
         var alive = {}
-        for (var i = 0; i < records.length; i++) {
-            var r = records[i]
+        for (let i = 0; i < records.length; i++) {
+            let r = records[i]
             if (!r.isRunning) continue
             alive[r.id] = true
-            var h = history[r.id] || { "cpu": [], "mem": [] }
+            let h = history[r.id] || { "cpu": [], "mem": [] }
             h.cpu = Parsers.pushSample(h.cpu, r.cpuPct, max)
             h.mem = Parsers.pushSample(h.mem, r.memPct, max)
             history[r.id] = h
         }
-        for (var id in history) if (!alive[id]) delete history[id]
+        for (let id in history) if (!alive[id]) delete history[id]
     }
 
     function historyFor(id) {
@@ -1276,48 +1642,52 @@ Item {
 
     function probeTargets() {
         var out = {}
-        for (var i = 0; i < records.length; i++) {
-            var r = records[i]
+        for (let i = 0; i < records.length; i++) {
+            let r = records[i]
             if (!r.isRunning) continue
-            var url = Parsers.probeUrlFor(r, probeRules)
+            let url = Parsers.probeUrlFor(r, probeRules)
             if (url !== "") out[r.id] = url
         }
         return out
     }
 
     function applyProbes() {
-        for (var i = 0; i < records.length; i++) {
-            var r = records[i]
-            var url = r.isRunning ? Parsers.probeUrlFor(r, probeRules) : ""
-            var res = url !== "" ? probeState[url] : undefined
+        for (let i = 0; i < records.length; i++) {
+            let r = records[i]
+            let url = r.isRunning ? Parsers.probeUrlFor(r, probeRules) : ""
+            let res = url !== "" ? probeState[url] : undefined
             r.probe = res ? (res.up ? "up" : "down") : ""
             r.probeMs = res ? res.ms : 0
         }
     }
 
+    property bool probesRunning: false
+
     function runProbes() {
-        if (!engineActive) return
+        if (!engineActive || !curlAvailable || probesRunning) return
         var targets = probeTargets()
         var urls = []
-        for (var id in targets) if (urls.indexOf(targets[id]) < 0) urls.push(targets[id])
+        for (let id in targets) if (urls.indexOf(targets[id]) < 0) urls.push(targets[id])
         if (urls.length === 0) { if (Object.keys(probeState).length > 0) { probeState = ({}); applyProbes(); syncModel() } return }
+        probesRunning = true
         var list = urls.map(shellQuote).join(" ")
-        var cmd = "for u in " + list + "; do r=$(curl -sk -o /dev/null -m 5 -w '%{http_code} %{time_total}' \"$u\" 2>/dev/null); echo \"$u ${r:-000 0}\"; done"
-        runner.run(cmd, "probes", function (code, out) {
+        var cmd = "n=0; for u in " + list + "; do (r=$(curl -s -o /dev/null -m 5 -w '%{http_code} %{time_total}' \"$u\" 2>/dev/null); printf '%s %s\\n' \"$u\" \"${r:-000 0}\") & n=$((n+1)); if [ $((n%4)) -eq 0 ]; then wait; fi; done; wait"
+        run(cmd, "probes", function (code, out) {
+            backend.probesRunning = false
             var res = Parsers.parseProbeResults(out)
             var before = backend.probeState
             backend.probeState = res
             backend.announceProbeChanges(before, res)
             backend.applyProbes(); backend.syncModel(); backend.recomputeTotals(); backend.revision++
-        })
+        }, {timeout: Math.max(10000, Math.ceil(urls.length / 4) * 6000)})
     }
 
     function announceProbeChanges(before, after) {
         if (!cfg.useNotifications || !cfg.notifyOnProbe) return
         var lines = []
-        for (var i = 0; i < records.length; i++) {
-            var r = records[i]
-            var url = Parsers.probeUrlFor(r, probeRules)
+        for (let i = 0; i < records.length; i++) {
+            let r = records[i]
+            let url = Parsers.probeUrlFor(r, probeRules)
             if (url === "" || !before[url] || !after[url]) continue
             if (muted[r.id] && muted[r.id] > Date.now()) continue
             if (before[url].up && !after[url].up) lines.push(i18n("%1 stopped answering at %2", r.name, url))
@@ -1342,22 +1712,38 @@ Item {
 
     function loadUpdateCache() {
         try {
-            var data = JSON.parse(String(cfg.updateCache || "{}"))
-            updateState = (data && typeof data === "object") ? data : ({})
+            let data = JSON.parse(String(cfg.updateCache || "{}"))
+            updateState = data.__hosts && data.__hosts[engineBinary] ? data.__hosts[engineBinary] : ({})
         } catch (e) { updateState = ({}) }
     }
 
+    function saveUpdateCache() {
+        var data
+        try { data = JSON.parse(String(cfg.updateCache || "{}")) } catch (e) { data = {} }
+        if (!data.__hosts) data = {__hosts: {}}
+        data.__hosts[engineBinary] = updateState
+        cfg.updateCache = JSON.stringify(data)
+    }
+
+    function invalidateImage(image) {
+        delete updateState[image]
+        updateState.__checked = 0
+        saveUpdateCache(); applyUpdates(); syncModel(); revision++
+    }
+
     function updatesDue() {
-        if (!cfg.checkImageUpdates || updateRunning) return false
+        if (!cfg.checkImageUpdates || !buildxAvailable || updateRunning) return false
         var every = Math.max(1, cfg.updateCheckHours) * 3600 * 1000
         return Date.now() - (updateState["__checked"] || 0) >= every
     }
 
     function applyUpdates() {
         var n = 0
-        for (var i = 0; i < records.length; i++) {
-            var u = updateState[records[i].image]
+        for (let i = 0; i < records.length; i++) {
+            let u = updateState[records[i].image]
             records[i].updateAvailable = !!u && u.state === "update"
+            records[i].updateState = updateRunning ? "checking" : u ? u.state : buildxAvailable ? "unchecked" : "unsupported"
+            records[i].imagePulled = !!u && u.pulled === true
             if (records[i].updateAvailable) n++
         }
         updateCount = n
@@ -1365,8 +1751,8 @@ Item {
 
     /* Ask the registry about each distinct image, one at a time, and only on a
        slow schedule: a check is a network round trip per image. */
-    function startUpdateCheck() {
-        if (updateRunning || !cfg.checkImageUpdates) return
+    function startUpdateCheck(force) {
+        if (updateRunning || (!cfg.checkImageUpdates && !force) || !buildxAvailable) return
         var refs = []
         records.forEach(function (r) {
             if (Parsers.isCheckableImage(r.image) && refs.indexOf(r.image) < 0) refs.push(r.image)
@@ -1374,7 +1760,8 @@ Item {
         if (refs.length === 0) return
         updateQueue = refs
         updateRunning = true
-        updateState["__before"] = Object.keys(updateState).filter(function (k) { return updateState[k].state === "update" }).join("\n")
+        applyUpdates(); syncModel(); revision++
+        updateState["__before"] = Object.keys(updateState).filter(function (k) { return updateState[k] && updateState[k].state === "update" }).join("\n")
         nextUpdateCheck()
     }
 
@@ -1382,8 +1769,12 @@ Item {
         if (updateQueue.length === 0) { finishUpdateCheck(); return }
         var ref = updateQueue[0]
         updateQueue = updateQueue.slice(1)
-        var cmd = expand(cfg.updateCheckCommand, { "image": shellQuote(ref) })
-        runner.run(cmd, "update-check", function (code, out) {
+        var used = records.find(function (r) { return r.image === ref && r.imageId })
+        var template = String(cfg.updateCheckCommand || "")
+        var cmd = expand(template, { "image": shellQuote(ref) })
+        if (used && template.indexOf("image inspect {image}") >= 0)
+            cmd = cmd.replace("image inspect " + shellQuote(ref), "image inspect " + shellQuote(used.imageId))
+        run(cmd, "update-check", function (code, out) {
             updateState[ref] = { "state": code === 0 ? Parsers.compareDigests(out) : "unknown" }
             backend.nextUpdateCheck()
         })
@@ -1395,25 +1786,69 @@ Item {
         updateState["__checked"] = Date.now()
         updateRunning = false
         var fresh = Object.keys(updateState).filter(function (k) {
-            return k.indexOf("__") !== 0 && updateState[k].state === "update" && before.indexOf(k) < 0
+            return k.indexOf("__") !== 0 && updateState[k] && updateState[k].state === "update" && before.indexOf(k) < 0
         })
-        try { cfg.updateCache = JSON.stringify(updateState) } catch (e) { /* cache is optional */ }
+        try { saveUpdateCache() } catch (e) { /* cache is optional */ }
         applyUpdates(); syncModel(); revision++
         if (fresh.length > 0 && cfg.useNotifications && cfg.notifyOnUpdate)
             notify(i18n("Docker"), i18np("A newer image is available: %2", "Newer images are available: %2", fresh.length, fresh.slice(0, 4).join(", ")), "update")
     }
 
     /* "Update": pull the newer image and recreate the container from it. */
-    function updateContainer(rec) {
-        if (!rec) return
+    function updateContainer(rec, done) {
+        if (!rec || readOnly) { if (done) done(false, i18n("Read-only mode is enabled")); return }
         muteContainer(rec.id)
-        if (rec.project !== "" && Parsers.isSafeToken(rec.project) && Parsers.isSafeToken(rec.service)) {
-            composeRun(rec, "update-service", rec.name)
-            return
+        if (rec.project && rec.service && canUseCompose) {
+            composeRun(rec, rec.isRunning ? "update-service-running" : "update-service-stopped", rec.name, done)
+        } else {
+            // A standalone container has no saved Compose recipe from which to
+            // recreate it safely. Pulling the image is the only lossless action.
+            const message = i18n("Pull and recreate requires an accessible Compose service. Use Pull image only, then recreate with the original deployment configuration.")
+            actionDone(rec.name, message, false)
+            if (done) done(false, message)
         }
-        // A plain `docker run` container cannot be recreated for you (its run
-        // options are not stored), so only the pull is possible.
-        pullImage(rec)
+    }
+
+    property bool batchUpdating: false
+    property string batchStatus: ""
+    property var batchResults: []
+
+    function updateTargets(allRunning, includeStopped) {
+        var seen = {}
+        return records.filter(function (r) {
+            var key = r.project && r.service ? r.project + "/" + r.service : r.id
+            if (r.state === "not-created" || (!r.isRunning && !includeStopped) || (!allRunning && !r.updateAvailable) || seen[key]) return false
+            seen[key] = true
+            return true
+        })
+    }
+
+    function updateMany(targets) {
+        if (readOnly || batchUpdating || targets.length === 0) return
+        batchUpdating = true; batchResults = []
+        var queue = targets.slice()
+        var count = queue.length
+        var epoch = generation
+        function next() {
+            if (epoch !== backend.generation) return
+            if (queue.length === 0) {
+                backend.batchUpdating = false
+                backend.batchStatus = i18n("Finished %1 selected actions", count)
+                backend.outputReady(i18n("Update results"), backend.batchResults.join("\n\n"))
+                backend.refresh({force: true, withStats: false})
+                return
+            }
+            var rec = queue.shift()
+            const recreate = rec.project && rec.service && backend.canUseCompose
+            backend.batchStatus = i18n("Processing %1 (%2 of %3)", rec.name, count - queue.length, count)
+            const perform = recreate ? backend.updateContainer : backend.pullImage
+            perform(rec, function (ok, text) {
+                if (epoch !== backend.generation) return
+                backend.batchResults = backend.batchResults.concat([(ok ? "✓ " : "✗ ") + rec.name + " — " + (recreate ? i18n("Pull and recreate") : i18n("Pull image only")) + "\n" + text])
+                Qt.callLater(next)
+            })
+        }
+        next()
     }
 
     // ======================================================== compose ======
@@ -1423,69 +1858,154 @@ Item {
      * and folder (read from the labels Docker recorded) are passed explicitly,
      * so this works from anywhere and not only inside the project directory.
      */
-    function composeRun(rec, verb, label) {
-        if (!rec || rec.project === "" || !Parsers.isSafeToken(rec.project)) {
-            backend.actionDone(label || rec.name, i18n("This container is not part of a Compose project"), false)
+    function validateCompose(rec, callback) {
+        if (!canUseCompose || !rec || !rec.composeFiles) {
+            callback(false, remoteEngine ? i18n("Remote Compose files need a verified local project mapping.")
+                : i18n("Compose or the project's files are unavailable; use Pull image instead."))
             return
         }
-        var base = expand(cfg.composeCommand, {}) + " -p " + rec.project + " "
-            + Parsers.composeFileArgs(rec.composeFiles, shellQuote)
-        var steps = {
-            "up": base + " up -d",
-            "down": base + " down",
-            "pull": base + " pull",
-            "recreate": base + " up -d --force-recreate",
-            "update": base + " pull && " + base + " up -d",
-            "update-service": Parsers.isSafeToken(rec.service)
-                ? base + " pull " + rec.service + " && " + base + " up -d " + rec.service : ""
+        var files = String(rec.composeFiles).split(",").filter(function (f) { return f.trim() !== "" })
+        var checks = files.map(function (f) { return "test -r " + backend.shellQuote(f.trim()) })
+        if (rec.composeWorkDir) checks.push("test -d " + shellQuote(rec.composeWorkDir))
+        run(checks.join(" && "), "validate-compose", function (code) {
+            callback(code === 0, code === 0 ? "" : i18n("Compose file or working directory is not accessible on this computer."))
+        })
+    }
+
+    function composeRun(rec, verb, label, done, requestId, requestGeneration) {
+        var epoch = requestGeneration === undefined ? generation : requestGeneration
+        if (epoch !== generation) return
+        var pending = backend.outputRequestPending ? backend.latestOutputRequest : null
+        if (!requestId && pending && pending.kind === "compose"
+                && pending.recordId === (rec ? rec.id : "") && pending.generation === epoch)
+            requestId = pending.requestId
+        requestId = requestId || newOutputRequest("compose", rec ? rec.id : "")
+        consumeOutputRequest(requestId)
+        var title = i18n("Compose %1 — %2", verb, rec && rec.project ? rec.project : (label || i18n("project")))
+        if (!rec || !rec.project || !Parsers.isSafeToken(rec.project) || readOnly) {
+            const unavailable = i18n("This Compose action is unavailable.")
+            correlatedOutputReady("compose", rec ? rec.id : "", epoch, requestId, 0, title, unavailable)
+            actionDone(label || i18n("Compose"), unavailable, false)
+            if (done) done(false, unavailable)
+            return
         }
-        var cmd = steps[verb]
-        if (!cmd) return
-        if (rec.composeWorkDir) cmd = "cd " + shellQuote(rec.composeWorkDir) + " && " + cmd
-        var title = i18n("Compose %1 — %2", verb.replace("-service", ""), rec.project)
-        var members = groupMembers(groupKeyOf(rec))
-        for (var i = 0; i < members.length; i++) muteContainer(members[i].id)
-        backend.outputReady(title, i18n("Starting…"))
-        runner.run(cmd, "compose-" + verb, function (code, out, err) {
-            var text = (out || "") + (err ? (out ? "\n" : "") + err : "")
-            backend.outputReady(title, text || i18n("(no output)"))
-            backend.actionDone(label || rec.project, code === 0 ? i18n("Done") : i18n("Failed — see the output"), code === 0)
-            backend.refresh({ "withStats": false })
+        const tracked = ["up","stop","restart","recreate","update","update-service-running","update-service-stopped","create-service"].indexOf(verb) >= 0
+        if (tracked && !beginOperation(rec, verb.indexOf("update") === 0 ? i18n("Pulling and recreating…") : i18n("Applying Compose action…"))) {
+            if (done) done(false, i18n("An action is already running")); return
+        }
+        validateCompose(rec, function (ok, reason) {
+            if (epoch !== backend.generation) return
+            if (!ok) {
+                if (tracked) backend.finishOperation(rec, false, reason)
+                correlatedOutputReady("compose", rec.id, epoch, requestId, 0, title, reason)
+                backend.actionDone(label || rec.project, reason, false)
+                if (done) done(false, reason)
+                return
+            }
+            var base = backend.expand(backend.cfg.composeCommand, {}) + " -p " + rec.project + " "
+                + Parsers.composeFileArgs(rec.composeFiles, backend.shellQuote)
+            var steps = {
+                "create-service": Parsers.isSafeToken(rec.service) ? base + " up -d --no-deps " + rec.service : "",
+                up: base + " up -d", down: base + " down", pull: base + " pull", stop: base + " stop",
+                restart: base + " restart", ps: base + " ps -a",
+                logs: base + " logs --no-color --tail " + Math.max(1, Math.min(10000, Number(backend.cfg.logTailLines) || 200)),
+                recreate: base + " up -d --force-recreate",
+                update: base + " pull && " + base + " up -d",
+                "update-service-running": Parsers.isSafeToken(rec.service)
+                    ? base + " pull " + rec.service + " && " + base + " up -d --no-deps --force-recreate " + rec.service : "",
+                "update-service-stopped": Parsers.isSafeToken(rec.service)
+                    ? base + " pull " + rec.service + " && " + base + " up --no-start --no-deps --force-recreate " + rec.service : ""
+            }
+            var cmd = steps[verb]
+            if (!cmd) {
+                const unsupported = i18n("Unsupported action")
+                if (tracked) backend.finishOperation(rec, false, unsupported)
+                correlatedOutputReady("compose", rec.id, epoch, requestId, 0, title, unsupported)
+                if (done) done(false, unsupported)
+                return
+            }
+            if (rec.composeWorkDir) cmd = "cd " + backend.shellQuote(rec.composeWorkDir) + " && " + cmd
+            backend.muteContainer(rec.id)
+            backend.correlatedOutputReady("compose", rec.id, epoch, requestId, 0, title, i18n("Starting…"))
+            backend.run(cmd, "compose-" + verb, function (code, out, err) {
+                var text = (out || "") + (err ? (out ? "\n" : "") + err : "")
+                backend.correlatedOutputReady("compose", rec.id, epoch, requestId, 0,
+                                              title, text || i18n("(no output)"))
+                if (tracked) backend.finishOperation(rec, code === 0, code === 0 ? (verb === "update-service-stopped" ? i18n("Updated · left stopped") : i18n("Completed")) : backend.firstLine(err) || i18n("Failed"))
+                backend.actionDone(label || rec.project, code === 0 ? i18n("Done") : backend.firstLine(err) || i18n("Failed — see the output"), code === 0)
+                if (code === 0) { backend.lastLabelIds = ""; backend.invalidateImage(rec.image) }
+                if (done) done(code === 0, text)
+                backend.refresh({withStats: false})
+            }, {timeout: 15 * 60 * 1000})
         })
     }
 
     // ===================================================== resources =======
 
-    property var resources: ({ "images": [], "volumes": [], "networks": [] })
+    property var resourceLists: ({ "images": [], "volumes": [], "networks": [] })
     property bool resourcesBusy: false
+    property var resourceErrors: ({})
+    property var resourceLoading: ({})
+    function configuredForImage(item) {
+        function canonical(value) {
+            let image=String(value||"").replace(/^docker.io\//,"").replace(/^library\//,"")
+            if (image.indexOf(":",image.lastIndexOf("/"))<0 && image.indexOf("@")<0) image+=":latest"
+            return image
+        }
+        return configuredServices.filter(function(service){return canonical(service.image)===canonical(item.ref)}).map(function(service){
+            return backend.records.find(function(rec){return rec.project===service.project&&rec.service===service.service}) || service
+        })
+    }
+    function containersForResource(kind, item) {
+        return records.filter(function(rec) {
+            if (rec.state === "not-created") return false
+            if (kind === "images") {
+                const a = String(rec.imageId || "").replace(/^sha256:/, "")
+                const b = String(item.id || "").replace(/^sha256:/, "")
+                return (a && b && (a.indexOf(b) === 0 || b.indexOf(a) === 0)) || rec.image === item.ref
+            }
+            if (kind === "networks") return String(rec.networks || "").split(",").some(function(n) { return n.trim() === item.name })
+            return String(rec.mounts || "").split(",").some(function(n) { return n.trim() === item.name })
+        })
+    }
 
-    function fetchResources(kind) {
+    property var resourceUpdatedAt: ({})
+    function fetchResources(kind, force) {
+        if(resourceLoading[kind] || (force===false && Date.now()-Number(resourceUpdatedAt[kind]||0)<30000))return
+        if (!Engines.supports("resources", isPodman)) { actionDone(i18n("Resources"), i18n("Resource browsing is not supported by this engine yet."), false); return }
         var key = { "images": "imagesCommand", "volumes": "volumesCommand", "networks": "networksCommand" }[kind]
         if (!key) return
+        let loading = Object.assign({}, resourceLoading); loading[kind] = true; resourceLoading = loading
+        let errors = Object.assign({}, resourceErrors); errors[kind] = ""; resourceErrors = errors
         resourcesBusy = true
-        runner.run(expand(cfg[key], {}), "res-" + kind, function (code, out, err) {
+        run(expand(cfg[key], {}), "res-" + kind, function (code, out, err) {
             var list = []
             if (code === 0) {
+                const updated=Object.assign({},backend.resourceUpdatedAt);updated[kind]=Date.now();backend.resourceUpdatedAt=updated
                 list = kind === "images" ? Parsers.parseImages(out)
                      : (kind === "volumes" ? Parsers.parseVolumes(out) : Parsers.parseNetworks(out))
                 backend.lastError = ""
             } else {
-                backend.actionDone(i18n("Docker"), firstLine(err) || i18n("Could not read %1", kind), false)
+                const reason = firstLine(err) || i18n("Could not read %1", kind)
+                let errors = Object.assign({}, backend.resourceErrors); errors[kind] = reason; backend.resourceErrors = errors
+                backend.actionDone(i18n("Docker"), reason, false)
             }
-            var all = backend.resources
-            all[kind] = list
-            backend.resources = ({ "images": all.images, "volumes": all.volumes, "networks": all.networks })
-            backend.resourcesBusy = false
+            var all = Object.assign({}, backend.resourceLists)
+            if (code === 0) all[kind] = list
+            backend.resourceLists = ({ "images": all.images, "volumes": all.volumes, "networks": all.networks })
+            let loading = Object.assign({}, backend.resourceLoading); loading[kind] = false; backend.resourceLoading = loading
+            backend.resourcesBusy = Object.keys(loading).some(function(key) { return loading[key] })
         })
     }
 
     function removeResource(kind, item) {
+        if (isPodman || readOnly) { actionDone(i18n("Resources"), i18n("Removal is unavailable in this engine or mode."), false); return }
         var key = { "images": "removeImageCommand", "volumes": "removeVolumeCommand", "networks": "removeNetworkCommand" }[kind]
         var label = item.name || item.ref || item.id
         var cmd = expand(cfg[key], { "id": item.id || "", "name": shellQuote(item.name || "") })
-        if (kind === "images" && !/^[0-9a-f]+$/.test(item.id)) return
-        if (kind === "networks" && !/^[0-9a-f]+$/.test(item.id)) return
-        runner.run(cmd, "rm-" + kind, function (code, out, err) {
+        if (kind === "images" && !/^(?:sha256:)?[0-9a-f]+$/.test(item.id)) return
+        if (kind === "networks" && !/^(?:sha256:)?[0-9a-f]+$/.test(item.id)) return
+        run(cmd, "rm-" + kind, function (code, out, err) {
             backend.reportResult(label, i18n("Removed"), i18n("Could not remove"), code, out, err)
             backend.fetchResources(kind)
         })
@@ -1502,11 +2022,20 @@ Item {
 
     /* One-off, non-interactive command inside a running container. */
     function execOnce(rec, command, callback) {
-        if (!rec || !rec.isRunning || String(command).trim() === "") return
-        var cmd = engineBinary + " exec " + Parsers.shortId(rec.id) + " sh -c " + shellQuote(command)
-        runner.run(cmd, "exec", function (code, out, err) {
-            callback(code, (out || "") + (err ? (out ? "\n" : "") + err : ""))
-        })
+        if (readOnly) { callback(126, i18n("Read-only mode is enabled")); return }
+        if (!rec || !rec.isRunning || String(command).trim() === "") { callback(126, i18n("A running container and command are required.")); return }
+        var shells = ["/bin/sh", "/bin/bash", "/bin/ash"]
+        function tryShell(index) {
+            if (index >= shells.length) { callback(127, i18n("This container has no supported shell.")); return }
+            var prefix = backend.engineBinary + " exec " + Parsers.shortId(rec.id) + " " + shells[index]
+            backend.run(prefix + " -c true", "shell-check", function (code) {
+                if (code !== 0) { tryShell(index + 1); return }
+                backend.run(prefix + " -c " + backend.shellQuote(command), "exec", function (exitCode, out, err) {
+                    callback(exitCode, (out || "") + (err ? (out ? "\n" : "") + err : ""))
+                })
+            })
+        }
+        tryShell(0)
     }
 
     // =================================================== notifications =====
@@ -1519,6 +2048,7 @@ Item {
         id: notifier
         componentName: "dockmoid"
         eventId: backend.notifEvent
+        iconName: "dockmoid"
         title: backend.notifTitle
         text: backend.notifText
     }
@@ -1540,18 +2070,20 @@ Item {
        the settings leave the corresponding field empty. */
     function detectHosts() {
         if (!cfg.autoDetectHosts) return
-        runner.run("ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == \"src\") {print $(i + 1); exit}}' | grep . || hostname -I 2>/dev/null | awk '{print $1}'",
+        run("ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == \"src\") {print $(i + 1); exit}}' | grep . || hostname -I 2>/dev/null | awk '{print $1}'",
                    "lan-ip", function (code, out) {
             var ip = String(out || "").trim()
             if (code === 0 && /^[0-9.]+$/.test(ip)) detectedLanHost = ip
         })
-        runner.run("tailscale ip -4 2>/dev/null | head -n 1", "tailscale-ip", function (code, out) {
+        run("tailscale ip -4 2>/dev/null | head -n 1", "tailscale-ip", function (code, out) {
             var ip = String(out || "").trim()
             if (/^[0-9.]+$/.test(ip)) detectedTailscaleHost = ip
         })
     }
 
     Component.onCompleted: {
+        initialized = true
+        detectCapabilities()
         reloadIconLibrary()
         loadUpdateCache()
         detectContextHost()

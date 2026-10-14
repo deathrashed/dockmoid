@@ -1,0 +1,16 @@
+# Local runtime/development material
+work/
+scratch/
+outputs/
+node_modules/
+__pycache__/
+*.pyc
+*.qmlc
+*.jsc
+.env
+.env.*
+!.env.example
+*.plasmoid
+*-source.zip
+SHA256SUMS
+.DS_Store

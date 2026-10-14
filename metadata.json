@@ -4,10 +4,6 @@
             {
                 "Email": "deathrashedd@gmail.com",
                 "Name": "deathrashed"
-            },
-            {
-                "Email": "a2n.dev@pm.me",
-                "Name": "Bouteiller <a2n> Alan"
             }
         ],
         "Category": "System Information",
@@ -16,7 +12,7 @@
         "Id": "dockmoid.plasmoid",
         "License": "GPL-3.0+",
         "Name": "Dockmoid",
-        "Version": "2.2.0",
+        "Version": "2.4.0",
         "Website": "https://github.com/deathrashed/dockmoid",
         "Depends": [],
         "EnabledByDefault": false,

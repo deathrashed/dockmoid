@@ -11,6 +11,24 @@ import org.kde.kcmutils as KCM
 KCM.SimpleKCM {
     id: page
 
+    property alias cfg_terminalCommand: terminalCommand.text
+    property alias cfg_editorCommand: editorCommand.text
+    property alias cfg_launchers: launchers.value
+    property alias cfg_logTailLines: logTailLines.value
+
+    property string cfg_launchersDefault
+    property string cfg_terminalCommandDefault
+    property string cfg_editorCommandDefault
+    property int cfg_logTailLinesDefault
+    property bool cfg_enableBrowserLinksDefault
+    property bool cfg_autoDetectHostsDefault
+    property string cfg_lanHostDefault
+    property string cfg_tailscaleHostDefault
+    property bool cfg_allowLanLinksDefault
+    property bool cfg_allowTailscaleLinksDefault
+    property string cfg_httpsPortsDefault
+
+
     property alias cfg_enableBrowserLinks: enableBrowserLinks.checked
     property alias cfg_autoDetectHosts: autoDetect.checked
     property alias cfg_lanHost: lanHost.text
@@ -20,27 +38,36 @@ KCM.SimpleKCM {
     property alias cfg_httpsPorts: httpsPorts.text
 
     Kirigami.FormLayout {
+            Layout.fillWidth: true
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
             Kirigami.FormData.label: i18n("Open in browser")
         }
 
-        Controls.CheckBox {
-            id: enableBrowserLinks
+        RowLayout {
             Kirigami.FormData.label: i18n("Links:")
-            text: i18n("offer them for published ports")
-        }
-        Hint { text: i18n("Only TCP ports are offered; a UDP port cannot be opened in a browser.") }
+            Controls.CheckBox {
+                id: enableBrowserLinks
 
-        Controls.CheckBox {
-            id: autoDetect
-            enabled: enableBrowserLinks.checked
-            Kirigami.FormData.label: i18n("Addresses:")
-            text: i18n("find them automatically")
+                text: i18n("offer them for published ports")
+            }
+            QuestionHelp { helpText: i18n("Only TCP ports are offered; a UDP port cannot be opened in a browser.") }
         }
-        Hint { text: i18n("Fills in whichever fields below are left empty: the LAN address from your default route, and the Tailscale address if tailscale is installed and connected.") }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Addresses:")
+            Controls.CheckBox {
+                id: autoDetect
+                enabled: enableBrowserLinks.checked
+
+                text: i18n("find them automatically")
+            }
+            QuestionHelp { helpText: i18n("Fills in empty address fields using your default route and Tailscale connection. Ports published on every interface get LAN and Tailscale links. Ports bound to 127.0.0.1 get localhost links. Ports bound to one specific address use that address.") }
+        }
 
         Controls.TextField {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
             id: lanHost
             enabled: enableBrowserLinks.checked
             Kirigami.FormData.label: i18n("LAN address:")
@@ -53,33 +80,105 @@ KCM.SimpleKCM {
         }
 
         Controls.TextField {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
             id: tailscaleHost
             enabled: enableBrowserLinks.checked
             Kirigami.FormData.label: i18n("Tailscale address:")
             placeholderText: i18n("automatic")
         }
-        Controls.CheckBox {
-            id: allowTailscale
-            enabled: enableBrowserLinks.checked
-            text: i18n("offer it")
+        RowLayout {
+            Controls.CheckBox {
+                id: allowTailscale
+                enabled: enableBrowserLinks.checked
+                text: i18n("offer it")
+            }
+            QuestionHelp { helpText: i18n("A name works as well as an address, for example nas.local or a MagicDNS name.") }
         }
-        Hint { text: i18n("A name works as well as an address, for example nas.local or a MagicDNS name.") }
 
-        Controls.TextField {
-            id: httpsPorts
-            enabled: enableBrowserLinks.checked
+        RowLayout {
             Kirigami.FormData.label: i18n("Open with https:")
-            placeholderText: "443, 8443, 9443"
+            Controls.TextField {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                id: httpsPorts
+                enabled: enableBrowserLinks.checked
+
+                placeholderText: "443, 8443, 9443"
+            }
+            QuestionHelp { helpText: i18n("Comma separated host ports that speak https.") }
         }
-        Hint { text: i18n("Comma separated host ports that speak https.") }
+
+        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_enableBrowserLinks = page.cfg_enableBrowserLinksDefault; page.cfg_autoDetectHosts = page.cfg_autoDetectHostsDefault; page.cfg_lanHost = page.cfg_lanHostDefault; page.cfg_tailscaleHost = page.cfg_tailscaleHostDefault; page.cfg_allowLanLinks = page.cfg_allowLanLinksDefault; page.cfg_allowTailscaleLinks = page.cfg_allowTailscaleLinksDefault; page.cfg_httpsPorts = page.cfg_httpsPortsDefault } }
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Which address a port gets")
+            Kirigami.FormData.label: i18n("Terminal, editor and launchers")
         }
-        Hint {
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 30
-            text: i18n("A port published on every interface gets the LAN and Tailscale links. A port bound to 127.0.0.1 only gets a localhost link, since a LAN link to it would just fail. A port bound to one specific address uses that address.")
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Terminal")
         }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Command:")
+            Controls.TextField {
+                id: terminalCommand
+
+                placeholderText: i18n("automatic")
+            }
+            QuestionHelp { helpText: i18n("Leave empty to use the first terminal found (Konsole, GNOME Terminal, Kitty, Alacritty, Foot, WezTerm, Ghostty, XFCE Terminal, xterm). {command} is replaced with the docker command; without it the command is simply appended. Example: kitty -e {command}") }
+        }
+
+        Controls.SpinBox {
+            id: logTailLines
+            Kirigami.FormData.label: i18n("Log lines to load:")
+            from: 50; to: 10000; stepSize: 50; editable: true
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Editor")
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Command:")
+            Controls.TextField {
+                id: editorCommand
+
+                placeholderText: i18n("automatic")
+            }
+            QuestionHelp { helpText: i18n("Used by “Edit Compose File”. Leave empty to use Kate, gedit, VS Code or the system default, whichever exists. {file} is the compose file and {dir} its folder.") }
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("“Open in” menu")
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Launchers:")
+            StructuredRulesEditor {
+                id: launchers
+                title: i18n("Open-in launchers")
+                kind: "launcher"
+                delimiter: "|"
+                headers: [i18n("Label"), i18n("Icon name"), i18n("Scope"), i18n("Command")]
+                example: i18n("No launchers configured.")
+
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+            }
+            QuestionHelp { helpText: i18n("Scope “container” needs a running container and fills in {id} and {shell}; scope “project” needs a Compose folder and fills in {dir}. Launchers whose program is not installed are hidden automatically. Comments and malformed lines remain in the advanced text view.") }
+        }
+
+        Controls.Button {
+            text: i18n("Restore the default launchers")
+            icon.name: "edit-undo"
+            onClicked: page.cfg_launchers = page.cfg_launchersDefault
+        }
+        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_terminalCommand = page.cfg_terminalCommandDefault; page.cfg_editorCommand = page.cfg_editorCommandDefault; page.cfg_launchers = page.cfg_launchersDefault; page.cfg_logTailLines = page.cfg_logTailLinesDefault } }
+
+
     }
 }

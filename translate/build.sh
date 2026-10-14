@@ -1,6 +1,7 @@
 #!/bin/sh
 # Compile po/*.po into contents/locale/<lang>/LC_MESSAGES/*.mo, where Plasma looks.
-cd "$(dirname "$0")/.." || exit 1
+set -eu
+cd "$(dirname "$0")/.."
 domain=plasma_applet_dockmoid.plasmoid
 for po in po/*.po; do
     [ -e "$po" ] || { echo "no translations yet (see translate/extract.sh)"; exit 0; }

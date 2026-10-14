@@ -64,7 +64,7 @@
     <default>{engine} info --format {{.ServerVersion}}</default>
   </entry>
   <entry name="listCommand" type="String">
-    <default>{engine} ps --format json -a</default>
+    <default>{engine} ps --no-trunc --format json -a</default>
   </entry>
   <entry name="usageCommand" type="String">
     <default>{engine} stats --no-stream --format json</default>
@@ -121,13 +121,13 @@
 
   <!-- Compose project control -->
   <entry name="groupStartCommand" type="String">
-    <default>{engine} ps -aq --filter "label=com.docker.compose.project={project}" | xargs -r {engine} start</default>
+    <default>ids=$({engine} ps -aq --filter 'label=com.docker.compose.project={project}') || exit $?; [ -z "$ids" ] || printf '%s\n' "$ids" | xargs {engine} start</default>
   </entry>
   <entry name="groupStopCommand" type="String">
-    <default>{engine} ps -aq --filter "label=com.docker.compose.project={project}" | xargs -r {engine} stop</default>
+    <default>ids=$({engine} ps -aq --filter 'label=com.docker.compose.project={project}') || exit $?; [ -z "$ids" ] || printf '%s\n' "$ids" | xargs {engine} stop</default>
   </entry>
   <entry name="groupRestartCommand" type="String">
-    <default>{engine} ps -aq --filter "label=com.docker.compose.project={project}" | xargs -r {engine} restart</default>
+    <default>ids=$({engine} ps -aq --filter 'label=com.docker.compose.project={project}') || exit $?; [ -z "$ids" ] || printf '%s\n' "$ids" | xargs {engine} restart</default>
   </entry>
 
   <!-- Engine control -->
@@ -180,7 +180,7 @@
   <!-- The prune dialog appends the all-images flag (-a) and the volumes flag
        when their boxes are ticked. -->
   <entry name="pruneCommand" type="String">
-    <default>{engine} system prune -f</default>
+    <default>{engine} image prune -f &amp;&amp; {engine} builder prune -f</default>
   </entry>
 </group>
 
@@ -210,6 +210,18 @@
   </entry>
   <entry name="debugCommands" type="Bool">
     <default>false</default>
+  </entry>
+  <entry name="readOnly" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="profiles" type="String">
+    <default>{}</default>
+  </entry>
+  <entry name="activeProfile" type="String">
+    <default></default>
+  </entry>
+  <entry name="savedViews" type="String">
+    <default>[]</default>
   </entry>
 
   <!-- Container events worth a notification. All of them need
@@ -349,11 +361,23 @@ Terminal here|utilities-terminal|project|konsole --workdir {dir}]]></default>
 </group>
 
 <group name="displayConfigPage">
-  <!-- 0 = rows, 1 = table, 2 = compose groups -->
+  <entry name="serviceSectionSettings" type="String"><default>{}</default></entry>
+  <entry name="userServiceLinks" type="String"><default>{}</default></entry>
+  <entry name="tableColumnWidths" type="String"><default>{}</default></entry>
+  <entry name="tableVisibleColumns" type="String"><default></default></entry>
+  <entry name="logTimestampMode" type="Int"><default>1</default></entry>
+  <entry name="logTimestampPrecision" type="Int"><default>0</default></entry>
+  <entry name="preferredBrowserLinks" type="String"><default>{}</default></entry>
+  <entry name="hiddenBrowserPorts" type="String"><default>{}</default></entry>
+
+  <entry name="toolbarStyle" type="Int"><default>0</default><min>0</min><max>3</max></entry>
+  <entry name="popupWidth" type="Int"><default>648</default><min>396</min><max>3840</max></entry>
+  <entry name="popupHeight" type="Int"><default>432</default><min>252</min><max>2160</max></entry>
+  <!-- 0 = list (Minimal wraps cards), 1 = table, 2 = compose groups, 3 = icon grid -->
   <entry name="defaultViewMode" type="Int">
     <default>0</default>
   </entry>
-  <!-- 0 = minimal, 1 = normal, 2 = detailed, 3 = verbose -->
+  <!-- 0 = minimal cards, 1 = normal rows, 2 = detailed rows, 3 = everything -->
   <entry name="defaultDetailLevel" type="Int">
     <default>1</default>
   </entry>
@@ -379,6 +403,17 @@ Terminal here|utilities-terminal|project|konsole --workdir {dir}]]></default>
   <entry name="showResourceBars" type="Bool">
     <default>true</default>
   </entry>
+  <entry name="deploymentDirectory" type="String"><default></default></entry>
+  <entry name="deploymentStorageDirectory" type="String"><default></default></entry>
+  <entry name="deploymentRegistry" type="String"><default>docker.io</default></entry>
+  <entry name="deploymentRestartPolicy" type="String"><default>unless-stopped</default></entry>
+  <entry name="deploymentNetwork" type="String"><default></default></entry>
+  <entry name="engineStorageTarget" type="String"><default></default></entry>
+  <entry name="resourceBarMax" type="Int"><default>5</default></entry>
+  <entry name="defaultGridDetailLevel" type="Int"><default>1</default></entry>
+  <entry name="defaultTableDetailLevel" type="Int"><default>1</default></entry>
+  <!-- 0 ring, 1 whale, 2 count, 3 fraction, 4 status segments, 5 progress strip, 6 ring with attention. -->
+  <entry name="panelStyle" type="Int"><default>0</default></entry>
   <entry name="rowIconSize" type="Int">
     <default>0</default>
   </entry>
@@ -389,6 +424,10 @@ Terminal here|utilities-terminal|project|konsole --workdir {dir}]]></default>
   </entry>
   <entry name="separator" type="String">
     <default>~</default>
+  </entry>
+  <!-- 0 follows separateResult for existing profiles. -->
+  <entry name="badgeStyle" type="Int">
+    <default>0</default>
   </entry>
   <entry name="mainDot" type="Bool">
     <default>false</default>
@@ -451,6 +490,9 @@ Terminal here|utilities-terminal|project|konsole --workdir {dir}]]></default>
 </group>
 
 <group name="servicesConfigPage">
+  <entry name="customIconFiles" type="String">
+    <default>{}</default>
+  </entry>
   <!-- One "text=icon-name" rule per line: a container whose name, image or
        service contains the text gets that library icon. A bare text with no "="
        gives matching containers no icon. Tried before the automatic match. -->
@@ -458,10 +500,10 @@ Terminal here|utilities-terminal|project|konsole --workdir {dir}]]></default>
     <default></default>
   </entry>
 
-  <!-- Directory of coloured provider/service icons (selfh.st layout). When a
+  <!-- Directory of coloured provider/service icons (Dashboard Icons layout). When a
        container matches a file there it is drawn with that artwork instead of
        the bundled monochrome glyph. "~" is expanded. Empty means automatic:
-       the folder the Services page downloads to, then ~/Pictures/selfhst. -->
+       the Dashboard Icons folder, then legacy libraries, then bundled icons. -->
   <entry name="serviceIconDirectory" type="String">
     <default></default>
   </entry>
@@ -472,8 +514,7 @@ Terminal here|utilities-terminal|project|konsole --workdir {dir}]]></default>
     <default>0</default>
   </entry>
 
-  <!-- Colour the provider icons. Off means every icon is drawn as a themed
-       monochrome mask, which is what looks consistent with the panel. -->
+  <!-- Preserve service brand colours by default. Action/menu glyphs use the theme independently. -->
   <entry name="coloredServiceIcons" type="Bool">
     <default>true</default>
   </entry>

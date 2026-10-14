@@ -22,6 +22,21 @@ Item {
     required property var backend
 
     property var pendingRecord: null
+    signal runRequested(string recordId)
+    function openRun(rec) { if (!root.backend.readOnly && rec.isRunning) root.runRequested(rec.id) }
+
+    CustomIconDialog { id: iconChooser; backend: root.backend }
+    function chooseIcon(rec) { iconChooser.choose(rec) }
+
+    function confirmUpdate(rec) {
+        var recreate = rec.project && rec.service && backend.canUseCompose
+        confirm(recreate ? i18n("Update service %1?", rec.name) : i18n("Pull latest image for %1?", rec.name),
+            recreate ? (rec.isRunning
+                ? i18n("Host: %1\nImage: %2\nThe latest image will be pulled and this Compose service will be recreated and started. Expect a brief interruption. Other services are not recreated.", backend.engineBinary, rec.image)
+                : i18n("Host: %1\nImage: %2\nThe latest image will be pulled and this Compose service will be recreated without starting it. Other services are not recreated.", backend.engineBinary, rec.image))
+                : i18n("Host: %1\nImage: %2\nOnly the newer image is downloaded. The existing container keeps its current image until recreated using its deployment configuration.", backend.engineBinary, rec.image),
+            function () { if (recreate) root.backend.updateContainer(rec); else root.backend.pullImage(rec) })
+    }
 
     // ===================================================== remove ========
 
@@ -163,7 +178,7 @@ Item {
 
     function confirmPrune() {
         pruneImages.checked = false
-        pruneVolumes.checked = false
+        pruneContainers.checked = false
         root.backend.refreshDiskUsage()
         pruneDialog.open()
     }
@@ -171,7 +186,7 @@ Item {
     /* "Images", "Build Cache" ... -> the reclaimable size from `docker system df`. */
     function reclaimable(type) {
         var rows = root.backend.diskUsage || []
-        for (var i = 0; i < rows.length; i++) {
+        for (let i = 0; i < rows.length; i++) {
             if (rows[i].type.toLowerCase() === type) return rows[i].reclaimable || rows[i].size
         }
         return ""
@@ -186,7 +201,7 @@ Item {
 
         onAccepted: root.backend.prune({
             "images": pruneImages.checked,
-            "volumes": pruneVolumes.checked
+            "containers": pruneContainers.checked
         })
 
         ColumnLayout {
@@ -202,7 +217,7 @@ Item {
             PlasmaComponents.Label {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
-                text: i18n("Always removed: stopped containers, unused networks, dangling images and build cache. Running containers are never touched.")
+                text: i18n("Default cleanup removes dangling images and build cache. Containers, networks, volumes, Compose files and bind-mounted data are preserved.")
             }
 
             QQC2.CheckBox {
@@ -213,19 +228,17 @@ Item {
             }
 
             QQC2.CheckBox {
-                id: pruneVolumes
-                text: root.reclaimable("local volumes") !== ""
-                    ? i18n("Also remove unused volumes (%1 reclaimable)", root.reclaimable("local volumes"))
-                    : i18n("Also remove unused volumes")
+                id: pruneContainers
+                text: i18n("Also remove stopped containers")
             }
 
             PlasmaComponents.Label {
                 Layout.fillWidth: true
                 Layout.leftMargin: Kirigami.Units.gridUnit * 1.5
-                visible: pruneVolumes.checked
+                visible: pruneContainers.checked
                 wrapMode: Text.WordWrap
                 color: Kirigami.Theme.negativeTextColor
-                text: i18n("A volume is \"unused\" when no container exists that mounts it. Stopped stacks you plan to start again keep their data in volumes, and this deletes it for good.")
+                text: i18n("Remove stopped container instances and their writable layers. Compose services remain visible as Not created. Volumes and bind-mounted data are preserved.")
             }
 
             PlasmaComponents.Label {
@@ -234,9 +247,7 @@ Item {
                 font.family: "monospace"
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                 opacity: 0.7
-                text: plasmoid.configuration.pruneCommand
-                    + (pruneImages.checked ? " -a" : "")
-                    + (pruneVolumes.checked ? " --volumes" : "")
+                text: root.backend.cleanupCommand({images:pruneImages.checked,containers:pruneContainers.checked})
             }
         }
     }

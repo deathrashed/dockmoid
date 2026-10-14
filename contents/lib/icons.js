@@ -222,3 +222,36 @@ function libraryFile(entries, name, variant, darkTheme) {
     }
     return e.file;
 }
+
+/* Stable across recreation; endpoint prevents a remote namesake inheriting an icon. */
+function customKey(rec, endpoint) {
+    var target = rec.project && rec.service ? "service:" + rec.project + "/" + rec.service
+                                           : "name:" + String(rec.name || "");
+    return String(endpoint || "docker") + "|" + target;
+}
+
+function localIconPath(fileUrl) {
+    var url = String(fileUrl || "");
+    if (!/^file:\/\/\//.test(url)) return "";
+    var file;
+    try { file = decodeURIComponent(url.slice(7)); } catch (e) { return ""; }
+    if (!/\.(svg|png|webp)$/i.test(file) || /[\x00-\x1f]/.test(file)) return "";
+    return file;
+}
+
+function customEntries(json) {
+    try {
+        var value = JSON.parse(String(json || "{}"));
+        return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    } catch (e) { return {}; }
+}
+
+function customMatch(entries, rec, endpoint) {
+    var keys = [customKey(rec, endpoint), String(endpoint) + "|name:" + rec.name,
+                String(endpoint) + "|image:" + rec.image];
+    for (var i = 0; i < keys.length; i++) {
+        var entry = entries[keys[i]];
+        if (entry && typeof entry.file === "string" && /^[A-Za-z0-9._-]+\.(svg|png|webp)$/i.test(entry.file)) return entry;
+    }
+    return null;
+}

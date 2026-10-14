@@ -1,0 +1,8 @@
+{
+  "files": ["metadata.json", "install.sh", "LICENSE", "THIRD_PARTY_NOTICES.md", "packaging/dockmoid.plasmoid.appdata.xml"],
+  "trees": {
+    "contents": [".py", ".qml", ".js", ".xml", ".svg", ".png", ".webp", ".md", ".mo"],
+    "po": [".po", ".pot"],
+    "locale": [".mo"]
+  }
+}

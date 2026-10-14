@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Window
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.core as PlasmaCore
@@ -11,11 +12,21 @@ import org.kde.plasma.plasmoid
 // resolves at runtime, and the only form qmllint can type-check.
 import "Backend" as Backend
 import "Views" as Views
+import "components" as Components
 
 PlasmoidItem {
     id: main
 
-    readonly property var cfg: plasmoid.configuration
+    Plasmoid.hasConfigurationInterface: true
+
+    // Native keyboard activation toggles expansion; tray pointer clicks are
+    // forwarded to Compact. Detached views bring their existing window forward.
+    activationTogglesExpanded: true
+    Plasmoid.onActivated: {
+        if (main.detached) { main.expanded = false; detachedWindow.bringForward() }
+    }
+
+    readonly property var cfg: Plasmoid.configuration
 
     /*
      * The container list lives in the backend, not here, so the applet popup
@@ -116,16 +127,24 @@ PlasmoidItem {
      */
     function toggleView() {
         if (main.detached) {
-            detachedWindow.raise()
-            detachedWindow.requestActivate()
+            detachedWindow.bringForward()
         } else {
             main.expanded = !main.expanded
+        }
+    }
+
+    function openView() {
+        if (main.detached) {
+            detachedWindow.bringForward()
+        } else {
+            main.expanded = true
         }
     }
 
     // ======================================================= lifecycle ====
 
     Component.onCompleted: {
+        if (main.cfg.listCommand === "{engine} ps --format json -a") main.cfg.listCommand = "{engine} ps --no-trunc --format json -a"
         main.lastStatusMessage = i18n("Checking Docker…")
         main.installNotificationSupport()
         main.installThemeIcon()
@@ -153,7 +172,7 @@ PlasmoidItem {
      * One event per kind lets each be given its own sound or popup behaviour
      * under System Settings -> Notifications -> Dockmoid.
      */
-    readonly property int notifyrcVersion: 3
+    readonly property int notifyrcVersion: 4
 
     function installNotificationSupport() {
         if (main.notificationSupportInstalled) return
@@ -163,7 +182,7 @@ PlasmoidItem {
             "[Global]",
             "Name=Dockmoid",
             "Comment=Container and engine events",
-            "IconName=docker",
+            "IconName=dockmoid",
             "",
             "[Event/event]",
             "Name=Container action",
@@ -198,11 +217,11 @@ PlasmoidItem {
             "Comment=A newer image exists in the registry",
             "Action=Popup"
         ]
-        var dir = "~/.local/share/knotifications6"
+        var dir = "\"${XDG_DATA_HOME:-$HOME/.local/share}/knotifications6\""
         var file = dir + "/dockmoid.notifyrc"
         var cmd = "mkdir -p " + dir + " && { grep -qs 'dockmoid-notifyrc-v" + main.notifyrcVersion
             + "' " + file + " || { rm -f " + file
-        for (var i = 0; i < content.length; i++) {
+        for (let i = 0; i < content.length; i++) {
             cmd += " && echo '" + content[i] + "' >> " + file
         }
         cmd += "; }; }"
@@ -215,11 +234,11 @@ PlasmoidItem {
      * the widget runs (install.sh does the same at install time).
      */
     function installThemeIcon() {
-        var src = String(Qt.resolvedUrl("../../docs/assets/icon.png")).replace(/^file:\/\//, "")
-        if (!/^[\/A-Za-z0-9._~ -]+$/.test(src)) return
+        var src = decodeURIComponent(String(Qt.resolvedUrl("../icons/dockmoid.png")).replace(/^file:\/\//, ""))
+        if (!src || /[\x00-\x1f]/.test(src)) return
         var theme = "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor"
         var dir = theme + "/512x512/apps"
-        commandRunner.spawn("mkdir -p \"" + dir + "\" && cp '" + src + "' \"" + dir
+        commandRunner.spawn("mkdir -p \"" + dir + "\" && cp " + dockerBackend.shellQuote(src) + " \"" + dir
             + "/dockmoid.png\" && rm -f \"" + theme + "/scalable/apps/dockmoid.svg\" && { if command -v gtk-update-icon-cache >/dev/null 2>&1; then "
             + "gtk-update-icon-cache -f -t \"" + theme + "\"; fi; }")
     }
@@ -247,11 +266,32 @@ PlasmoidItem {
      * applet popup shows a small "reopen" card instead of a second full UI.
      */
     fullRepresentation: Loader {
+        id: popupLoader
         Layout.minimumWidth: Kirigami.Units.gridUnit * 22
         Layout.minimumHeight: Kirigami.Units.gridUnit * 14
-        Layout.maximumWidth: Kirigami.Units.gridUnit * 70
-        Layout.maximumHeight: Kirigami.Units.gridUnit * 40
+        // Plasma clamps these to the current screen and persists drag resizing.
+        // The former 40-unit height cap prevented taller attached popups.
+        Layout.maximumWidth: 16777215
+        Layout.maximumHeight: 16777215
+        Layout.preferredWidth: Math.max(Kirigami.Units.gridUnit * 22, main.cfg.popupWidth)
+        Layout.preferredHeight: Math.max(Kirigami.Units.gridUnit * 14, main.cfg.popupHeight)
         sourceComponent: main.detached ? detachedPlaceholderComponent : popupComponent
+        Components.PopupResizeHandles {
+            anchors.fill: parent
+            z: 1000
+            visible: !main.detached && Plasmoid.formFactor !== PlasmaCore.Types.Planar
+        }
+        Connections {
+            target: main.cfg
+            function onPopupWidthChanged() {
+                if (!main.detached && popupLoader.Window.window)
+                    popupLoader.Window.window.width = Math.max(popupLoader.Layout.minimumWidth, main.cfg.popupWidth)
+            }
+            function onPopupHeightChanged() {
+                if (!main.detached && popupLoader.Window.window)
+                    popupLoader.Window.window.height = Math.max(popupLoader.Layout.minimumHeight, main.cfg.popupHeight)
+            }
+        }
     }
 
     Views.DetachedWindow {
@@ -278,12 +318,16 @@ PlasmoidItem {
         applet: main
     }
 
-    // On the desktop there is no panel to collapse into, so show the full view.
+    // The tray owns popup selection. A forced compact representation prevents
+    // SystemTrayState.setActiveApplet() from opening its shared popup.
+    // Only desktop instances require a permanently full representation.
     preferredRepresentation: Plasmoid.formFactor === PlasmaCore.Types.Planar
-        ? fullRepresentation : compactRepresentation
+        ? fullRepresentation : null
 
     toolTipMainText: i18n("Dockmoid")
-    toolTipSubText: main.lastStatusMessage
+    toolTipSubText: dockerBackend.engineActive
+        ? i18n("%1 running · %2 stopped · %3 total", dockerBackend.running, dockerBackend.stopped, dockerBackend.total)
+        : (dockerBackend.engineKnown ? i18n("Container engine unavailable") : i18n("Connecting to container engine…"))
 
     toolTipItem: Loader {
         id: tooltipLoader
@@ -292,14 +336,13 @@ PlasmoidItem {
      * tolerate `item` being undefined: reading implicitSize off null threw
      * "Cannot read property 'width/height' of undefined" on every popup.
      */
-    readonly property var tooltipItemSize: (item && item.implicitSize)
-            ? item.implicitSize
-            : Qt.size(0, 0)
+    readonly property Item tooltipContent: item as Item
+    readonly property size tooltipItemSize: tooltipContent ? Qt.size(tooltipContent.implicitWidth, tooltipContent.implicitHeight) : Qt.size(0, 0)
         Layout.minimumWidth: tooltipItemSize.width
         Layout.maximumWidth: tooltipItemSize.width
         Layout.minimumHeight: tooltipItemSize.height
         Layout.maximumHeight: tooltipItemSize.height
-        sourceComponent: Tooltip { backend: dockerBackend }
+        sourceComponent: Tooltip { backend: dockerBackend; detached: main.detached }
     }
 
     // ============================================================= menu ====
@@ -310,6 +353,11 @@ PlasmoidItem {
         }
         if (!dockerBackend.engineActive) return PlasmaCore.Types.PassiveStatus
         return PlasmaCore.Types.ActiveStatus
+    }
+
+    function configure() {
+        var action = Plasmoid.internalAction("configure")
+        if (action) action.trigger()
     }
 
     Plasmoid.contextualActions: [
@@ -330,13 +378,13 @@ PlasmoidItem {
         PlasmaCore.Action {
             text: i18n("Start Docker")
             icon.name: "media-playback-start"
-            visible: !dockerBackend.engineActive
+            visible: !dockerBackend.engineActive && dockerBackend.canControlService && !dockerBackend.readOnly
             onTriggered: dockerBackend.startEngine()
         },
         PlasmaCore.Action {
             text: i18n("Stop Docker")
             icon.name: "media-playback-stop"
-            visible: dockerBackend.engineActive
+            visible: dockerBackend.engineActive && dockerBackend.canControlService && !dockerBackend.readOnly
             onTriggered: dockerBackend.stopEngine()
         }
     ]

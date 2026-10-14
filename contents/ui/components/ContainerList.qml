@@ -13,6 +13,7 @@ import org.kde.plasma.extras as PlasmaExtras
  * delegate highlight and the surrounding popup share one background.
  */
 PlasmaComponents.ScrollView {
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
     id: root
 
     required property var backend

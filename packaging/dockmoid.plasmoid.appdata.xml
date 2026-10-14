@@ -1,28 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="addon">
-  <id>dockmoid.plasmoid</id>
+  <id>io.github.deathrashed.dockmoid</id>
   <extends>org.kde.plasmashell</extends>
   <name>Dockmoid</name>
   <summary>Docker and Podman in your panel: live container status, crash alerts and one-click actions</summary>
   <description>
     <p>Dockmoid keeps an eye on your containers from the Plasma panel. The logo shows overall state as a gauge, containers can be started, stopped, updated and inspected without a terminal, and it tells you when something crashes, turns unhealthy or stops answering.</p>
     <ul>
-      <li>List, table and Compose-project views with search, pinning and sorting</li>
+      <li>List, table, grid and grouped views with resizable service sections</li>
       <li>Crash, unhealthy, restart-loop, resource and web-page alerts</li>
       <li>Autostart control, image update checks and Compose up, down, pull and recreate</li>
-      <li>Images, volumes and networks with unused markers</li>
-      <li>Logs with filtering, graphs, remote Docker contexts and a detachable window</li>
+      <li>Resource inventories distinguish existing containers from configured Compose references</li>
+      <li>Doctor plans, ANSI logs, JSON tree/raw inspection and a detachable window</li>
     </ul>
   </description>
   <project_license>GPL-3.0-or-later</project_license>
   <metadata_license>CC0-1.0</metadata_license>
   <url type="homepage">https://github.com/deathrashed/dockmoid</url>
   <url type="bugtracker">https://github.com/deathrashed/dockmoid/issues</url>
-  <developer_name>deathrashed</developer_name>
-  <provides><id>dockmoid.plasmoid</id></provides>
+  <developer id="io.github.deathrashed"><name>deathrashed</name></developer>
   <categories><category>System</category></categories>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="2.2.0" date="2026-10-14"/>
+    <release version="2.4.0" date="2026-10-15"/>
   </releases>
 </component>

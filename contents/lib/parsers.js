@@ -43,7 +43,8 @@ function num(value) {
 
 /* "12.34%" -> 12.34 */
 function percent(value) {
-    return num(value);
+    var parsed = parseFloat(value);
+    return isNaN(parsed) ? null : parsed;
 }
 
 /*
@@ -76,6 +77,20 @@ function jsonRecords(stdout) {
     return out;
 }
 
+/* A successful empty response is a real empty list; malformed output is not. */
+function isValidRecords(stdout) {
+    var text = String(stdout || "").trim();
+    if (text === "") return true;
+    try {
+        if (text.charAt(0) === "[") return Array.isArray(JSON.parse(text));
+        return text.split("\n").every(function (line) {
+            if (line.trim() === "") return true;
+            var row = JSON.parse(line);
+            return row !== null && typeof row === "object" && !Array.isArray(row);
+        });
+    } catch (e) { return false; }
+}
+
 /* Podman reports ports as objects; flatten them to Docker's "ip:host->ctr/proto". */
 function portsToString(ports) {
     if (!ports) return "";
@@ -101,18 +116,18 @@ function normalizeContainer(d) {
     var state = d.State || "unknown";
     return {
         "id": d.ID || d.Id || "",
-        "name": firstName(d.Names) || d.ID || "unknown",
+        "name": firstName(d.Names) || d.ID || d.Id || "unknown",
         "image": d.Image || "",
-        "command": d.Command || "",
+        "command": Array.isArray(d.Command) ? d.Command.join(" ") : (d.Command || ""),
         "createdAt": d.CreatedAt || d.CreatedAtHuman || "",
         "runningFor": d.RunningFor || "",
         "state": state,
         "status": d.Status || "",
-        "health": d.HealthStatus || "none",
+        "health": d.HealthStatus || (/\((healthy|unhealthy|health: starting)\)/.exec(d.Status || "") || ["", "none"])[1].replace("health: ", ""),
         "isRunning": state === "running",
-        "localVolumes": String(d.LocalVolumes === undefined ? 0 : d.LocalVolumes),
-        "networks": d.Networks || "",
-        "mounts": d.Mounts || "",
+        "localVolumes": d.LocalVolumes === undefined ? "" : String(d.LocalVolumes),
+        "networks": Array.isArray(d.Networks) ? d.Networks.join(", ") : (d.Networks || ""),
+        "mounts": Array.isArray(d.Mounts) ? d.Mounts.join(", ") : (d.Mounts || ""),
         "ports": portsToString(d.Ports),
         "size": d.Size || "",
         "platform": d.Platform ? (d.Platform.os + "/" + d.Platform.architecture) : "",
@@ -124,6 +139,10 @@ function normalizeContainer(d) {
         // Optional web address to probe, set with the label dockmoid.probe.
         "probeUrl": labels["dockmoid.probe"] || "",
         "restartPolicy": "",
+        "probe": "",
+        "probeMs": 0,
+        "updateAvailable": false,
+        "pinned": false,
         // live stats, filled in by applyStats()
         "cpu": "",
         "mem": "",
@@ -147,14 +166,15 @@ function parseStats(stdout) {
             "cpu": d.CPUPerc || d.cpu_percent || "",
             "mem": d.MemPerc || d.mem_percent || "",
             "memU": d.MemUsage || d.mem_usage || "",
-            "blockio": d.BlockIO || d.block_io || "",
-            "netio": d.NetIO || d.net_io || "",
-            "pids": d.PIDs || d.pids || "",
+            "netio": d.NetIO || d.netio || d.net_io || "",
+            "blockio": d.BlockIO || d.blockio || d.blocki || d.block_io || "",
+            "pids": d.PIDs || d.PIDS || d.pids || "",
             "cpuPct": percent(d.CPUPerc || d.cpu_percent),
             "memPct": percent(d.MemPerc || d.mem_percent)
         };
         if (d.ID) map[d.ID] = rec;
         if (d.Id) map[shortId(d.Id)] = rec;
+        if (d.id) map[d.id] = rec;
         if (d.Container) map[d.Container] = rec;
     }
     return map;
@@ -163,7 +183,7 @@ function parseStats(stdout) {
 function applyStats(containers, stats) {
     for (var i = 0; i < containers.length; i++) {
         var c = containers[i];
-        var s = stats[c.id];
+        var s = stats[c.id] || stats[shortId(c.id)];
         if (!s || !c.isRunning) {
             c.cpu = ""; c.mem = ""; c.memU = ""; c.blockio = "";
             c.netio = ""; c.pids = ""; c.cpuPct = 0; c.memPct = 0;
@@ -359,7 +379,7 @@ function isTransitional(state) {
 }
 
 function canStart(state) {
-    return state === "exited" || state === "created" || state === "dead";
+    return state === "not-created" || state === "exited" || state === "created" || state === "dead";
 }
 
 function canStop(state) {
@@ -542,17 +562,29 @@ function parseLaunchers(text) {
 /* docker images --format json -> images with how many containers use each. */
 function parseImages(stdout) {
     return jsonRecords(stdout).map(function (d) {
-        var repo = d.Repository || "";
-        var tag = d.Tag || "";
-        var dangling = repo === "<none>" || repo === "";
+        var repo = d.Repository || d.repository || "";
+        var tag = d.Tag || d.tag || "";
+        var names = d.Names || d.names || [];
+        var name = Array.isArray(names) ? (names[0] || "") : String(names || "");
+        var dangling = repo === "<none>" || repo === ""
+            ? (name === "" || /^<\s*none\s*>$/i.test(name))
+            : false;
+        var id = d.ID || d.Id || d.id || "";
+        var created = d.CreatedSince || d.CreatedAt || d.created || "";
+        var size = d.Size !== undefined ? d.Size : d.size;
+        var containers = d.Containers !== undefined ? d.Containers : d.containers;
+        var ref = repo && repo !== "<none>"
+            ? (tag && tag !== "<none>" ? repo + ":" + tag : repo)
+            : name;
         return {
-            "id": d.ID || d.Id || "",
+            "id": id,
             "repository": repo,
             "tag": tag,
-            "ref": dangling ? "" : (tag && tag !== "<none>" ? repo + ":" + tag : repo),
-            "size": d.Size || "",
-            "created": d.CreatedSince || d.CreatedAt || "",
-            "containers": parseInt(d.Containers, 10) || 0,
+            "ref": dangling ? "" : ref,
+            "size": size === undefined || size === null ? "" : String(size),
+            "created": created,
+            "containers": containers === undefined || containers === null || isNaN(parseInt(containers, 10))
+                ? -1 : parseInt(containers, 10),
             "dangling": dangling
         };
     });
@@ -563,6 +595,23 @@ function parseVolumes(stdout) {
     var rows = jsonRecords(stdout);
     var list = [];
     for (var i = 0; i < rows.length; i++) {
+        var direct = rows[i];
+        if (direct.Name !== undefined || direct.name !== undefined) {
+            var directLabels = labelMap(direct.Labels || direct.labels);
+            var directLinks = direct.Links !== undefined ? parseInt(direct.Links, 10)
+                : (direct.links !== undefined ? parseInt(direct.links, 10) : -1);
+            list.push({
+                "name": direct.Name || direct.name || "",
+                "driver": direct.Driver || direct.driver || "",
+                "size": direct.Size || direct.size || "",
+                // MountCount is the number of mount operations, not a reliable
+                // count of containers referencing a volume. Keep usage unknown.
+                "links": isNaN(directLinks) ? -1 : directLinks,
+                "project": directLabels["com.docker.compose.project"]
+                    || directLabels["io.podman.compose.project"] || ""
+            });
+            continue;
+        }
         var vols = rows[i].Volumes;
         if (!Array.isArray(vols)) continue;
         for (var j = 0; j < vols.length; j++) {
@@ -582,14 +631,15 @@ function parseVolumes(stdout) {
 
 function parseNetworks(stdout) {
     return jsonRecords(stdout).map(function (d) {
-        var name = d.Name || "";
+        var name = d.Name || d.name || "";
+        var labels = labelMap(d.Labels || d.labels);
         return {
-            "id": d.ID || d.Id || "",
+            "id": d.ID || d.Id || d.id || "",
             "name": name,
-            "driver": d.Driver || "",
-            "scope": d.Scope || "",
-            "builtin": name === "bridge" || name === "host" || name === "none",
-            "project": labelMap(d.Labels)["com.docker.compose.project"] || ""
+            "driver": d.Driver || d.driver || "",
+            "scope": d.Scope || d.scope || "",
+            "builtin": name === "bridge" || name === "host" || name === "none" || name === "podman",
+            "project": labels["com.docker.compose.project"] || labels["io.podman.compose.project"] || ""
         };
     });
 }

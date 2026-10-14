@@ -17,8 +17,9 @@ Rectangle {
     /* "healthy" | "unhealthy" | "starting" | "none" */
     property string health: "none"
     property bool showHealth: true
+    property bool failed: false
 
-    implicitWidth: Kirigami.Units.smallSpacing * 1.5
+    implicitWidth: 8
     implicitHeight: implicitWidth
 
     radius: width / 2
@@ -32,10 +33,11 @@ Rectangle {
     readonly property bool hasHealth: health !== "" && health !== "none"
 
     readonly property color fillColor: {
-        if (containerState === "running") return Kirigami.Theme.positiveTextColor
-        if (containerState === "paused") return Kirigami.Theme.highlightedTextColor
+        if (root.failed) return Kirigami.Theme.negativeTextColor
+        if (containerState === "running") return root.unhealthy && showHealth ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.positiveTextColor
+        if (containerState === "paused") return Kirigami.Theme.neutralTextColor
         if (containerState === "restarting" || containerState === "removing") {
-            return Kirigami.Theme.highlightColor
+            return Kirigami.Theme.neutralTextColor
         }
         if (containerState === "dead") return Kirigami.Theme.negativeTextColor
         return Kirigami.Theme.disabledTextColor
@@ -46,7 +48,7 @@ Rectangle {
      * a solid unhealthy dot would just look like a different state.
      */
     readonly property color healthColor: {
-        if (!showHealth || !root.hasHealth) return Qt.rgba(0, 0, 0, 0)
+        if (!showHealth || !root.hasHealth || ["running","restarting"].indexOf(containerState) < 0) return Qt.rgba(0, 0, 0, 0)
         if (root.unhealthy) return Kirigami.Theme.negativeTextColor
         if (root.starting) return Kirigami.Theme.highlightColor
         return Qt.rgba(0, 0, 0, 0)

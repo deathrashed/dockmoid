@@ -1,9 +1,10 @@
 import QtQuick
 
 import org.kde.kirigami as Kirigami
+import "../../lib/actionSvg.js" as SvgData
 
 /*
- * PlasmoidIcon — the panel logo, rendered as a themed mask.
+ * PlasmoidIcon — the panel logo, rendered as an explicitly coloured SVG.
  *
  * `tint` exists so the panel can signal state through colour without needing a
  * separate icon per state: the engine being down and a container being
@@ -12,8 +13,8 @@ import org.kde.kirigami as Kirigami
 Item {
     id: root
 
-    property bool iconUseCustomColor: plasmoid.configuration.iconUseCustomColor
-    property string iconColor: plasmoid.configuration.iconColor
+    property bool iconUseCustomColor: plasmoid && plasmoid.configuration ? plasmoid.configuration.iconUseCustomColor : false
+    property string iconColor: plasmoid && plasmoid.configuration ? plasmoid.configuration.iconColor : ""
 
     /* When set, wins over both the custom colour and the theme colour set. */
     property color tint: "transparent"
@@ -24,24 +25,11 @@ Item {
     implicitWidth: 16
     implicitHeight: implicitWidth
 
-    Kirigami.Icon {
-        id: svgItem
-        width: root.width
-        height: root.height
-        anchors.centerIn: parent
+    Image {
+        anchors.fill: parent
+        source: SvgData.url(String(root.source || "logo-dockmoid-whale.svg").replace(/\.svg$/, ""), root.hasTint ? root.tint : root.iconUseCustomColor ? root.iconColor : Kirigami.Theme.textColor)
+        sourceSize: Qt.size(Math.max(1, width * 2), Math.max(1, height * 2))
+        fillMode: Image.PreserveAspectFit
         smooth: true
-        isMask: true
-        source: Qt.resolvedUrl("../../assets/" + root.source)
-        color: {
-            if (root.hasTint) return root.tint
-            if (root.iconUseCustomColor) return root.iconColor
-            return Kirigami.Theme.colorSet
-        }
-
-        Behavior on color {
-            ColorAnimation {
-                duration: Kirigami.Units.shortDuration
-            }
-        }
     }
 }

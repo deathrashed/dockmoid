@@ -1,0 +1,18 @@
+const vm=require('vm'),fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
+const c={};vm.createContext(c);
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../contents/lib/iconCatalog.js'),'utf8'),c);
+const dashboard=c.fromDashboard({svg:['docker.svg','sample-light.svg'],webp:['beets.webp','docker.webp'],png:['beets.png','deemix.png','../bad.png']});
+assert.equal(dashboard.length,4);
+assert.ok(dashboard.some(x=>x.name==='beets' && x.path==='webp/beets.webp'));
+assert.ok(dashboard.some(x=>x.name==='docker' && x.path==='svg/docker.svg'));
+const selfhst=c.fromSelfhst([{Name:'Deemix',Reference:'deemix',SVG:'Yes',WebP:'Yes',PNG:'Yes',Light:'No',Dark:'Yes',Tags:'Music, Audio'},{Name:'Raster only',Reference:'raster-only',SVG:'No',WebP:'Yes',PNG:'Yes'}]);
+assert.equal(selfhst.length,3);
+assert.equal(c.search(dashboard.concat(selfhst),'music','selfhst').length,2);
+assert.equal(c.search(dashboard.concat(selfhst),'deemix','all').length,3);
+assert.equal(c.search(dashboard.concat(selfhst),'deemix','dashboard').length,1);
+assert.ok(c.search(selfhst,'raster only','all')[0].url.endsWith('/webp/raster-only.webp'));
+assert.ok(c.remoteInfo('https://raw.githubusercontent.com/selfhst/icons/main/svg/deemix.svg'));
+for(const url of ['file:///tmp/icon.svg','https://evil.example/icon.svg','https://raw.githubusercontent.com/selfhst/icons/main/svg/../LICENSE','https://raw.githubusercontent.com/selfhst/icons/main/svg/image.svg?x=1']) assert.equal(c.remoteInfo(url),null);
+assert.throws(()=>c.fromDashboard({message:'bad response'}),/catalog/i);
+assert.throws(()=>c.fromSelfhst({error:'bad response'}),/catalog/i);
+console.log('dual-provider search, format preference, provenance and download URL validation pass');

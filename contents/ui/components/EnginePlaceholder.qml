@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
 import org.kde.kquickcontrolsaddons as KQuickControlsAddons
@@ -27,7 +26,7 @@ Item {
             : (root.problem === "permission" ? i18n("You are not allowed to use Docker")
                : i18n("Docker is not running"))
         explanation: root.problem === "missing"
-            ? i18n("%1 is not installed, or is not on the PATH Plasma sees. Install it, or set the engine command under Configure → Engine and commands.", root.backend.engineBase)
+            ? i18n("%1 is not installed, or is not on the PATH Plasma sees. Install it, or set the engine command under Configure → Advanced → Connection.", root.backend.engineBase)
             : (root.problem === "permission"
                ? i18n("Your user cannot talk to the Docker socket. Add yourself to the docker group, then log out and back in:")
                : i18n("The daemon did not answer. Start it, or switch to another host from the ⋯ menu."))

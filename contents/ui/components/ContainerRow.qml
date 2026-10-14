@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
+import "../../lib/parsers.js" as Parsers
+import "../../lib/status.js" as Status
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
@@ -7,9 +9,9 @@ import org.kde.plasma.components as PlasmaComponents
 /*
  * ContainerRow — one container, rendered at one of four detail levels.
  *
- *   0 minimal   name
- *   1 normal    + state and status
- *   2 detailed  + image, cpu/memory, published ports
+ *   0 minimal   identity and compact status (handled by ContainerChips)
+ *   1 normal    + resource usage and primary actions
+ *   2 detailed  + image, project and published ports
  *   3 verbose   + id, project, network, mounts, I/O, pids, uptime
  *
  * The levels share a single delegate rather than being four separate ones, so
@@ -23,6 +25,7 @@ PlasmaComponents.ItemDelegate {
 
     required property var backend
     required property var dialogs
+    required property int index
     required property int detailLevel
 
     /*
@@ -65,44 +68,25 @@ PlasmaComponents.ItemDelegate {
      * one from the roles. This is also what lets ContainerActions stay ignorant
      * of how the list happens to be fed.
      */
-    readonly property var record: ({
-        "id": root.containerKey,
-        "containerKey": root.containerKey,
-        "name": root.name,
-        "image": root.image,
-        "runningFor": root.runningFor,
-        "state": root.containerState,
-        "status": root.status,
-        "health": root.health,
-        "isRunning": root.isRunning,
-        "localVolumes": root.localVolumes,
-        "networks": root.networks,
-        "size": root.size,
-        "platform": root.platform,
-        "project": root.project,
-        "service": root.service,
-        "cpu": root.cpu,
-        "mem": root.mem,
-        "blockio": root.blockio,
-        "netio": root.netio,
-        "pids": root.pids,
-        "cpuPct": root.cpuPct,
-        "memPct": root.memPct,
-        "ports": root.ports,
-        "composeFiles": root.composeFiles,
-        "composeWorkDir": root.composeWorkDir
-    })
+    readonly property var record: {
+        return root.backend.revision >= 0 ? root.backend.findRecord(root.containerKey) || {id: root.containerKey, name: root.name, image: root.image,
+            state: root.containerState, isRunning: root.isRunning, pinned: false, updateAvailable: false,
+            restartPolicy: "", probe: "", project: root.project, service: "", ports: root.ports,
+            composeFiles: root.composeFiles, composeWorkDir: root.composeWorkDir} : null
+    }
 
     signal openDetail(string recordId)
     signal openOutput(string title, string content, bool live, string recordId)
 
     readonly property var cfg: plasmoid.configuration
+    readonly property var operation: backend.operationsRevision >= 0 ? backend.operationFor(containerKey) : ({busy:false,label:"",ok:true})
+    readonly property string attention: Status.attentionKind(root.record)
+    readonly property bool compactMetrics: root.width < 560
     readonly property bool hasStats: root.isRunning && root.cpu !== ""
 
     /* 0 means "follow the panel scale"; anything else is a pixel override. */
-    readonly property int iconSize: cfg.rowIconSize > 0
-        ? cfg.rowIconSize
-        : Kirigami.Units.iconSizes.small
+    readonly property int iconSize: Math.max(cfg.rowIconSize > 0 ? cfg.rowIconSize : 24,
+        root.detailLevel === 3 ? Kirigami.Units.iconSizes.large : 0)
     readonly property var links: backend.linksFor(root.record)
 
     implicitHeight: layout.implicitHeight + Kirigami.Units.smallSpacing * 2
@@ -119,183 +103,168 @@ PlasmaComponents.ItemDelegate {
         spacing: Kirigami.Units.smallSpacing
 
         StateDot {
+            Layout.alignment: root.detailLevel === 3 ? Qt.AlignTop : Qt.AlignVCenter
+            Layout.topMargin: root.detailLevel === 3 ? Kirigami.Units.smallSpacing * 1.5 : 0
             containerState: root.record.state
-            health: root.cfg.showHealth ? root.record.health : "none"
+            health: root.cfg.showHealth ? (root.record.health || root.health || "none") : "none"
             showHealth: root.cfg.showHealth
+            failed: root.attention === "failed"
         }
 
-        /*
-         * The user's own provider artwork is drawn in full colour (isMask off),
-         * because those SVGs carry real brand colours that a mask would throw
-         * away. The bundled glyphs are flat silhouettes, so they stay masked and
-         * follow the theme.
-         */
-        Kirigami.Icon {
-            id: serviceIcon
-            /* iconFor() reads the library state, so this binding re-resolves by
-               itself once the folder listing arrives or the folder changes. */
-            readonly property var art: root.backend.iconFor(root.record)
-            readonly property bool hasIcon: art.url !== ""
-            visible: hasIcon
-            source: art.url
-            isMask: !art.colored
-            implicitWidth: root.iconSize
-            implicitHeight: implicitWidth
-            color: Kirigami.Theme.colorSet
+        ServiceIcon {
+            backend: root.backend
+            record: root.record
+            iconSize: root.iconSize
+            Layout.alignment: root.detailLevel === 3 ? Qt.AlignTop : Qt.AlignVCenter
+            Layout.topMargin: root.detailLevel === 3 ? Kirigami.Units.smallSpacing : 0
         }
 
         ColumnLayout {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             spacing: 1
 
-            // -- name -------------------------------------------------
+            // -- name and health indicators -------------------------
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
 
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 72
                     text: root.record.name
+                    HoverHandler { id: nameHover }
+                    PlasmaComponents.ToolTip { visible: nameHover.hovered; text: root.record.name }
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize
                     font.bold: true
                     elide: Text.ElideRight
                 }
-
                 Kirigami.Icon {
-                    visible: root.record.pinned
+                    visible: root.record.pinned === true
                     source: "window-pin"
                     implicitWidth: Kirigami.Units.iconSizes.small * 0.75
                     implicitHeight: implicitWidth
                     opacity: 0.55
                 }
-
-                // A newer image exists in the registry.
                 PlasmaComponents.Label {
-                    visible: root.record.updateAvailable
+                    visible: root.record.updateAvailable === true
                     text: i18n("update")
                     color: Kirigami.Theme.highlightColor
                     font: Kirigami.Theme.smallFont
-                    HoverHandler { id: updateHover }
-                    PlasmaComponents.ToolTip {
-                        visible: updateHover.hovered
-                        text: i18n("A newer image is available. Use the menu to update.")
-                    }
+                    TapHandler { onTapped: root.dialogs.confirmUpdate(root.record) }
+                    HoverHandler { id: updateHover; cursorShape: Qt.PointingHandCursor }
+                    PlasmaComponents.ToolTip { visible: updateHover.hovered; text: i18n("A newer image is available. Use the menu to update.") }
                 }
-
-                // Result of the web probe: does the service actually answer?
                 Rectangle {
-                    visible: root.record.probe !== ""
+                    visible: root.record.probe === "up" || root.record.probe === "down"
                     implicitWidth: Kirigami.Units.smallSpacing * 1.5
                     implicitHeight: implicitWidth
                     radius: width / 2
-                    color: root.record.probe === "up" ? Kirigami.Theme.positiveTextColor
-                                                      : Kirigami.Theme.negativeTextColor
+                    color: root.record.probe === "up" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
                     HoverHandler { id: probeHover }
                     PlasmaComponents.ToolTip {
                         visible: probeHover.hovered
-                        text: root.record.probe === "up"
-                            ? i18n("Web page answers (%1 ms)", root.record.probeMs)
-                            : i18n("Web page does not answer")
+                        text: root.record.probe === "up" ? i18n("Web page answers (%1 ms)", root.record.probeMs) : i18n("Web page does not answer")
                     }
                 }
-
-                // Docker will bring this one back by itself after a reboot.
                 Kirigami.Icon {
-                    visible: root.cfg.showRestartPolicy
-                        && root.backend.startsAutomatically(root.record.restartPolicy)
+                    visible: root.cfg.showRestartPolicy && root.backend.startsAutomatically(root.record.restartPolicy)
                     source: "media-playlist-repeat"
                     implicitWidth: Kirigami.Units.iconSizes.small * 0.75
                     implicitHeight: implicitWidth
                     opacity: 0.55
                     HoverHandler { id: policyHover }
-                    PlasmaComponents.ToolTip {
-                        visible: policyHover.hovered
-                        text: root.backend.policyLabel(root.record.restartPolicy)
-                    }
+                    PlasmaComponents.ToolTip { visible: policyHover.hovered; text: root.backend.policyLabel(root.record.restartPolicy) }
                 }
-
                 PlasmaComponents.Label {
-                    visible: root.record.health === "unhealthy" && root.cfg.showHealth
+                    visible: root.record.isRunning && root.record.health === "unhealthy" && root.cfg.showHealth
                     text: i18n("unhealthy")
                     color: Kirigami.Theme.negativeTextColor
-                    font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                    font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 }
-
                 PlasmaComponents.Label {
-                    visible: root.record.health === "starting" && root.cfg.showHealth
+                    visible: root.record.isRunning && root.record.health === "starting" && root.cfg.showHealth
                     text: i18n("starting")
                     color: Kirigami.Theme.highlightColor
-                    font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                    font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
+                }
+                ResourceMeter {
+                    visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
+                    label: "CPU"; value: root.cpuPct; compact: root.compactMetrics
                 }
             }
 
             // -- state / status (level >= 1) --------------------------
-            PlasmaComponents.Label {
+            RowLayout {
                 Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing / 2
                 visible: root.detailLevel >= 1
-                text: root.record.status !== "" ? root.record.status : root.record.state
-                elide: Text.ElideRight
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-                color: root.record.isRunning
-                    ? Kirigami.Theme.textColor
-                    : Kirigami.Theme.disabledTextColor
+                ActionIcon {
+                    glyph: root.operation.busy ? "view-refresh" : root.attention === "failed" ? "circle-x"
+                        : root.attention === "unhealthy" ? "dialog-warning" : root.attention === "paused" ? "media-playback-pause"
+                        : root.attention === "restarting" ? "view-refresh" : root.record.isRunning ? "container-running" : "container-exited"
+                    implicitWidth: Kirigami.Units.iconSizes.small
+                    implicitHeight: implicitWidth
+                    color: root.attention === "failed" || root.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor
+                        : root.attention === "paused" || root.attention === "restarting" ? Kirigami.Theme.neutralTextColor
+                        : root.record.isRunning ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
+                }
+                PlasmaComponents.Label {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    elide: Text.ElideRight
+                    text: root.operation.label || ((root.attention === "failed" ? i18n("Failed") + " · "
+                        : root.attention === "unhealthy" ? i18n("Unhealthy") + " · "
+                        : root.attention === "paused" ? i18n("Paused") + " · "
+                        : root.attention === "restarting" ? i18n("Restarting") + " · " : "")
+                        + Status.compactStatus(root.record.status, root.record.state, root.record.runningFor))
+                    font: Kirigami.Theme.smallFont
+                    color: root.operation.label ? (root.operation.ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor)
+                        : root.attention === "failed" || root.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor
+                        : root.attention === "paused" || root.attention === "restarting" ? Kirigami.Theme.neutralTextColor
+                        : root.record.isRunning ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
+                    HoverHandler { id: statusHover }
+                    PlasmaComponents.ToolTip {
+                        visible: statusHover.hovered
+                        text: (root.record.status !== "" ? root.record.status : root.record.state) + (root.operation.label ? "\n" + root.operation.label : "")
+                    }
+                }
+                ResourceMeter {
+                    visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
+                    label: "RAM"; value: root.memPct; compact: root.compactMetrics
+                }
             }
 
             // -- image + usage (level >= 2) ---------------------------
-            RowLayout {
+            ColumnLayout {
                 Layout.fillWidth: true
                 visible: root.detailLevel >= 2
-                spacing: Kirigami.Units.smallSpacing
+                spacing: Kirigami.Units.smallSpacing / 2
 
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
-                    text: root.record.image
+                    text: String(root.record.image).replace(/(@sha256:)[a-f0-9]{20,}/, function(_,prefix) { return prefix + String(root.record.image).split("@sha256:")[1].slice(0,12) + "…" })
+                    HoverHandler { id: imageHover }
+                    PlasmaComponents.ToolTip { visible: imageHover.hovered; text: root.record.image }
                     elide: Text.ElideRight
-                    font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                    font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                     color: Kirigami.Theme.disabledTextColor
                 }
 
-                // CPU
-                PlasmaComponents.Label {
-                    visible: root.hasStats
-                    text: "CPU " + root.record.cpu
-                    font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-                    horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * 4
-                }
-
-                MiniBar {
-                    visible: root.hasStats && root.cfg.showResourceBars
-                    value: root.record.cpuPct
-                    barColor: Kirigami.Theme.positiveTextColor
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * 2.5
-                }
-
-                // Memory
-                PlasmaComponents.Label {
-                    visible: root.hasStats
-                    text: "MEM " + root.record.mem
-                    font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-                    horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * 4
-                }
-
-                MiniBar {
-                    visible: root.hasStats && root.cfg.showResourceBars
-                    value: root.record.memPct
-                    barColor: Kirigami.Theme.highlightColor
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * 2.5
-                }
             }
 
             // -- ports (level >= 2) ----------------------------------
             PlasmaComponents.Label {
+                id: diagnosticLabel0
                 Layout.fillWidth: true
                 visible: root.detailLevel >= 2 && root.links.length > 0
                 text: i18n("Open: %1", root.links.map(function (l) {
                     return ":" + l.port + " (" + l.label + ")"
                 }).join("  "))
+                HoverHandler { id: fieldHover0 }
+                PlasmaComponents.ToolTip { visible: fieldHover0.hovered; text: diagnosticLabel0.text }
                 elide: Text.ElideRight
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.highlightColor
             }
 
@@ -303,62 +272,155 @@ PlasmaComponents.ItemDelegate {
             PlasmaComponents.Label {
                 Layout.fillWidth: true
                 visible: root.detailLevel >= 3
-                text: i18n("ID: %1", root.record.id)
+                text: i18n("ID: %1", String(root.record.id).slice(0,12))
+                HoverHandler { id: identityHover }
+                PlasmaComponents.ToolTip { visible: identityHover.hovered; text: root.record.id }
                 elide: Text.ElideMiddle
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
             }
 
             PlasmaComponents.Label {
+                id: diagnosticLabel1
                 Layout.fillWidth: true
-                visible: root.detailLevel >= 3 && root.record.project !== ""
+                visible: root.detailLevel >= 2 && root.record.project !== ""
                 text: i18n("Project: %1%2", root.record.project,
                            root.record.service !== ""
                                ? i18n(" · %1", root.record.service)
                                : "")
+                HoverHandler { id: fieldHover1 }
+                PlasmaComponents.ToolTip { visible: fieldHover1.hovered; text: diagnosticLabel1.text }
                 elide: Text.ElideRight
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
             }
 
             PlasmaComponents.Label {
+                id: diagnosticLabel2
                 Layout.fillWidth: true
                 visible: root.detailLevel >= 3 && root.record.networks !== ""
                 text: i18n("Networks: %1 · Volumes: %2", root.record.networks, root.record.localVolumes)
+                HoverHandler { id: fieldHover2 }
+                PlasmaComponents.ToolTip { visible: fieldHover2.hovered; text: diagnosticLabel2.text }
                 elide: Text.ElideRight
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
             }
 
             PlasmaComponents.Label {
+                id: diagnosticLabel3
                 Layout.fillWidth: true
-                visible: root.detailLevel >= 3 && root.hasStats
-                text: i18n("Net I/O: %1 · Block I/O: %2 · PIDs: %3",
-                           root.record.netio, root.record.blockio, root.record.pids)
+                visible: root.detailLevel >= 3 && root.hasStats && (!!root.record.netio || !!root.record.blockio || !!root.record.pids)
+                text: [root.record.netio ? i18n("Net I/O: %1",root.record.netio) : "", root.record.blockio ? i18n("Block I/O: %1",root.record.blockio) : "", root.record.pids ? i18n("PIDs: %1",root.record.pids) : ""].filter(function(x) { return x !== "" }).join(" · ")
+                HoverHandler { id: fieldHover3 }
+                PlasmaComponents.ToolTip { visible: fieldHover3.hovered; text: diagnosticLabel3.text }
                 elide: Text.ElideRight
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
             }
 
             PlasmaComponents.Label {
+                id: diagnosticLabel4
                 Layout.fillWidth: true
                 visible: root.detailLevel >= 3
                 text: i18n("Uptime: %1 · Size: %2 · Platform: %3",
                            root.record.runningFor, root.record.size,
                            root.record.platform !== "" ? root.record.platform : "—")
+                HoverHandler { id: fieldHover4 }
+                PlasmaComponents.ToolTip { visible: fieldHover4.hovered; text: diagnosticLabel4.text }
                 elide: Text.ElideRight
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
+            }
+            Flow {
+                visible: root.detailLevel === 3
+                Layout.fillWidth: true
+                Layout.preferredHeight: implicitHeight
+                spacing: Kirigami.Units.smallSpacing
+                ActionButton { text: i18n("Details"); glyph: "document-view"; onClicked: root.openDetail(root.record.id) }
+                ActionButton {
+                    text: i18n("Logs")
+                    glyph: "text-x-generic"
+                    onClicked: {
+                        root.backend.newOutputRequest("logs", root.record.id)
+                        root.openOutput(root.backend.logsTitle(root.record), i18n("Loading…"), true, root.record.id)
+                    }
+                }
+                ActionToolButton {
+                    text: i18n("Inspect container JSON")
+                    glyph: "document-properties"
+                    onClicked: {
+                        var generation = root.backend.generation
+                        var requestId = root.backend.newOutputRequest("inspect", root.record.id)
+                        root.openOutput(i18n("Inspect — %1", root.record.name), i18n("Loading…"), false, root.record.id)
+                        root.backend.fetchInspect(root.record, requestId, generation)
+                    }
+                }
+                ActionToolButton {
+                    text: i18n("Restart container")
+                    glyph: "view-refresh"
+                    enabled: !root.backend.readOnly && (root.record.isRunning || root.record.state === "exited")
+                    onClicked: root.backend.restartContainer(root.record)
+                }
+                ActionToolButton {
+                    text: root.record.state === "paused" ? i18n("Resume container") : i18n("Pause container")
+                    glyph: root.record.state === "paused" ? "media-playback-start" : "media-playback-pause"
+                    enabled: !root.backend.readOnly && (Parsers.canPause(root.record.state) || Parsers.canUnpause(root.record.state))
+                    onClicked: root.record.state === "paused" ? root.backend.unpauseContainer(root.record) : root.backend.pauseContainer(root.record)
+                }
+                ActionToolButton {
+                    text: root.record.state === "not-created" ? i18n("Create and start service") : root.record.isRunning ? i18n("Stop container") : i18n("Start container")
+                    glyph: root.record.isRunning ? "media-playback-stop" : "media-playback-start"
+                    enabled: !root.backend.readOnly && (root.record.isRunning ? Parsers.canStop(root.record.state) : Parsers.canStart(root.record.state))
+                    onClicked: root.record.isRunning ? root.backend.stopContainer(root.record) : root.backend.startContainer(root.record)
+                }
+                ActionToolButton {
+                    text: i18n("Web links")
+                    glyph: "insert-link"
+                    visible: root.record.isRunning && root.links.length > 0
+                    onClicked: webActions.popup(this, 0, height)
+                }
+                ActionToolButton {
+                    text: root.record.project && root.record.service && root.backend.canUseCompose ? i18n("Update service…") : i18n("Pull latest image…")
+                    glyph: "package-upgrade"
+                    enabled: !root.backend.readOnly
+                    onClicked: root.dialogs.confirmUpdate(root.record)
+                }
+                ActionToolButton {
+                    text: i18n("Edit Compose file…")
+                    glyph: "document-edit"
+                    visible: root.record.composeFiles !== ""
+                    onClicked: root.backend.editCompose(root.record)
+                }
             }
         }
 
         // -------------------------------------------------------- actions --
 
-        PlasmaComponents.ToolButton {
+        PlasmaComponents.BusyIndicator {
+            visible: root.operation.busy
+            running: visible
+            Layout.preferredWidth: Kirigami.Units.iconSizes.small
+            Layout.preferredHeight: Kirigami.Units.iconSizes.small
+        }
+        ActionToolButton {
+            id: recoveryButton
+            visible: root.width > 480 && root.detailLevel !== 0 && root.detailLevel !== 3 && !root.backend.readOnly && (root.record.updateAvailable === true
+                || (root.record.isRunning && (root.record.health === "unhealthy" || root.record.state === "restarting")))
+            glyph: root.record.updateAvailable ? "package-upgrade" : "configure"
+            text: root.record.updateAvailable ? i18n("Update image…") : i18n("Recovery options: logs, restart or update")
+            onClicked: {
+                if (root.record.updateAvailable) root.dialogs.confirmUpdate(root.record)
+                else actions.popup(this, 0, height)
+            }
+        }
+
+        ActionToolButton {
             id: toggleButton
-            display: PlasmaComponents.AbstractButton.IconOnly
-            icon.name: root.record.isRunning ? "media-playback-stop" : "media-playback-start"
-            text: root.record.isRunning ? i18n("Stop") : i18n("Start")
+            visible: root.detailLevel !== 0 && root.detailLevel !== 3
+            enabled: !root.backend.readOnly && !root.operation.busy
+            glyph: root.record.isRunning ? "media-playback-stop" : "media-playback-start"
+            text: root.record.state === "not-created" ? i18n("Create and start") : root.record.isRunning ? i18n("Stop") : i18n("Start")
             onClicked: {
                 if (root.record.isRunning) {
                     root.backend.stopContainer(root.record)
@@ -366,17 +428,14 @@ PlasmaComponents.ItemDelegate {
                     root.backend.startContainer(root.record)
                 }
             }
-            PlasmaComponents.ToolTip { text: toggleButton.text }
         }
 
-        PlasmaComponents.ToolButton {
+        ActionToolButton {
             id: webButton
-            display: PlasmaComponents.AbstractButton.IconOnly
-            icon.name: "internet-web-browser"
+            glyph: "insert-link"
             text: i18n("Web links")
-            visible: root.record.isRunning && root.backend.linksFor(root.record).length > 0
+            visible: root.width > 440 && root.detailLevel !== 0 && root.detailLevel !== 3 && root.record.isRunning && root.backend.linksFor(root.record).length > 0
             onClicked: webActions.popup(webButton, 0, webButton.height)
-            PlasmaComponents.ToolTip { text: webButton.text }
         }
 
         ContainerActions {
@@ -387,13 +446,12 @@ PlasmaComponents.ItemDelegate {
             browserOnly: true
         }
 
-        PlasmaComponents.ToolButton {
+        ActionToolButton {
             id: overflowButton
-            display: PlasmaComponents.AbstractButton.IconOnly
-            icon.name: "application-menu"
+            Layout.alignment: root.detailLevel === 3 ? Qt.AlignTop : Qt.AlignVCenter
+            glyph: "application-menu"
             text: i18n("More")
             onClicked: actions.popup(overflowButton, 0, overflowButton.height)
-            PlasmaComponents.ToolTip { text: overflowButton.text }
         }
 
         ContainerActions {
@@ -408,8 +466,10 @@ PlasmaComponents.ItemDelegate {
         }
     }
 
+    onHoveredChanged: if(hovered) root.backend.previewContainer(root.containerKey,false)
     onClicked: {
-        ListView.view.currentIndex = index
+        root.backend.previewContainer(root.containerKey,true)
+        ListView.view.currentIndex = root.index
     }
     onDoubleClicked: root.openDetail(root.record.id)
 

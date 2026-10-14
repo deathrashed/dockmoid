@@ -66,3 +66,11 @@ assert.strictEqual(P.parseProbeResults("http://a 200 12\nhttp://b 000 0")["http:
 assert.strictEqual(P.composeFileArgs("/a/x.yml,/a/y.yml", (s) => "'" + s + "'"), "-f '/a/x.yml' -f '/a/y.yml'");
 assert.deepStrictEqual(P.pushSample([1,2,3], 4, 3), [2,3,4]);
 console.log("parsers (extended) ok");
+
+{
+ const id='abcdef123456'+'0'.repeat(52);
+ const rows=[{id,isRunning:true}];
+ const stats=P.parseStats(JSON.stringify({ID:'abcdef123456',CPUPerc:'0.12%',MemPerc:'0.3%'}));
+ P.applyStats(rows,stats);
+ assert.equal(rows[0].cpu,'0.12%','full inventory IDs still join short stats IDs');
+}

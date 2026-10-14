@@ -18,17 +18,30 @@ import "components" as Components
  */
 Item {
     id: root
+    implicitWidth: Kirigami.Units.iconSizes.smallMedium
+    implicitHeight: Kirigami.Units.iconSizes.smallMedium
 
     required property var backend
     required property var applet
 
-    readonly property var cfg: plasmoid.configuration
+    property var configuration: plasmoid ? plasmoid.configuration : ({})
+    property bool previewMode: false
+    readonly property var cfg: root.configuration
+    readonly property int displayStyle: cfg.panelStyle >= 0 && cfg.panelStyle <= 6 ? Number(cfg.panelStyle) : 0
 
-    readonly property bool isPanelVertical: plasmoid.formFactor === PlasmaCore.Types.Vertical
+    readonly property bool isPanelVertical: plasmoid && plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property real itemSize: Math.min(root.height, root.width)
 
     /* Panel label: a "3~12" badge, or just the running count. */
     readonly property string badgeText: {
+        if (root.cfg.badgeStyle === 1)
+            return " " + root.backend.running + root.cfg.separator + root.backend.total + " "
+        if (root.cfg.badgeStyle === 2)
+            return " " + root.backend.running + " "
+        if (root.cfg.badgeStyle === 3)
+            return " " + (root.backend.total > 0 ? Math.round(root.backend.running * 100 / root.backend.total) : 0) + "% "
+        if (root.cfg.badgeStyle === 4)
+            return " " + root.backend.running + " running "
         if (root.cfg.separateResult) {
             return " " + root.backend.running + root.cfg.separator + root.backend.total + " "
         }
@@ -68,7 +81,7 @@ Item {
 
     readonly property string stateName: {
         if (!root.backend.engineKnown || !root.backend.engineActive) return "down"
-        if (root.backend.unhealthy > 0 || root.backend.problemCount > 0) return "bad"
+        if (root.backend.unhealthy > 0 || root.backend.problemCount > root.backend.pausedCount) return "bad"
         if (root.backend.pausedCount > 0) return "paused"
         if (root.backend.running > 0) return "ok"
         return "idle"
@@ -86,7 +99,7 @@ Item {
         }
     }
 
-    readonly property color baseColor: root.cfg.iconUseCustomColor ? root.cfg.iconColor : "white"
+    readonly property color baseColor: root.cfg.iconUseCustomColor ? root.cfg.iconColor : Kirigami.Theme.textColor
     readonly property bool coloured: root.stateName === "ok"
         || root.stateName === "bad" || root.stateName === "paused"
 
@@ -115,24 +128,27 @@ Item {
         // Ring: a track for the gauge, or the whole state colour.
         Components.PlasmoidIcon {
             id: ringLayer
+            visible: root.displayStyle === 0 || root.displayStyle === 6
             height: container.height
             width: height
             source: "logo-dockmoid-ring.svg"
             hasTint: true
-            tint: root.ringMode === 1 && root.colourRing && root.coloured
+            tint: (root.displayStyle === 6 || root.ringMode === 1 && root.colourRing) && root.coloured
                 ? root.stateColor : root.baseColor
-            opacity: root.stateName === "down" ? 0.4 : (root.ringMode === 0 ? 0.3 : 1)
+            opacity: root.stateName === "down" ? 0.4 : (root.displayStyle === 0 && root.ringMode === 0 ? 0.3 : 1)
             Behavior on opacity { NumberAnimation { duration: Kirigami.Units.longDuration } }
         }
 
         // Whale and containers.
         Components.PlasmoidIcon {
             id: icon
-            height: container.height
+            visible: root.displayStyle === 0 || root.displayStyle === 1 || root.displayStyle === 5 || root.displayStyle === 6
+            anchors.centerIn: parent
+            height: root.displayStyle === 5 ? container.height * 0.85 : container.height
             width: height
             source: "logo-dockmoid-whale.svg"
             hasTint: true
-            tint: root.colourWhale && root.coloured ? root.stateColor : root.baseColor
+            tint: ((root.displayStyle !== 0 && root.displayStyle !== 6) || root.colourWhale) && root.coloured ? root.stateColor : root.baseColor
             opacity: root.stateName === "down" ? 0.4 : 1
             Behavior on opacity { NumberAnimation { duration: Kirigami.Units.longDuration } }
         }
@@ -141,7 +157,7 @@ Item {
         Shape {
             id: gauge
             anchors.fill: parent
-            visible: root.ringMode === 0 && root.gaugeFraction > 0 && root.stateName !== "down"
+            visible: root.displayStyle === 0 && root.ringMode === 0 && root.gaugeFraction > 0 && root.stateName !== "down"
             preferredRendererType: Shape.CurveRenderer
 
             // The ring in the artwork is a 270.93-unit square drawing.
@@ -165,6 +181,74 @@ Item {
             }
         }
 
+        Text {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: root.displayStyle === 4 ? -container.height * 0.13 : 0
+            visible: root.displayStyle >= 2 && root.displayStyle <= 4
+            text: root.displayStyle === 3 ? root.backend.running + "/" + root.backend.total : String(root.backend.running)
+            font.family: Kirigami.Theme.defaultFont.family
+            font.bold: true
+            font.pixelSize: container.height * (root.displayStyle === 3 ? 0.34 : 0.58)
+            color: root.coloured ? root.stateColor : root.baseColor
+            renderType: Text.QtRendering
+        }
+        Rectangle {
+            visible: root.displayStyle === 2 || root.displayStyle === 3
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: container.height * 0.04
+            width: container.width * 0.65
+            height: Math.max(2, container.height * 0.07)
+            radius: height / 2
+            color: root.coloured ? root.stateColor : Qt.alpha(root.baseColor, 0.35)
+        }
+        Row {
+            visible: root.displayStyle === 4
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: container.height * 0.08
+            spacing: Math.max(1, container.width * 0.025)
+            Repeater {
+                model: 10
+                delegate: Rectangle {
+                    required property int index
+                    width: container.width * 0.065
+                    height: container.height * 0.16
+                    radius: 1
+                    color: root.backend.total > 0 && index < Math.round(root.backend.running / root.backend.total * 10)
+                        ? root.stateColor : Qt.alpha(root.baseColor, 0.2)
+                }
+            }
+        }
+        Rectangle {
+            visible: root.displayStyle === 5
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: Math.max(3, container.height * 0.08)
+            radius: height / 2
+            color: Qt.alpha(root.baseColor, 0.2)
+            Rectangle {
+                width: parent.width * (root.backend.total > 0 ? Math.min(1, root.backend.running / root.backend.total) : 0)
+                height: parent.height
+                radius: height / 2
+                color: root.stateColor
+            }
+        }
+
+        // Ring mode has no routine count badge or status dot. Surface a small
+        // warning only while the engine or a container needs attention.
+        Components.PlasmoidIcon {
+            visible: root.displayStyle === 6 && (root.stateName === "bad" || root.stateName === "paused" || root.stateName === "down")
+            width: container.height * 0.36
+            height: width
+            anchors.right: parent.right
+            anchors.top: parent.top
+            source: "circle-alert.svg"
+            hasTint: true
+            tint: root.stateName === "bad" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.neutralTextColor
+        }
+
         // The dot can sit in any corner; four tiny rectangles are cheaper and
         // less fiddly than a single one whose anchors get rebound on every
         // config change.
@@ -180,7 +264,7 @@ Item {
                 height: width
                 radius: width / 2
                 color: root.dotColor
-                visible: root.showDot && root.cfg.mainDotPosition === index
+                visible: (root.displayStyle === 0 || root.displayStyle === 1 || root.displayStyle === 5) && root.showDot && root.cfg.mainDotPosition === index
 
                 // Positioned by hand rather than with conditional anchors:
                 // four anchors where two are left undefined is exactly the
@@ -197,7 +281,7 @@ Item {
                 right: container.right
             }
             text: root.badgeText
-            visible: !root.isPanelVertical && !root.cfg.mainDot
+            visible: (root.displayStyle === 0 || root.displayStyle === 1 || root.displayStyle === 5) && !root.isPanelVertical && !root.cfg.mainDot
             icon: icon
             wrapText: root.cfg.wrapText
             widthFit: root.cfg.widthFit
@@ -210,16 +294,18 @@ Item {
                 right: container.right
             }
             text: root.badgeText
-            visible: root.isPanelVertical && !root.cfg.mainDot
+            visible: (root.displayStyle === 0 || root.displayStyle === 1 || root.displayStyle === 5) && root.isPanelVertical && !root.cfg.mainDot
             icon: icon
             wrapText: root.cfg.wrapText
             widthFit: root.cfg.widthFit
         }
 
         MouseArea {
-            anchors.fill: container
+            parent: root
+            anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
             acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+            enabled: !root.previewMode
             onClicked: function (mouse) {
                 if (mouse.button === Qt.LeftButton) {
                     root.applet.toggleView()
