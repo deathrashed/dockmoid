@@ -41,7 +41,7 @@ Rectangle {
 
     radius: Kirigami.Units.smallSpacing * 1.5
     color: root.washTone !== "" ? Qt.alpha(tones.color(root.washTone), root.selected ? Style.WASH.selected : (root.interactive && root.hovered) ? Style.WASH.hover : Style.WASH.rest)
-        : root.selected ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong)
+        : root.selected ? Qt.alpha(Kirigami.Theme.highlightColor, Style.WASH.selected)
         : (root.interactive && root.hovered) ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.hover)
         : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
     border.width: 1

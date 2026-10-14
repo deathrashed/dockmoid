@@ -59,6 +59,7 @@ test("lines get stronger from faint to strong", () => {
 });
 
 test("accent washes get stronger from weak to hover", () => {
+  assert.ok(alpha.tintFaint < alpha.tintWeak);
   assert.ok(alpha.tintWeak < alpha.tintStrong);
   assert.ok(alpha.tintStrong < alpha.tintHover);
 });

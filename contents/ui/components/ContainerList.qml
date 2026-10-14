@@ -38,9 +38,6 @@ PlasmaComponents.ScrollView {
         reuseItems: true
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        highlight: PlasmaExtras.Highlight {}
-        highlightMoveDuration: Kirigami.Units.shortDuration
-        highlightResizeDuration: 0
         contentWidth: width
 
         /* Headings only make sense while the default order keeps states together. */

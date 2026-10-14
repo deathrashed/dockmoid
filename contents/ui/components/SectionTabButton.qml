@@ -23,7 +23,7 @@ Controls.TabButton {
     }
     background: Rectangle {
         radius: Kirigami.Units.smallSpacing
-        color: control.checked ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintWeak)
+        color: control.checked ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintFaint)
             : control.hovered ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
             : "transparent"
         Rectangle {

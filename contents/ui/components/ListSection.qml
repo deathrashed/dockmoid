@@ -12,10 +12,10 @@ Item {
 
     readonly property var looks: ({
         "pinned": {label: i18n("Pinned"), glyph: "pin"},
-        "attention": {label: i18n("Needs attention"), glyph: "triangle-alert"},
+        "attention": {label: i18n("Needs attention"), glyph: "circle-alert"},
         "running": {label: i18n("Running"), glyph: "circle-play"},
-        "stopped": {label: i18n("Stopped"), glyph: "circle-pause"},
-        "not-created": {label: i18n("Not created"), glyph: "package-plus"}
+        "stopped": {label: i18n("Stopped"), glyph: "circle-stop"},
+        "not-created": {label: i18n("Not created"), glyph: "power-circle"}
     })
     readonly property var look: root.looks[root.group] || ({label: root.group, glyph: "layers"})
     readonly property font headingFont: {

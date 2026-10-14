@@ -17,6 +17,7 @@ var ALPHA = {
     surface3: 0.06,       // table header
     hover: 0.09,          // neutral hover on a surface
     /* Accent and semantic washes. */
+    tintFaint: 0.05,      // the lightest accent wash: a selected tab
     tintWeak: 0.08,       // faint wash: selected plan, update chips, sparkline
     tintStrong: 0.15,     // accent fill while hovered or selected
     tintHover: 0.25,      // accent fill on an already-tinted header
@@ -32,7 +33,7 @@ var ALPHA = {
 };
 
 /* Coloured washes: a surface tinted in one hue, and the gradient behind a heading. */
-var WASH = {rest: 0.11, hover: 0.2, selected: 0.3};
+var WASH = {rest: 0.04, hover: 0.07, selected: 0.1};
 var WASH_BORDER = {rest: 0.35, hover: 0.6, selected: 0.95};
 var BAND = {start: 0.2, end: 0.06};
 
@@ -64,7 +65,8 @@ var HUE = {
     sky: "#4dabf7",
     yellow: "#fab005",
     emerald: "#20c997",
-    rose: "#fa5252"
+    rose: "#fa5252",
+    magenta: "#e040b0"
 };
 
 /* Every value must be a usable opacity. Used by the tests. */

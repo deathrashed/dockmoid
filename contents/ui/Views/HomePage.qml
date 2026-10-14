@@ -79,7 +79,7 @@ Item {
     readonly property var dockTabs: [
         {key: "preview", label: i18n("Preview"), glyph: "eye"},
         {key: "activity", label: i18n("Activity"), glyph: "bell-ring"},
-        {key: "doctor", label: i18n("Doctor"), glyph: "stethoscope"},
+        {key: "doctor", label: i18n("Doctor"), glyph: "heart-pulse"},
         {key: "resources", label: i18n("Resources"), glyph: "boxes"},
         {key: "new", label: i18n("New"), glyph: "package-plus"}
     ]
@@ -234,13 +234,11 @@ Item {
                         spacing: Kirigami.Units.smallSpacing / 2
                         Repeater {
                             model: root.dockTabs
-                            delegate: Components.DockButton {
+                            delegate: Components.DockTab {
                                 required property var modelData
-                                variant: "flat"
                                 glyph: modelData.glyph
                                 text: modelData.label
                                 iconOnly: root.width < Kirigami.Units.gridUnit * 30
-                                checkable: true
                                 checked: root.dockPage === modelData.key && root.dockExpanded
                                 onClicked: { root.setDock("page", modelData.key); root.setDock("expanded", true) }
                             }

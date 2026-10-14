@@ -468,46 +468,30 @@ Item {
                                 ColumnLayout {
                                     Layout.preferredWidth: 160
                                     spacing: 1
-                                    PlasmaComponents.Button {
-                                        id: existingUsageButton
+                                    Components.Pill {
+                                        id: existingUsage
                                         visible: root.usageCount(resourceRow.modelData) > 0
-                                        Layout.fillWidth: true
-                                        implicitHeight: Kirigami.Units.gridUnit * 1.5
-                                        text: i18n("Existing · %1", i18np("%1 container", "%1 containers", root.usageCount(resourceRow.modelData)))
-                                        enabled: root.knownContainers(resourceRow.modelData).length > 0
-                                        onClicked: root.openRelated(resourceRow.modelData)
-                                        background: Rectangle {
-                                            radius: Kirigami.Units.smallSpacing
-                                            color: Qt.alpha(Kirigami.Theme.linkColor, Style.ALPHA.tintWeak)
-                                            border.width: 1
-                                            border.color: Qt.alpha(Kirigami.Theme.linkColor, Style.ALPHA.borderAccent)
-                                        }
-                                        contentItem: RowLayout {
-                                            spacing: Kirigami.Units.smallSpacing / 2
-                                            Components.ActionIcon { glyph: "package"; color: existingUsageButton.enabled ? Kirigami.Theme.linkColor : Kirigami.Theme.disabledTextColor; implicitWidth: Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth }
-                                            PlasmaComponents.Label { Layout.fillWidth: true; text: existingUsageButton.text; color: existingUsageButton.enabled ? Kirigami.Theme.linkColor : Kirigami.Theme.disabledTextColor; font: Kirigami.Theme.smallFont; elide: Text.ElideRight }
-                                        }
-                                        PlasmaComponents.ToolTip { text: root.usageHelp(resourceRow.modelData) }
+                                        dense: true
+                                        variant: "outline"
+                                        tone: "teal"
+                                        glyph: "box"
+                                        text: i18n("In use · %1", root.usageCount(resourceRow.modelData))
+                                        opacity: root.knownContainers(resourceRow.modelData).length > 0 ? 1 : 0.55
+                                        HoverHandler { id: existingHover; cursorShape: root.knownContainers(resourceRow.modelData).length > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor }
+                                        TapHandler { enabled: root.knownContainers(resourceRow.modelData).length > 0; onTapped: root.openRelated(resourceRow.modelData) }
+                                        PlasmaComponents.ToolTip { visible: existingHover.hovered; text: root.usageHelp(resourceRow.modelData) }
                                     }
-                                    PlasmaComponents.Button {
-                                        id: configuredUsageButton
+                                    Components.Pill {
+                                        id: configuredUsage
                                         visible: root.configuredImageCount(resourceRow.modelData) > 0
-                                        Layout.fillWidth: true
-                                        implicitHeight: Kirigami.Units.gridUnit * 1.5
-                                        text: i18n("Configured · %1", i18np("%1 Compose service", "%1 Compose services", root.configuredImageCount(resourceRow.modelData)))
-                                        onClicked: root.openRelated(resourceRow.modelData)
-                                        background: Rectangle {
-                                            radius: Kirigami.Units.smallSpacing
-                                            color: Qt.alpha(Kirigami.Theme.neutralTextColor, Style.ALPHA.tintWeak)
-                                            border.width: 1
-                                            border.color: Qt.alpha(Kirigami.Theme.neutralTextColor, Style.ALPHA.borderAccent)
-                                        }
-                                        contentItem: RowLayout {
-                                            spacing: Kirigami.Units.smallSpacing / 2
-                                            Components.ActionIcon { glyph: "copy-compose"; color: Kirigami.Theme.neutralTextColor; implicitWidth: Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth }
-                                            PlasmaComponents.Label { Layout.fillWidth: true; text: configuredUsageButton.text; color: Kirigami.Theme.neutralTextColor; font: Kirigami.Theme.smallFont; elide: Text.ElideRight }
-                                        }
-                                        PlasmaComponents.ToolTip { text: root.usageHelp(resourceRow.modelData) }
+                                        dense: true
+                                        variant: "outline"
+                                        tone: "amber"
+                                        glyph: "file-code"
+                                        text: i18n("Compose · %1", root.configuredImageCount(resourceRow.modelData))
+                                        HoverHandler { id: configuredHover; cursorShape: Qt.PointingHandCursor }
+                                        TapHandler { onTapped: root.openRelated(resourceRow.modelData) }
+                                        PlasmaComponents.ToolTip { visible: configuredHover.hovered; text: root.usageHelp(resourceRow.modelData) }
                                     }
                                 }
                                 PlasmaComponents.Label {

@@ -94,7 +94,14 @@ PlasmaComponents.ItemDelegate {
 
     implicitHeight: layout.implicitHeight + Kirigami.Units.smallSpacing * 2
     width: ListView.view ? ListView.view.width : implicitWidth
-    highlighted: ListView.isCurrentItem
+    highlighted: false
+    background: Rectangle {
+        radius: Kirigami.Units.smallSpacing
+        color: root.ListView.isCurrentItem ? Qt.alpha(Kirigami.Theme.highlightColor, Style.WASH.selected)
+            : root.hovered ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2) : "transparent"
+        border.width: root.ListView.isCurrentItem ? 1.5 : 0
+        border.color: Qt.alpha(Kirigami.Theme.highlightColor, Style.WASH_BORDER.selected)
+    }
 
     // --------------------------------------------------------- content ---
 

@@ -85,10 +85,18 @@ Item {
                     visible:tabs.currentIndex===0;Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
                     RowLayout {
                         Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
+                        Components.DockTab {glyph:"search";text:i18n("Search Docker Hub");checked:!root.directExpanded;onClicked:root.directExpanded=false}
+                        Components.DockTab {glyph:"box";text:i18n("A specific image");checked:root.directExpanded;onClicked:root.directExpanded=true}
+                        Item {Layout.fillWidth:true}
+                    }
+                    RowLayout {
+                        visible:!root.directExpanded
+                        Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
                         Controls.TextField{id:query;Layout.fillWidth:true;placeholderText:i18n("Search Docker Hub…");onAccepted:root.controller.search(text)}
                         Components.DockButton{variant:"primary";text:i18n("Search");glyph:"search";enabled:!root.controller.busy && query.text.trim()!=="";onClicked:root.controller.search(query.text)}
                     }
                     RowLayout {
+                        visible:!root.directExpanded
                         Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
                         Components.DockButton {variant:"flat";text:i18n("Popular");glyph:"trending-up";iconTone:"orange";PlasmaComponents.ToolTip.text:i18n("Browse Docker Hub results ranked by downloads. Sorting applies to the first 50 returned images.");PlasmaComponents.ToolTip.visible:hovered;enabled:!root.controller.busy;onClicked:{query.text="";root.searchOrder=1;root.controller.search("__popular__")}}
                         Components.DockButton {variant:"flat";checkable:true;checked:root.officialOnly;text:i18n("Official only");glyph:"badge-check";iconTone:"emerald";onClicked:root.officialOnly=checked}
@@ -98,6 +106,7 @@ Item {
                     }
                     ListView {
                         id: imageResults
+                        visible:!root.directExpanded
                         Layout.fillWidth:true;Layout.preferredHeight:Math.min(Kirigami.Units.gridUnit*11,Math.max(Kirigami.Units.gridUnit*5,count*Kirigami.Units.gridUnit*3.4));clip:true
                         spacing:Kirigami.Units.smallSpacing
                         model:root.sortedResults
@@ -127,7 +136,13 @@ Item {
                             onClicked:root.useImage("docker.io/"+modelData.name)
                         }
                     }
-                    Components.DockButton {variant:"flat";checkable:true;checked:root.directExpanded;glyph:root.directExpanded?"chevron-down":"chevron-right";iconTone:"slate";text:i18n("Use a specific image…");onClicked:root.directExpanded=checked}
+                    PlasmaComponents.Label {
+                        visible:root.directExpanded
+                        Layout.fillWidth:true
+                        text:i18n("Pull an image you already know the name of, from any registry. Use a fully qualified name such as registry.example.com/image:tag.")
+                        wrapMode:Text.Wrap
+                        color:Kirigami.Theme.disabledTextColor
+                    }
                     RowLayout {
                         Layout.fillWidth:true
                         visible:root.directExpanded

@@ -57,10 +57,10 @@ Item {
             objectName: "footerCounts"
             spacing: root.compact ? 3 : Kirigami.Units.smallSpacing * 2
             Count { value: root.backend.running; glyph: "circle-play"; toneName: "ok"; description: i18n("%1 running containers · click to filter", String(value)); filterState: "running" }
-            Count { value: root.backend.stopped; glyph: "circle-pause"; toneName: "slate"; description: i18n("%1 stopped containers · click to filter", String(value)); filterState: "stopped" }
-            Count { value: root.backend.notCreated; glyph: "package-plus"; toneName: "sky"; description: i18n("%1 configured services not created · click to filter", String(value)); filterState: "not-created" }
-            Count { value: root.backend.total; glyph: "layers"; toneName: "indigo"; description: i18n("%1 containers and configured services · show all", String(value)); filterState: "all" }
-            Count { value: root.backend.problemCount; glyph: "triangle-alert"; toneName: root.backend.problemCount > 0 ? "rose" : "slate"; description: i18n("%1 containers need attention · click to filter", String(value)); attention: true }
+            Count { value: root.backend.stopped; glyph: "circle-stop"; toneName: "yellow"; description: i18n("%1 stopped containers · click to filter", String(value)); filterState: "stopped" }
+            Count { value: root.backend.notCreated; glyph: "power-circle"; toneName: "magenta"; description: i18n("%1 configured services not created · click to filter", String(value)); filterState: "not-created" }
+            Count { value: root.backend.total; glyph: "circle-ellipsis"; toneName: "blue"; description: i18n("%1 containers and configured services · show all", String(value)); filterState: "all" }
+            Count { value: root.backend.problemCount; glyph: "circle-alert"; toneName: "bad"; description: i18n("%1 containers need attention · click to filter", String(value)); attention: true }
         }
 
         Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }

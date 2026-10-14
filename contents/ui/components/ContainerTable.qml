@@ -254,9 +254,6 @@ Item {
             reuseItems: true
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            highlight: PlasmaExtras.Highlight {}
-            highlightMoveDuration: Kirigami.Units.shortDuration
-            highlightResizeDuration: 0
 
             delegate: Item {
                 id: rowItem

@@ -77,9 +77,6 @@ Item {
             reuseItems: true
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            highlight: PlasmaExtras.Highlight {}
-            highlightMoveDuration: Kirigami.Units.shortDuration
-            highlightResizeDuration: 0
 
             section.property: "groupKey"
             section.criteria: ViewSection.FullString

@@ -50,11 +50,11 @@ PlasmaExtras.Representation {
     function clearFilters() { searchText = ""; stateFilter = "all"; problemsOnly = false }
     property string stateFilter: "all"
     readonly property var stateChoices: [
-        {key:"all",name:i18n("All containers"),icon:"layers",count:backend.total},
+        {key:"all",name:i18n("All containers"),icon:"circle-ellipsis",count:backend.total},
         {key:"running",name:i18n("Running"),icon:"circle-play",count:backend.running},
-        {key:"stopped",name:i18n("Stopped"),icon:"circle-pause",count:backend.stopped},
-        {key:"not-created",name:i18n("Not created"),icon:"package-plus",count:backend.notCreated},
-        {key:"attention",name:i18n("Needs attention"),icon:"triangle-alert",count:backend.problemCount},
+        {key:"stopped",name:i18n("Stopped"),icon:"circle-stop",count:backend.stopped},
+        {key:"not-created",name:i18n("Not created"),icon:"power-circle",count:backend.notCreated},
+        {key:"attention",name:i18n("Needs attention"),icon:"circle-alert",count:backend.problemCount},
         {key:"updates",name:i18n("Updates available"),icon:"cloud-download",count:backend.updateCount},
         {key:"paused",name:i18n("Paused"),icon:"pause"},
         {key:"restarting",name:i18n("Restarting"),icon:"rotate-cw"},
@@ -607,7 +607,7 @@ PlasmaExtras.Representation {
                             id: viewButton
                             menuOpen: toolbarViewsMenu.opened
                             presentation: root.toolbarStyle
-                            glyph: (root.viewChoices.find(function(v) { return v.mode === root.viewMode }) || root.viewChoices[0]).icon
+                            glyph: "form"
                             label: i18n("View")
                             text: i18n("Change container view")
                             menuIndicator: true
@@ -724,7 +724,7 @@ PlasmaExtras.Representation {
                             presentation: root.toolbarStyle
                             label: i18n("Doctor")
                             text: i18n("Open Doctor")
-                            glyph: "utilities-system-monitor"
+                            glyph: "heart-pulse"
                             visible: root.directDoctor
                             onClicked: root.showDoctor(0)
                         }
@@ -840,7 +840,7 @@ PlasmaExtras.Representation {
                             Components.ActionMenuDelegate {
                                 visible: !root.directDoctor
                                 text: i18n("Open Doctor")
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("utilities-system-monitor"))
+                                icon.source: Qt.resolvedUrl(ActionIcons.path("heart-pulse"))
                                 onTriggered: root.showDoctor(0)
                             }
                             Components.ActionMenuDelegate {
