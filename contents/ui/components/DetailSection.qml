@@ -2,9 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import org.kde.plasma.components as PlasmaComponents
 import org.kde.kirigami as Kirigami
-import "../../lib/style.js" as Style
 
 /* A compact disclosure section for optional container details. */
 ColumnLayout {
@@ -14,21 +12,13 @@ ColumnLayout {
     default property alias content: body.data
     spacing: 0
 
-    PlasmaComponents.ToolButton {
-        id: header
+    SectionHeader {
         Layout.fillWidth: true
         Layout.preferredHeight: Kirigami.Units.gridUnit * 1.7
-        text: root.title
-        icon.name: root.expanded ? "arrow-down" : "arrow-right"
-        display: PlasmaComponents.AbstractButton.TextBesideIcon
-        checked: root.expanded
-        onClicked: root.expanded = !root.expanded
-        background: Rectangle {
-            radius: Kirigami.Units.smallSpacing
-            color: header.checked ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong)
-                                  : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
-            border.color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
-        }
+        framed: true
+        title: root.title
+        expanded: root.expanded
+        onToggled: root.expanded = !root.expanded
     }
     ColumnLayout {
         id: body

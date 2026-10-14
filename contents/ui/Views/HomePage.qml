@@ -204,14 +204,13 @@ Item {
             ColumnLayout {
                 anchors.fill: parent
                 spacing: 0
-                RowLayout {
+                Components.SectionHeader {
                     Layout.fillWidth: true
                     Layout.preferredHeight: root.sectionHeaderHeight
-                    Layout.leftMargin: root.innerSpacing
-                    Layout.rightMargin: root.innerSpacing
-                    Components.ActionIcon { glyph: "dialog-warning"; color: Kirigami.Theme.neutralTextColor; implicitWidth: Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth }
-                    PlasmaComponents.Label { Layout.fillWidth: true; text: i18n("Needs attention · %1", attentionProxy.count); font.bold: true }
-                    Components.ActionToolButton { glyph: root.expanded("attention") ? "chevron-up" : "chevron-down"; text: root.expanded("attention") ? i18n("Collapse Needs attention") : i18n("Expand Needs attention"); onClicked: root.toggleSection("attention") }
+                    glyph: "dialog-warning"; glyphColor: Kirigami.Theme.neutralTextColor
+                    title: i18n("Needs attention · %1", attentionProxy.count)
+                    expanded: root.expanded("attention")
+                    onToggled: root.toggleSection("attention")
                 }
                 Components.AttentionServices {
                     visible: root.expanded("attention")
@@ -236,12 +235,12 @@ Item {
                 color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1); radius: Kirigami.Units.smallSpacing
                 ColumnLayout {
                     anchors.fill: parent; spacing: 0
-                    RowLayout {
+                    Components.SectionHeader {
                         Layout.fillWidth: true; Layout.preferredHeight: root.sectionHeaderHeight
-                        Layout.leftMargin: root.innerSpacing; Layout.rightMargin: root.innerSpacing
-                        Components.ActionIcon { glyph: "media-playback-start"; color: Kirigami.Theme.positiveTextColor; implicitWidth: Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth }
-                        PlasmaComponents.Label { Layout.fillWidth: true; text: i18n("Running · %1", runningProxy.count); font.bold: true }
-                        Components.ActionToolButton { glyph: root.expanded("running") ? "chevron-down" : "go-next"; text: root.expanded("running") ? i18n("Collapse Running") : i18n("Expand Running"); onClicked: root.toggleSection("running") }
+                        glyph: "media-playback-start"; glyphColor: Kirigami.Theme.positiveTextColor
+                        title: i18n("Running · %1", runningProxy.count)
+                        expanded: root.expanded("running")
+                        onToggled: root.toggleSection("running")
                     }
                     Loader {
                         visible: root.expanded("running") && root.backend.engineActive
@@ -268,11 +267,12 @@ Item {
                 color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1); radius: Kirigami.Units.smallSpacing
                 ColumnLayout {
                     anchors.fill: parent; spacing: 0
-                    RowLayout {
+                    Components.SectionHeader {
                         Layout.fillWidth: true; Layout.preferredHeight: root.sectionHeaderHeight
-                        Layout.leftMargin: root.innerSpacing; Layout.rightMargin: root.innerSpacing
-                        Components.ActionIcon { glyph: "media-playback-stop"; color: Kirigami.Theme.disabledTextColor; implicitWidth: Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth }
-                        PlasmaComponents.Label { Layout.fillWidth: true; text: i18n("Inactive · %1", inactiveProxy.count); font.bold: true }
+                        glyph: "media-playback-stop"; glyphColor: Kirigami.Theme.disabledTextColor
+                        title: i18n("Inactive · %1", inactiveProxy.count)
+                        expanded: root.expanded("inactive")
+                        onToggled: root.toggleSection("inactive")
                         Controls.ComboBox {
                             objectName:"inactiveViewChoice"
                             model:[i18n("Cards"),i18n("List"),i18n("Icons")]
@@ -281,7 +281,6 @@ Item {
                             Accessible.name:i18n("Inactive presentation")
                         }
                         Components.ActionToolButton { glyph: root.compactDensity() ? "view-list-text" : "view-list-details"; text: root.compactDensity() ? i18n("Comfortable density") : i18n("Compact density"); onClicked: root.toggleDensity() }
-                        Components.ActionToolButton { glyph: root.expanded("inactive") ? "chevron-down" : "go-next"; text: root.expanded("inactive") ? i18n("Collapse Inactive") : i18n("Expand Inactive"); onClicked: root.toggleSection("inactive") }
                     }
                     Components.InactiveServices {
                         visible: root.expanded("inactive")
@@ -305,7 +304,7 @@ Item {
                     color:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.surface1);border.color:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.borderFaint);radius:Kirigami.Units.smallSpacing
                     ColumnLayout {
                         anchors.fill:parent;spacing:0
-                        Controls.ToolButton {Layout.fillWidth:true;Layout.preferredHeight:root.sectionHeaderHeight;text:(root.expanded("embedded_"+toolPane.modelData.key)?"▾ ":"▸ ")+toolPane.modelData.label;onClicked:root.toggleSection("embedded_"+toolPane.modelData.key)}
+                        Components.SectionHeader {Layout.fillWidth:true;Layout.preferredHeight:root.sectionHeaderHeight;title:toolPane.modelData.label;expanded:root.expanded("embedded_"+toolPane.modelData.key);onToggled:root.toggleSection("embedded_"+toolPane.modelData.key)}
                         Loader {objectName:"embeddedLoader_"+toolPane.modelData.key;Layout.fillWidth:true;Layout.fillHeight:true;Layout.minimumHeight:0;active:toolPane.visible && root.visible && root.expanded("embedded_"+toolPane.modelData.key);visible:active;sourceComponent:toolPane.modelData.component}
                     }
                 }
