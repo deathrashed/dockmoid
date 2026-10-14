@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/status.js" as Status
+import "../../lib/style.js" as Style
 
 /* Minimal view: compact horizontal cards wrap to fill the available width. */
 Item {
@@ -16,7 +17,7 @@ Item {
     signal openOutput(string title, string content, bool live, string recordId)
 
     PlasmaComponents.ScrollView {
-        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AsNeeded
         anchors.fill: parent
         background: null
         contentItem: GridView {
@@ -52,8 +53,8 @@ Item {
                 onDoubleClicked: root.openDetail(card.containerKey)
                 background: Rectangle {
                     radius: Kirigami.Units.smallSpacing
-                    color: card.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, 0.15) : Qt.alpha(Kirigami.Theme.textColor, 0.035)
-                    border.color: card.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.12)
+                    color: card.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong) : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
+                    border.color: card.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
                 }
                 contentItem: RowLayout {
                     spacing: Kirigami.Units.smallSpacing
@@ -65,21 +66,13 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing
-                            ActionIcon {
-                                visible: ["failed", "unhealthy", "paused", "restarting"].indexOf(card.attention) >= 0
-                                glyph: card.attention === "failed" ? "circle-x" : card.attention === "unhealthy" ? "dialog-warning" : card.attention === "paused" ? "media-playback-pause" : "view-refresh"
-                                implicitWidth: Kirigami.Units.iconSizes.small
-                                implicitHeight: implicitWidth
-                                color: card.attention === "failed" || card.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.neutralTextColor
-                            }
                             StateDot { containerState: card.containerState; health: card.health; showHealth: plasmoid.configuration.showHealth; failed: card.attention === "failed" }
-                            PlasmaComponents.BusyIndicator { visible: card.operation.busy; running: visible; Layout.preferredWidth: Kirigami.Units.iconSizes.small; Layout.preferredHeight: Layout.preferredWidth }
-                            PlasmaComponents.Label {
+                            StatusLine {
                                 Layout.fillWidth: true
-                                text: card.operation.label || ((card.attention === "failed" ? i18n("Failed") + " · " : card.attention === "unhealthy" ? i18n("Unhealthy") + " · " : card.attention === "paused" ? i18n("Paused") + " · " : card.attention === "restarting" ? i18n("Restarting") + " · " : "") + Status.compactStatus(card.status, card.containerState, card.runningFor))
-                                elide: Text.ElideRight
-                                color: card.operation.label ? (card.operation.ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor) : card.attention === "failed" || card.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor : card.attention === "paused" || card.attention === "restarting" ? Kirigami.Theme.neutralTextColor : card.isRunning ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
-                                font: Kirigami.Theme.smallFont
+                                status: card.status; containerState: card.containerState; runningFor: card.runningFor
+                                isRunning: card.isRunning; attention: card.attention
+                                operationLabel: card.operation.label; operationOk: card.operation.ok; operationBusy: card.operation.busy
+                                glyphMode: "attention"; showBusy: true
                             }
                         }
                     }

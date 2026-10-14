@@ -57,6 +57,7 @@ Item {
         modal: true
         anchors.centerIn: parent
         standardButtons: QQC2.Dialog.Yes | QQC2.Dialog.No
+        onOpened: { standardButton(QQC2.Dialog.Yes).text = i18n("Remove"); standardButton(QQC2.Dialog.No).text = i18n("Cancel") }
 
         onAccepted: {
             if (root.pendingRecord) {
@@ -103,6 +104,7 @@ Item {
         modal: true
         anchors.centerIn: parent
         standardButtons: QQC2.Dialog.Yes | QQC2.Dialog.No
+        onOpened: { standardButton(QQC2.Dialog.Yes).text = i18n("Confirm"); standardButton(QQC2.Dialog.No).text = i18n("Cancel") }
         onAccepted: { if (root.confirmAction) root.confirmAction(); root.confirmAction = null }
 
         PlasmaComponents.Label {
@@ -199,6 +201,7 @@ Item {
         anchors.centerIn: parent
         standardButtons: QQC2.Dialog.Ok | QQC2.Dialog.Cancel
 
+        onOpened: standardButton(QQC2.Dialog.Ok).text = i18n("Clean up")
         onAccepted: root.backend.prune({
             "images": pruneImages.checked,
             "containers": pruneContainers.checked
@@ -244,7 +247,7 @@ Item {
             PlasmaComponents.Label {
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAnywhere
-                font.family: "monospace"
+                font.family: Kirigami.Theme.fixedWidthFont.family
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                 opacity: 0.7
                 text: root.backend.cleanupCommand({images:pruneImages.checked,containers:pruneContainers.checked})

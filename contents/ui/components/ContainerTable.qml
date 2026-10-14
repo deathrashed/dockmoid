@@ -9,6 +9,7 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 import "../../lib/parsers.js" as Parsers
 import "../../lib/status.js" as Status
+import "../../lib/style.js" as Style
 
 /*
  * ContainerTable — the dense, sortable view.
@@ -142,14 +143,14 @@ Item {
                     width: root.columnWidth(index)
                     height: headerRow.height
                     color: headerHover.hovered
-                        ? Qt.alpha(Kirigami.Theme.highlightColor, 0.25)
-                        : Qt.alpha(Kirigami.Theme.textColor, 0.06)
+                        ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintHover)
+                        : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface3)
 
                     Rectangle {
                         anchors.bottom: parent.bottom
                         width: parent.width
                         height: 1
-                        color: Qt.alpha(Kirigami.Theme.textColor, 0.2)
+                        color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
                     }
 
                     RowLayout {
@@ -239,7 +240,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         background: null
-        Controls.ScrollBar.horizontal.policy: root.minimumTableWidth > scroll.availableWidth ? Controls.ScrollBar.AlwaysOn : Controls.ScrollBar.AlwaysOff
+        Controls.ScrollBar.horizontal.policy: root.minimumTableWidth > scroll.availableWidth ? Controls.ScrollBar.AsNeeded : Controls.ScrollBar.AlwaysOff
         Controls.ScrollBar.vertical.policy: Controls.ScrollBar.AlwaysOn
 
         contentItem: ListView {
@@ -300,7 +301,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     color: rowItem.index % 2 === 1
-                        ? Qt.alpha(Kirigami.Theme.textColor, 0.03)
+                        ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
                         : "transparent"
                 }
 
@@ -328,7 +329,7 @@ Item {
                                 compact: true
                                 label: cell.modelData.key === "cpu" ? "CPU" : "RAM"
                                 value: cell.modelData.key === "cpu" ? rowItem.cpuPct : rowItem.memPct
-                                maximum: 5
+                                maximum: root.cfg.resourceBarMax
                             }
                             RowLayout {
                                 anchors.fill: parent
@@ -410,7 +411,7 @@ Item {
                     anchors.bottom: parent.bottom
                     width: parent.width
                     height: 1
-                    color: Qt.alpha(Kirigami.Theme.textColor, 0.08)
+                    color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.divider)
                 }
 
                 TapHandler {
@@ -450,7 +451,7 @@ Item {
             width: parent.width - Kirigami.Units.largeSpacing * 2
             visible: table.count === 0
             text: !root.backend.engineActive
-                ? i18n("Docker is not running")
+                ? i18n("%1 is not running", root.backend.engineName)
                 : (root.backend.total === 0
                    ? i18n("No containers yet.")
                    : i18n("No container matches your search."))

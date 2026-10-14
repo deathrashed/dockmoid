@@ -402,7 +402,7 @@ KCM.SimpleKCM {
                 QuestionHelp { helpText: i18n("Uses the values on this page before Apply. Test only asks for versions and local tool paths; it does not start services or change containers. Optional capabilities can be unavailable independently. Podman remains experimental.") }
             }
             Controls.Button { text: i18n("Test connection and capabilities"); enabled: !diagnosticRunner.busy; icon.name: "network-connect"; onClicked: page.testConnection() }
-            Controls.ScrollView { Layout.fillWidth: true; Layout.preferredHeight: Kirigami.Units.gridUnit * 10; visible: page.diagnosticOutput !== ""; Controls.TextArea { text: page.diagnosticOutput; readOnly: true; wrapMode: TextEdit.Wrap; selectByMouse: true; font.family: "monospace" } }
+            Controls.ScrollView { Layout.fillWidth: true; Layout.preferredHeight: Kirigami.Units.gridUnit * 10; visible: page.diagnosticOutput !== ""; Controls.TextArea { text: page.diagnosticOutput; readOnly: true; wrapMode: TextEdit.Wrap; selectByMouse: true; font.family: Kirigami.Theme.fixedWidthFont.family } }
         }
 Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_engineCommand = page.cfg_engineCommandDefault; page.cfg_activeContext = page.cfg_activeContextDefault } }
         }

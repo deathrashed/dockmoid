@@ -28,6 +28,13 @@ ColumnLayout {
             : (root.backend.remoteEngine ? i18n("%1 · Remote host", root.engineName) : i18n("%1 · Local host", root.engineName))
     }
 
+    readonly property var problemNames: {
+        var revision = root.backend.revision
+        return root.backend.records.filter(function (rec) { return root.backend.isProblem(rec) }).map(function (rec) { return rec.name })
+    }
+    readonly property string problemText: root.problemNames.length === 0 ? ""
+        : root.problemNames.slice(0, 3).join(", ") + (root.problemNames.length > 3 ? i18n(" and %1 more", root.problemNames.length - 3) : "")
+
     function ageText(timestamp) {
         if (!timestamp) return i18n("Not refreshed yet")
         var seconds = Math.max(0, Math.floor((root.now - timestamp) / 1000))
@@ -93,6 +100,14 @@ ColumnLayout {
         text: i18n("Showing the last known container state")
         wrapMode: Text.Wrap
         color: Kirigami.Theme.neutralTextColor
+    }
+
+    PlasmaComponents.Label {
+        Layout.fillWidth: true
+        visible: root.problemText !== ""
+        text: i18n("Needs attention: %1", root.problemText)
+        wrapMode: Text.Wrap
+        color: Kirigami.Theme.negativeTextColor
     }
 
     GridLayout {

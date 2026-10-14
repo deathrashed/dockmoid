@@ -8,6 +8,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.kitemmodels as KItemModels
 
 import "../components" as Components
+import "../../lib/style.js" as Style
 
 /* Three sections share the popup's current search/state filters. */
 Item {
@@ -33,7 +34,9 @@ Item {
         try { const value = JSON.parse(String(cfg.serviceSectionSettings || "{}")); return value && typeof value === "object" ? value : ({}) }
         catch (e) { return ({}) }
     }
-    function viewSettings() { const all = parsedSettings(); return all[viewKey] || ({}) }
+    /* Parsed once per change of the stored string, not on every binding read. */
+    readonly property var settingsCache: { const stored = cfg.serviceSectionSettings; return parsedSettings() }
+    function viewSettings() { return settingsCache[viewKey] || ({}) }
     function expanded(section) { const value = viewSettings()[section]; return value === undefined ? true : value === true }
     function compactDensity() { return viewSettings().inactiveDensity === "compact" }
     function updateSetting(key, value) {
@@ -164,7 +167,7 @@ Item {
         onResizingChanged:{if(resizing)wasResizing=true;else if(wasResizing){wasResizing=false;root.updateSetting("previewWidth",previewPane.width);root.updateSetting("previewHeight",previewPane.height)}}
         anchors.fill:parent
         orientation:root.width>=760?Qt.Horizontal:Qt.Vertical
-        handle:Rectangle {implicitWidth:6;implicitHeight:6;color:Controls.SplitHandle.pressed?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,0.18)}
+        handle:Rectangle {implicitWidth:6;implicitHeight:6;color:Controls.SplitHandle.pressed?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)}
         Item {
             Controls.SplitView.fillWidth:true
             Controls.SplitView.fillHeight:true
@@ -185,7 +188,7 @@ Item {
             Layout.fillHeight: true
             Layout.minimumHeight: 0
             orientation: Qt.Vertical
-            handle: Rectangle {implicitHeight:7;color:Controls.SplitHandle.pressed?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,0.18)}
+            handle: Rectangle {implicitHeight:7;color:Controls.SplitHandle.pressed?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)}
             property bool wasResizing:false
             onResizingChanged: {if(resizing)wasResizing=true;else if(wasResizing){wasResizing=false;root.savePanes()}}
         Rectangle {
@@ -198,19 +201,18 @@ Item {
             Controls.SplitView.preferredHeight: !visible ? 0 : root.expanded("attention")
                 ? root.paneHeight("attention",Math.min(root.height * 0.36, root.sectionHeaderHeight + attentionProxy.count * Kirigami.Units.gridUnit * 3.5))
                 : root.sectionHeaderHeight
-            color: Qt.alpha(Kirigami.Theme.neutralTextColor, 0.045)
+            color: Qt.alpha(Kirigami.Theme.neutralTextColor, Style.ALPHA.surface2)
             radius: Kirigami.Units.smallSpacing
             ColumnLayout {
                 anchors.fill: parent
                 spacing: 0
-                RowLayout {
+                Components.SectionHeader {
                     Layout.fillWidth: true
                     Layout.preferredHeight: root.sectionHeaderHeight
-                    Layout.leftMargin: root.innerSpacing
-                    Layout.rightMargin: root.innerSpacing
-                    Components.ActionIcon { glyph: "dialog-warning"; color: Kirigami.Theme.neutralTextColor; implicitWidth: Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth }
-                    PlasmaComponents.Label { Layout.fillWidth: true; text: i18n("Needs attention · %1", attentionProxy.count); font.bold: true }
-                    Components.ActionToolButton { glyph: root.expanded("attention") ? "chevron-up" : "chevron-down"; text: root.expanded("attention") ? i18n("Collapse Needs attention") : i18n("Expand Needs attention"); onClicked: root.toggleSection("attention") }
+                    glyph: "dialog-warning"; glyphColor: Kirigami.Theme.neutralTextColor
+                    title: i18n("Needs attention · %1", attentionProxy.count)
+                    expanded: root.expanded("attention")
+                    onToggled: root.toggleSection("attention")
                 }
                 Components.AttentionServices {
                     visible: root.expanded("attention")
@@ -232,15 +234,15 @@ Item {
                 Controls.SplitView.maximumHeight:root.expanded("running")?16777215:root.sectionHeaderHeight
             Controls.SplitView.preferredHeight: root.expanded("running") ? root.paneHeight("running",root.height / 2) : root.sectionHeaderHeight
                 Controls.SplitView.fillHeight: root.expanded("running")
-                color: Qt.alpha(Kirigami.Theme.textColor, 0.035); radius: Kirigami.Units.smallSpacing
+                color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1); radius: Kirigami.Units.smallSpacing
                 ColumnLayout {
                     anchors.fill: parent; spacing: 0
-                    RowLayout {
+                    Components.SectionHeader {
                         Layout.fillWidth: true; Layout.preferredHeight: root.sectionHeaderHeight
-                        Layout.leftMargin: root.innerSpacing; Layout.rightMargin: root.innerSpacing
-                        Components.ActionIcon { glyph: "media-playback-start"; color: Kirigami.Theme.positiveTextColor; implicitWidth: Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth }
-                        PlasmaComponents.Label { Layout.fillWidth: true; text: i18n("Running · %1", runningProxy.count); font.bold: true }
-                        Components.ActionToolButton { glyph: root.expanded("running") ? "chevron-down" : "go-next"; text: root.expanded("running") ? i18n("Collapse Running") : i18n("Expand Running"); onClicked: root.toggleSection("running") }
+                        glyph: "media-playback-start"; glyphColor: Kirigami.Theme.positiveTextColor
+                        title: i18n("Running · %1", runningProxy.count)
+                        expanded: root.expanded("running")
+                        onToggled: root.toggleSection("running")
                     }
                     Loader {
                         visible: root.expanded("running") && root.backend.engineActive
@@ -251,7 +253,7 @@ Item {
                         visible: root.expanded("running") && !root.backend.engineActive
                         Layout.fillWidth: true; Layout.fillHeight: true
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                        text: root.backend.refreshing ? i18n("Connecting…") : i18n("Docker is not running")
+                        text: root.backend.refreshing ? i18n("Connecting…") : i18n("%1 is not running", root.backend.engineName)
                         color: Kirigami.Theme.disabledTextColor
                     }
                 }
@@ -264,14 +266,15 @@ Item {
                 Controls.SplitView.maximumHeight:root.expanded("inactive")?16777215:root.sectionHeaderHeight
             Controls.SplitView.preferredHeight: root.expanded("inactive") ? root.paneHeight("inactive",root.height / 2) : root.sectionHeaderHeight
                 Controls.SplitView.fillHeight: root.expanded("inactive")
-                color: Qt.alpha(Kirigami.Theme.textColor, 0.035); radius: Kirigami.Units.smallSpacing
+                color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1); radius: Kirigami.Units.smallSpacing
                 ColumnLayout {
                     anchors.fill: parent; spacing: 0
-                    RowLayout {
+                    Components.SectionHeader {
                         Layout.fillWidth: true; Layout.preferredHeight: root.sectionHeaderHeight
-                        Layout.leftMargin: root.innerSpacing; Layout.rightMargin: root.innerSpacing
-                        Components.ActionIcon { glyph: "media-playback-stop"; color: Kirigami.Theme.disabledTextColor; implicitWidth: Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth }
-                        PlasmaComponents.Label { Layout.fillWidth: true; text: i18n("Inactive · %1", inactiveProxy.count); font.bold: true }
+                        glyph: "media-playback-stop"; glyphColor: Kirigami.Theme.disabledTextColor
+                        title: i18n("Inactive · %1", inactiveProxy.count)
+                        expanded: root.expanded("inactive")
+                        onToggled: root.toggleSection("inactive")
                         Controls.ComboBox {
                             objectName:"inactiveViewChoice"
                             model:[i18n("Cards"),i18n("List"),i18n("Icons")]
@@ -280,7 +283,6 @@ Item {
                             Accessible.name:i18n("Inactive presentation")
                         }
                         Components.ActionToolButton { glyph: root.compactDensity() ? "view-list-text" : "view-list-details"; text: root.compactDensity() ? i18n("Comfortable density") : i18n("Compact density"); onClicked: root.toggleDensity() }
-                        Components.ActionToolButton { glyph: root.expanded("inactive") ? "chevron-down" : "go-next"; text: root.expanded("inactive") ? i18n("Collapse Inactive") : i18n("Expand Inactive"); onClicked: root.toggleSection("inactive") }
                     }
                     Components.InactiveServices {
                         visible: root.expanded("inactive")
@@ -301,10 +303,10 @@ Item {
                     Controls.SplitView.minimumHeight:root.sectionHeaderHeight
                     Controls.SplitView.preferredHeight:root.expanded("embedded_"+modelData.key)?root.paneHeight("embedded_"+modelData.key,360):root.sectionHeaderHeight
                     Controls.SplitView.maximumHeight:root.expanded("embedded_"+modelData.key)?16777215:root.sectionHeaderHeight
-                    color:Qt.alpha(Kirigami.Theme.textColor,0.035);border.color:Qt.alpha(Kirigami.Theme.textColor,0.12);radius:4
+                    color:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.surface1);border.color:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.borderFaint);radius:Kirigami.Units.smallSpacing
                     ColumnLayout {
                         anchors.fill:parent;spacing:0
-                        Controls.ToolButton {Layout.fillWidth:true;Layout.preferredHeight:root.sectionHeaderHeight;text:(root.expanded("embedded_"+toolPane.modelData.key)?"▾ ":"▸ ")+toolPane.modelData.label;onClicked:root.toggleSection("embedded_"+toolPane.modelData.key)}
+                        Components.SectionHeader {Layout.fillWidth:true;Layout.preferredHeight:root.sectionHeaderHeight;title:toolPane.modelData.label;expanded:root.expanded("embedded_"+toolPane.modelData.key);onToggled:root.toggleSection("embedded_"+toolPane.modelData.key)}
                         Loader {objectName:"embeddedLoader_"+toolPane.modelData.key;Layout.fillWidth:true;Layout.fillHeight:true;Layout.minimumHeight:0;active:toolPane.visible && root.visible && root.expanded("embedded_"+toolPane.modelData.key);visible:active;sourceComponent:toolPane.modelData.component}
                     }
                 }

@@ -6,6 +6,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/parsers.js" as Parsers
 import "../../lib/status.js" as Status
+import "../../lib/style.js" as Style
 
 /* Compact fixed-height cards: long metadata stays in tooltips or the detail view. */
 Item {
@@ -63,8 +64,8 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: Kirigami.Units.smallSpacing
-                color: tileHover.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, 0.16) : Qt.alpha(Kirigami.Theme.textColor, 0.04)
-                border.color: tileHover.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.12)
+                color: tileHover.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong) : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
+                border.color: tileHover.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
             }
             ColumnLayout {
                 anchors.fill: parent
@@ -80,23 +81,13 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing / 2
-                            ActionIcon {
-                                visible: ["failed", "unhealthy", "paused", "restarting"].indexOf(tile.attention) >= 0
-                                glyph: tile.attention === "failed" ? "circle-x" : tile.attention === "unhealthy" ? "dialog-warning" : tile.attention === "paused" ? "media-playback-pause" : "view-refresh"
-                                implicitWidth: Kirigami.Units.iconSizes.small
-                                implicitHeight: implicitWidth
-                                color: tile.attention === "failed" || tile.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.neutralTextColor
-                            }
                             StateDot { containerState: tile.containerState; health: tile.health; showHealth: plasmoid.configuration.showHealth; failed: tile.attention === "failed" }
-                            PlasmaComponents.BusyIndicator { visible: tile.operation.busy; running: visible; Layout.preferredWidth: Kirigami.Units.iconSizes.small; Layout.preferredHeight: Layout.preferredWidth }
-                            PlasmaComponents.Label {
+                            StatusLine {
                                 Layout.fillWidth: true
-                                text: tile.operation.label || ((tile.attention === "failed" ? i18n("Failed") + " · " : tile.attention === "unhealthy" ? i18n("Unhealthy") + " · " : tile.attention === "paused" ? i18n("Paused") + " · " : tile.attention === "restarting" ? i18n("Restarting") + " · " : "") + Status.compactStatus(tile.status, tile.containerState, tile.record.runningFor || ""))
-                                font: Kirigami.Theme.smallFont
-                                color: tile.operation.label ? (tile.operation.ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor) : tile.attention === "failed" || tile.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor : tile.attention === "paused" || tile.attention === "restarting" ? Kirigami.Theme.neutralTextColor : tile.isRunning ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
-                                elide: Text.ElideRight
-                                PlasmaComponents.ToolTip.text: (tile.status || tile.containerState) + (tile.operation.label ? "\n" + tile.operation.label : "")
-                                PlasmaComponents.ToolTip.visible: tileHover.hovered
+                                status: tile.status; containerState: tile.containerState; runningFor: tile.record.runningFor || ""
+                                isRunning: tile.isRunning; attention: tile.attention
+                                operationLabel: tile.operation.label; operationOk: tile.operation.ok; operationBusy: tile.operation.busy
+                                glyphMode: "attention"; showBusy: true
                             }
                         }
                     }
@@ -116,7 +107,7 @@ Item {
                     Layout.fillWidth: true
                     label: "CPU"
                     value: tile.cpuPct
-                    maximum: 5
+                    maximum: plasmoid.configuration.resourceBarMax
                     barWidth: Kirigami.Units.gridUnit * 4
                 }
                 ResourceMeter {
@@ -124,7 +115,7 @@ Item {
                     Layout.fillWidth: true
                     label: "RAM"
                     value: tile.memPct
-                    maximum: 5
+                    maximum: plasmoid.configuration.resourceBarMax
                     barWidth: Kirigami.Units.gridUnit * 4
                 }
                 PlasmaComponents.Label {
@@ -184,11 +175,11 @@ Item {
                     Layout.fillWidth: true
                     spacing: 2
                     ActionToolButton { glyph: "document-view"; text: i18n("Details"); onClicked: root.openDetail(tile.containerKey) }
-                    Rectangle { visible: root.detailLevel >= 2; Layout.preferredWidth: 1; Layout.preferredHeight: Kirigami.Units.iconSizes.small; color: Qt.alpha(Kirigami.Theme.textColor, 0.2) }
+                    Rectangle { visible: root.detailLevel >= 2; Layout.preferredWidth: 1; Layout.preferredHeight: Kirigami.Units.iconSizes.small; color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border) }
                     ActionToolButton { glyph: "document-properties"; text: i18n("Inspect"); visible: root.detailLevel >= 2 && tile.width >= Kirigami.Units.gridUnit * 18; enabled: !tile.operation.busy; onClicked: actions.showInspect(tile.record) }
                     ActionToolButton { glyph: "utilities-terminal"; text: i18n("Run command"); visible: root.detailLevel >= 2 && tile.width >= Kirigami.Units.gridUnit * 18; enabled: tile.isRunning && !root.backend.readOnly && !tile.operation.busy; onClicked: root.dialogs.openRun(tile.record) }
                     ActionToolButton { glyph: "document-edit"; text: i18n("Edit Compose file"); visible: root.detailLevel >= 2 && tile.width >= Kirigami.Units.gridUnit * 18 && !!tile.composeFiles && !root.backend.readOnly && root.backend.canUseCompose; enabled: !tile.operation.busy; onClicked: root.backend.editCompose(tile.record) }
-                    Rectangle { visible: root.detailLevel >= 2; Layout.preferredWidth: 1; Layout.preferredHeight: Kirigami.Units.iconSizes.small; color: Qt.alpha(Kirigami.Theme.textColor, 0.2) }
+                    Rectangle { visible: root.detailLevel >= 2; Layout.preferredWidth: 1; Layout.preferredHeight: Kirigami.Units.iconSizes.small; color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border) }
                     Item { Layout.fillWidth: true }
                     ActionToolButton { visible: root.detailLevel >= 3; glyph: tile.verboseExpanded ? "chevron-up" : "chevron-down"; text: tile.verboseExpanded ? i18n("Less diagnostics") : i18n("More diagnostics"); onClicked: tile.verboseExpanded = !tile.verboseExpanded }
                     ActionToolButton { glyph: "application-menu"; text: i18n("Other actions"); onClicked: actions.popup(this, 0, height) }

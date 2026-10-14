@@ -87,7 +87,10 @@ def check(index,w,m,l):
  target=json.loads(view.rootObject().previewTarget());assert target, (w,m,l,'no preview target')
  QTest.mouseClick(view,Qt.LeftButton,Qt.NoModifier,QPoint(round(target['x']),round(target['y'])));app.processEvents()
  assert view.rootObject().previewSelected()==target['id'], (w,m,l,'selection preview')
- image=view.grabWindow();assert not image.isNull();checks.append([w,m,l]);step(index+1)
+ image=view.grabWindow();assert not image.isNull()
+ if os.environ.get('DOCKMOID_UI_CAPTURE_DIR'):
+  folder=pathlib.Path(os.environ['DOCKMOID_UI_CAPTURE_DIR']);folder.mkdir(parents=True,exist_ok=True);image.save(str(folder/f'w{w}-m{m}-l{l}.png'))
+ checks.append([w,m,l]);step(index+1)
 QTimer.singleShot(500,safe(step));app.exec()
 errors=[m for m in messages if any(e in m for e in ['TypeError','ReferenceError','Cannot assign','Unable to assign','Required property','Binding loop'])]
 (out/'runtime.log').write_text('\n'.join(messages));print('Production QML demo cases:',len(checks),'failures:',failures,'errors:',errors)

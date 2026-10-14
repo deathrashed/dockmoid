@@ -4,6 +4,7 @@ import QtQuick
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
+import "../../lib/style.js" as Style
 
 /*
  * MiniBar — a low-usage-sensitive bar for CPU / memory.
@@ -30,7 +31,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: height / 2
-        color: showTrack ? Qt.alpha(Kirigami.Theme.textColor, 0.12) : "transparent"
+        color: showTrack ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.track) : "transparent"
     }
 
     HoverHandler { id: barHover }

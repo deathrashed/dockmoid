@@ -8,6 +8,7 @@ import org.kde.plasma.components as PlasmaComponents
 
 import "../components" as Components
 import "../../lib/parsers.js" as Parsers
+import "../../lib/style.js" as Style
 
 /*
  * DetailPage — everything known about one container, plus its logs.
@@ -277,7 +278,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
-            color: Qt.alpha(Kirigami.Theme.textColor, 0.2)
+            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
         }
 
         // --------------------------------------------------- body ---------
@@ -629,7 +630,7 @@ Item {
                     id: commandField
                     Layout.fillWidth: true
                     placeholderText: i18n("A command to run inside the container, e.g. ls /app")
-                    font.family: "monospace"
+                    font.family: Kirigami.Theme.fixedWidthFont.family
                     enabled: !root.runBusy
                     onAccepted: { root.runCommand(text); selectAll() }
                 }

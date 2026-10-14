@@ -57,12 +57,12 @@ PlasmoidItem {
 
         onEngineStateChanged: function (active) {
             main.lastStatusMessage = active
-                ? i18n("Docker is running")
-                : i18n("Docker is not running")
+                ? i18n("%1 is running", dockerBackend.engineName)
+                : i18n("%1 is not running", dockerBackend.engineName)
             if (main.cfg.notifyOnEngineChange) {
                 dockerBackend.notify(
-                    i18n("Docker"),
-                    active ? i18n("Docker is running") : i18n("Docker is not running")
+                    dockerBackend.engineName,
+                    active ? i18n("%1 is running", dockerBackend.engineName) : i18n("%1 is not running", dockerBackend.engineName)
                 )
             }
         }
@@ -145,7 +145,7 @@ PlasmoidItem {
 
     Component.onCompleted: {
         if (main.cfg.listCommand === "{engine} ps --format json -a") main.cfg.listCommand = "{engine} ps --no-trunc --format json -a"
-        main.lastStatusMessage = i18n("Checking Docker…")
+        main.lastStatusMessage = i18n("Checking %1…", dockerBackend.engineName)
         main.installNotificationSupport()
         main.installThemeIcon()
         if (main.cfg.fetchOnStartup) startupTimer.start()
@@ -376,13 +376,13 @@ PlasmoidItem {
             onTriggered: main.toggleDetached()
         },
         PlasmaCore.Action {
-            text: i18n("Start Docker")
+            text: i18n("Start %1", dockerBackend.engineName)
             icon.name: "media-playback-start"
             visible: !dockerBackend.engineActive && dockerBackend.canControlService && !dockerBackend.readOnly
             onTriggered: dockerBackend.startEngine()
         },
         PlasmaCore.Action {
-            text: i18n("Stop Docker")
+            text: i18n("Stop %1", dockerBackend.engineName)
             icon.name: "media-playback-stop"
             visible: dockerBackend.engineActive && dockerBackend.canControlService && !dockerBackend.readOnly
             onTriggered: dockerBackend.stopEngine()

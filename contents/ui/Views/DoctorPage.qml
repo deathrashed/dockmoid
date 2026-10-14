@@ -4,6 +4,7 @@ import QtQuick.Controls as Controls
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../components" as Components
+import "../../lib/style.js" as Style
 
 Item {
     id: root
@@ -20,12 +21,7 @@ Item {
     signal openDetail(string recordId, int initialTab)
     signal openResources()
     function openUrl(url) { if(doctor.validUrl(url))Qt.openUrlExternally(url) }
-    function findingSeverity(finding) {
-        const text = String(finding.title + " " + finding.evidence).toLowerCase()
-        if (/engine connection unavailable|recent reported error|health check failed|could not/.test(text)) return "error"
-        if (/not created|unavailable|needs attention|restart|missing or inaccessible/.test(text)) return "warning"
-        return "info"
-    }
+    function findingSeverity(finding) { return finding.severity || "info" }
     function findingColor(finding) {
         const severity = root.findingSeverity(finding)
         if (severity === "error") return Kirigami.Theme.negativeTextColor
@@ -106,7 +102,7 @@ Item {
                         required property var modelData
                         Layout.fillWidth:true;implicitHeight:findingContent.implicitHeight+16
                         readonly property color severityColor: root.findingColor(modelData)
-                        radius:4;color:Qt.alpha(severityColor,0.07);border.width:1;border.color:Qt.alpha(severityColor,0.7)
+                        radius:Kirigami.Units.smallSpacing;color:Qt.alpha(severityColor,Style.ALPHA.tintWeak);border.width:1;border.color:Qt.alpha(severityColor,Style.ALPHA.borderStrong)
                         ColumnLayout {
                             id:findingContent;anchors.left:parent.left;anchors.right:parent.right;anchors.top:parent.top;anchors.margins:8;anchors.leftMargin:12
                             RowLayout {
@@ -168,13 +164,13 @@ Item {
                             id:planRow;required property var modelData;required property int index;Layout.fillWidth:true
                             implicitHeight:planContent.implicitHeight+Kirigami.Units.largeSpacing
                             radius:Kirigami.Units.smallSpacing
-                            color:planRow.modelData.selected?Qt.alpha(Kirigami.Theme.highlightColor,0.08):Qt.alpha(Kirigami.Theme.textColor,0.025)
+                            color:planRow.modelData.selected?Qt.alpha(Kirigami.Theme.highlightColor,Style.ALPHA.tintWeak):Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.surface1)
                             border.width:1
-                            border.color:planRow.modelData.selected?Qt.alpha(Kirigami.Theme.highlightColor,0.72):Qt.alpha(Kirigami.Theme.textColor,0.16)
+                            border.color:planRow.modelData.selected?Qt.alpha(Kirigami.Theme.highlightColor,Style.ALPHA.borderStrong):Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)
                             ColumnLayout {
                                 id:planContent;anchors.fill:parent;anchors.margins:Kirigami.Units.smallSpacing
                                 Controls.CheckBox {text:planRow.modelData.name+" · "+planRow.modelData.action;checked:planRow.modelData.selected;enabled:!doctor.executing;onToggled:doctor.selectPlan(planRow.index,checked)}
-                                Controls.TextArea {Layout.fillWidth:true;text:planRow.modelData.command;readOnly:true;selectByMouse:true;wrapMode:TextEdit.Wrap;font.family:"monospace"}
+                                Controls.TextArea {Layout.fillWidth:true;text:planRow.modelData.command;readOnly:true;selectByMouse:true;wrapMode:TextEdit.Wrap;font.family: Kirigami.Theme.fixedWidthFont.family}
                                 PlasmaComponents.Label {Layout.fillWidth:true;text:planRow.modelData.expected+(planRow.modelData.downtime?"\n"+i18n("Downtime expected."):"");wrapMode:Text.Wrap}
                             }
                         }

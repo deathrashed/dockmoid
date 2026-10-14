@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
+import "../../lib/style.js" as Style
 
 Item {
     id: root
@@ -10,7 +11,7 @@ Item {
     signal attentionFilterRequested()
     readonly property var cfg: plasmoid.configuration
     implicitHeight: Math.max(counts.implicitHeight, meters.implicitHeight) + Kirigami.Units.smallSpacing * 2
-    Rectangle { anchors.fill: parent; color: Qt.alpha(Kirigami.Theme.textColor, 0.035) }
+    Rectangle { anchors.fill: parent; color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1) }
 
     readonly property bool compact: width < 560
     component Count: Item {

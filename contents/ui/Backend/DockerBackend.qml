@@ -86,6 +86,8 @@ Item {
     readonly property bool canControlService: !remoteEngine && contextName === "" && !isPodman
         && /^unix:\/\/(?:\/var)?\/run\/docker\.sock$/.test(endpointHost)
     readonly property bool isPodman: /(?:^|\/)podman(?:\s|$)/.test(engineBase)
+    /* What to call the engine in text the user reads. */
+    readonly property string engineName: isPodman ? i18n("Podman") : engineName
     property bool composeAvailable: false
     property bool buildxAvailable: false
     property bool curlAvailable: false
@@ -715,7 +717,7 @@ Item {
         }
         for (let id in muted) if (muted[id] <= now) delete muted[id]
         if (lines.length === 0) return
-        var title = lines.length === 1 ? i18n("Docker") : i18np("Docker: %1 change", "Docker: %1 changes", lines.length)
+        var title = lines.length === 1 ? engineName : i18np("%2: %1 change", "%2: %1 changes", lines.length, engineName)
         notify(title, lines.slice(0, 6).join("\n") + (lines.length > 6 ? "\n" + i18n("…and %1 more", lines.length - 6) : ""), worst)
     }
 
@@ -902,11 +904,19 @@ Item {
         stopped = Math.max(0, records.length - running - pausedCount - notCreated)
     }
 
+    /* id -> record, rebuilt only when the records array itself is replaced.
+       The cache is a plain object held by a property that never changes, so
+       filling it inside a binding does not invalidate that binding. */
+    readonly property var recordCache: ({source: null, map: ({})})
     function findRecord(id) {
-        for (let i = 0; i < records.length; i++) {
-            if (records[i].id === id) return records[i]
+        const cache = recordCache
+        if (cache.source !== records) {
+            const map = {}
+            for (let i = 0; i < records.length; i++) map[records[i].id] = records[i]
+            cache.map = map
+            cache.source = records
         }
-        return null
+        return cache.map[id] || null
     }
 
     // =============================================== presentation helpers ==
@@ -1228,7 +1238,7 @@ Item {
             var text = (out || "") + (err ? (out ? "\n" : "") + err : "")
             backend.correlatedOutputReady("prune", "", epoch, requestId, 0,
                                           i18n("Prune"), text || i18n("(no output)"))
-            backend.actionDone(i18n("Docker"), code === 0 ? i18n("Prune finished") : i18n("Prune failed"), code === 0)
+            backend.actionDone(engineName, code === 0 ? i18n("Prune finished") : i18n("Prune failed"), code === 0)
             backend.diskUsageKnown = false
             backend.refresh({ "withStats": false, "withDisk": true })
         })
@@ -1493,30 +1503,30 @@ Item {
     // ---- engine ----
 
     function startEngine() {
-        if (!canControlService) { actionDone(i18n("Docker"), i18n("Local service control is unavailable for this connection."), false); return }
+        if (!canControlService) { actionDone(engineName, i18n("Local service control is unavailable for this connection."), false); return }
         run(expand(cfg.startCommand, {}), "engine-start", function (code, out, err) {
             // The daemon needs a moment before the socket answers; give it a
             // beat, then re-probe rather than reporting a stale failure.
             probeDelay.restart()
             if (code !== 0) {
-                backend.actionDone(i18n("Docker"), firstLine(err) || i18n("Could not start Docker"), false)
+                backend.actionDone(engineName, firstLine(err) || i18n("Could not start Docker"), false)
             }
         })
     }
 
     function stopEngine() {
         if (!canControlService) {
-            actionDone(i18n("Docker"), i18n("Service control is only available for the local system engine."), false)
+            actionDone(engineName, i18n("Service control is only available for the local system engine."), false)
             return
         }
         run(expand(cfg.stopServiceCommand, {}), "engine-stop", function (code, out, err) {
             if (code !== 0) {
-                backend.actionDone(i18n("Docker"), firstLine(err) || i18n("Could not stop Docker"), false)
+                backend.actionDone(engineName, firstLine(err) || i18n("Could not stop Docker"), false)
                 backend.refresh({force: true, withStats: false})
                 return
             }
             backend.run(expand(cfg.stopSocketCommand, {}), "engine-socket", function (socketCode, socketOut, socketErr) {
-                backend.actionDone(i18n("Docker"), socketCode === 0 ? i18n("Stop requested; checking engine state…")
+                backend.actionDone(engineName, socketCode === 0 ? i18n("Stop requested; checking engine state…")
                     : firstLine(socketErr) || i18n("Could not stop the Docker socket"), socketCode === 0)
                 probeDelay.restart()
             })
@@ -1631,7 +1641,7 @@ Item {
             return e.what === "cpu" ? i18n("%1 has used %2% CPU for a while", e.name, e.value.toFixed(0))
                                     : i18n("%1 is using %2% of its memory", e.name, e.value.toFixed(0))
         })
-        notify(i18n("Docker"), lines.join("\n"), "resource")
+        notify(engineName, lines.join("\n"), "resource")
     }
 
     // ============================================================ probes ====
@@ -1693,7 +1703,7 @@ Item {
             if (before[url].up && !after[url].up) lines.push(i18n("%1 stopped answering at %2", r.name, url))
             else if (!before[url].up && after[url].up) lines.push(i18n("%1 answers again", r.name))
         }
-        if (lines.length > 0) notify(i18n("Docker"), lines.join("\n"), "probe")
+        if (lines.length > 0) notify(engineName, lines.join("\n"), "probe")
     }
 
     Timer {
@@ -1791,7 +1801,7 @@ Item {
         try { saveUpdateCache() } catch (e) { /* cache is optional */ }
         applyUpdates(); syncModel(); revision++
         if (fresh.length > 0 && cfg.useNotifications && cfg.notifyOnUpdate)
-            notify(i18n("Docker"), i18np("A newer image is available: %2", "Newer images are available: %2", fresh.length, fresh.slice(0, 4).join(", ")), "update")
+            notify(engineName, i18np("A newer image is available: %2", "Newer images are available: %2", fresh.length, fresh.slice(0, 4).join(", ")), "update")
     }
 
     /* "Update": pull the newer image and recreate the container from it. */
@@ -1988,7 +1998,7 @@ Item {
             } else {
                 const reason = firstLine(err) || i18n("Could not read %1", kind)
                 let errors = Object.assign({}, backend.resourceErrors); errors[kind] = reason; backend.resourceErrors = errors
-                backend.actionDone(i18n("Docker"), reason, false)
+                backend.actionDone(engineName, reason, false)
             }
             var all = Object.assign({}, backend.resourceLists)
             if (code === 0) all[kind] = list
@@ -2016,7 +2026,7 @@ Item {
     /* Restart everything that is running and unhealthy (the middle-click option). */
     function restartUnhealthy() {
         var bad = records.filter(function (r) { return r.isRunning && r.health === "unhealthy" })
-        if (bad.length === 0) { actionDone(i18n("Docker"), i18n("Nothing is unhealthy"), true); return }
+        if (bad.length === 0) { actionDone(engineName, i18n("Nothing is unhealthy"), true); return }
         bad.forEach(function (r) { restartContainer(r) })
     }
 

@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/actionIcons.js" as ActionIcons
+import "../../lib/style.js" as Style
 
 /*
  * GroupHeader — the section bar above each compose project.
@@ -49,14 +50,14 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Qt.alpha(Kirigami.Theme.highlightColor, 0.12)
+        color: Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong)
     }
 
     Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
         height: 1
-        color: Qt.alpha(Kirigami.Theme.textColor, 0.15)
+        color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
     }
 
     RowLayout {

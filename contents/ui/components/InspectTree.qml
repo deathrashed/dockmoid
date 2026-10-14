@@ -157,7 +157,7 @@ Item {
                         Item { visible: !modelData.expandable; Layout.preferredWidth: Kirigami.Units.iconSizes.small + modelData.depth * Kirigami.Units.largeSpacing }
                         PlasmaComponents.Label { text: modelData.key; font.bold: true; color: Kirigami.Theme.linkColor; elide: Text.ElideRight }
                         PlasmaComponents.Label { text: ":"; opacity: 0.6 }
-                        PlasmaComponents.Label { id: valueLabel; Layout.fillWidth: true; Layout.minimumWidth: 0; text: modelData.value; color: modelData.valueColor; font.family: "monospace"; elide: Text.ElideRight; PlasmaComponents.ToolTip { text: modelData.raw } }
+                        PlasmaComponents.Label { id: valueLabel; Layout.fillWidth: true; Layout.minimumWidth: 0; text: modelData.value; color: modelData.valueColor; font.family: Kirigami.Theme.fixedWidthFont.family; elide: Text.ElideRight; PlasmaComponents.ToolTip { text: modelData.raw } }
                         PlasmaComponents.ToolButton { text: i18n("Value"); onClicked: root.copyValue(modelData.raw); PlasmaComponents.ToolTip { text: i18n("Copy value") } }
                         PlasmaComponents.ToolButton { text: i18n("Path"); onClicked: root.copyPath(modelData.path); PlasmaComponents.ToolTip { text: i18n("Copy JSON path") } }
                     }
@@ -174,7 +174,7 @@ Item {
             readOnly: true
             selectByMouse: true
             wrapMode: TextEdit.NoWrap
-            font.family: "monospace"
+            font.family: Kirigami.Theme.fixedWidthFont.family
             Accessible.name: i18n("Raw JSON inspect output")
         }
     }

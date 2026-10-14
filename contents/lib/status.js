@@ -37,3 +37,35 @@ function attentionKind(record) {
     if (state === "exited" && match && [0,130,137,143].indexOf(Number(match[1])) < 0) return "failed"
     return state === "running" || record.isRunning ? "running" : "stopped"
 }
+
+/* ---- Presentation helpers shared by every view that draws a status line. ----
+   They return keys, never translated text, so the QML side owns i18n. */
+
+/* Tone of the status text: "ok" | "bad" | "warn" | "text" | "muted". */
+function statusTone(attention, operationLabel, operationOk, isRunning) {
+    if (operationLabel) return operationOk ? "ok" : "bad"
+    if (attention === "failed" || attention === "unhealthy") return "bad"
+    if (attention === "paused" || attention === "restarting") return "warn"
+    return isRunning ? "text" : "muted"
+}
+
+/* Tone of the glyph in front of the status text. */
+function glyphTone(attention, isRunning) {
+    if (attention === "failed" || attention === "unhealthy") return "bad"
+    if (attention === "paused" || attention === "restarting") return "warn"
+    return isRunning ? "ok" : "muted"
+}
+
+/* Glyph name for a status line. mode: "always", "attention" or "none". */
+function statusGlyph(attention, busy, isRunning, mode) {
+    if (mode === "none") return ""
+    var byAttention = {failed: "circle-x", unhealthy: "dialog-warning", paused: "media-playback-pause", restarting: "view-refresh"}
+    if (mode === "attention") return byAttention[attention] || ""
+    if (busy) return "view-refresh"
+    return byAttention[attention] || (isRunning ? "container-running" : "container-exited")
+}
+
+/* Key of the word shown before the status, or "" when there is none. */
+function prefixKey(attention) {
+    return ["failed", "unhealthy", "paused", "restarting"].indexOf(attention) >= 0 ? attention : ""
+}

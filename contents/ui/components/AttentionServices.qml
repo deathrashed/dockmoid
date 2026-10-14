@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/status.js" as Status
+import "../../lib/style.js" as Style
 
 Item {
     id: root
@@ -49,7 +50,7 @@ Item {
                 if (code) return i18n("Exited with code %1", code[1])
                 return row.attention === "failed" ? i18n("Container failed") : String(row.status || row.containerState)
             }
-            Rectangle { anchors.fill: parent; color: Qt.alpha(Kirigami.Theme.textColor, 0.025) }
+            Rectangle { anchors.fill: parent; color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1) }
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: Kirigami.Units.smallSpacing
@@ -60,24 +61,15 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 0
                     PlasmaComponents.Label { Layout.fillWidth: true; text: row.name; font.bold: true; elide: Text.ElideRight; PlasmaComponents.ToolTip.text: row.name; PlasmaComponents.ToolTip.visible: rowHover.hovered }
-                    RowLayout {
-                        Layout.fillWidth: true; spacing: Kirigami.Units.smallSpacing / 2
-                        ActionIcon {
-                            glyph: row.operation.busy ? "view-refresh" : row.attention === "failed" ? "circle-x" : row.attention === "unhealthy" ? "dialog-warning" : row.attention === "paused" ? "media-playback-pause" : "view-refresh"
-                            color: row.attention === "failed" || row.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.neutralTextColor
-                            implicitWidth: Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth
+                        StatusLine {
+                            Layout.fillWidth: true
+                            status: row.status; containerState: row.containerState; isRunning: row.isRunning; attention: row.attention
+                            operationLabel: row.operation.label; operationOk: row.operation.ok; operationBusy: row.operation.busy
+                            glyphMode: "always"; showBusy: true; labelOverride: row.reason()
                         }
-                        PlasmaComponents.BusyIndicator { visible: row.operation.busy; running: visible; Layout.preferredWidth: Kirigami.Units.iconSizes.small; Layout.preferredHeight: Layout.preferredWidth }
-                        PlasmaComponents.Label {
-                            Layout.fillWidth: true; Layout.minimumWidth: 0
-                            text: row.operation.label || row.reason()
-                            color: row.operation.label ? (row.operation.ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor) : row.attention === "failed" || row.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.neutralTextColor
-                            elide: Text.ElideRight; font: Kirigami.Theme.smallFont
-                            PlasmaComponents.ToolTip.text: (row.status || row.containerState) + (row.operation.label ? "\n" + row.operation.label : "")
-                            PlasmaComponents.ToolTip.visible: rowHover.hovered
-                        }
-                    }
                 }
+                ActionToolButton { glyph: "view-refresh"; text: i18n("Restart"); visible: actions.canPerform("restart"); onClicked: actions.perform("restart") }
+                ActionToolButton { glyph: "text-x-generic"; text: i18n("Logs"); visible: actions.canPerform("logs"); onClicked: actions.perform("logs") }
                 ActionToolButton { glyph: "document-view"; text: i18n("Details"); onClicked: root.openDetail(row.containerKey) }
                 ActionToolButton { glyph: "application-menu"; text: i18n("Other actions"); onClicked: actions.popup(this,0,height) }
             }

@@ -190,7 +190,7 @@ PlasmaComponents.ItemDelegate {
                 }
                 ResourceMeter {
                     visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
-                    label: "CPU"; value: root.cpuPct; compact: root.compactMetrics
+                    label: "CPU"; value: root.cpuPct; compact: root.compactMetrics; maximum: root.cfg.resourceBarMax; warnAt: root.cfg.alertCpu
                 }
             }
 
@@ -199,39 +199,18 @@ PlasmaComponents.ItemDelegate {
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing / 2
                 visible: root.detailLevel >= 1
-                ActionIcon {
-                    glyph: root.operation.busy ? "view-refresh" : root.attention === "failed" ? "circle-x"
-                        : root.attention === "unhealthy" ? "dialog-warning" : root.attention === "paused" ? "media-playback-pause"
-                        : root.attention === "restarting" ? "view-refresh" : root.record.isRunning ? "container-running" : "container-exited"
-                    implicitWidth: Kirigami.Units.iconSizes.small
-                    implicitHeight: implicitWidth
-                    color: root.attention === "failed" || root.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor
-                        : root.attention === "paused" || root.attention === "restarting" ? Kirigami.Theme.neutralTextColor
-                        : root.record.isRunning ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
-                }
-                PlasmaComponents.Label {
+                StatusLine {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
-                    elide: Text.ElideRight
-                    text: root.operation.label || ((root.attention === "failed" ? i18n("Failed") + " · "
-                        : root.attention === "unhealthy" ? i18n("Unhealthy") + " · "
-                        : root.attention === "paused" ? i18n("Paused") + " · "
-                        : root.attention === "restarting" ? i18n("Restarting") + " · " : "")
-                        + Status.compactStatus(root.record.status, root.record.state, root.record.runningFor))
-                    font: Kirigami.Theme.smallFont
-                    color: root.operation.label ? (root.operation.ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor)
-                        : root.attention === "failed" || root.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor
-                        : root.attention === "paused" || root.attention === "restarting" ? Kirigami.Theme.neutralTextColor
-                        : root.record.isRunning ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
-                    HoverHandler { id: statusHover }
-                    PlasmaComponents.ToolTip {
-                        visible: statusHover.hovered
-                        text: (root.record.status !== "" ? root.record.status : root.record.state) + (root.operation.label ? "\n" + root.operation.label : "")
-                    }
+                    status: root.record.status; containerState: root.record.state; runningFor: root.record.runningFor
+                    isRunning: root.record.isRunning === true
+                    attention: root.attention
+                    operationLabel: root.operation.label; operationOk: root.operation.ok; operationBusy: root.operation.busy
+                    glyphMode: "always"
                 }
                 ResourceMeter {
                     visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
-                    label: "RAM"; value: root.memPct; compact: root.compactMetrics
+                    label: "RAM"; value: root.memPct; compact: root.compactMetrics; maximum: root.cfg.resourceBarMax; warnAt: root.cfg.alertMem
                 }
             }
 
@@ -472,6 +451,9 @@ PlasmaComponents.ItemDelegate {
         ListView.view.currentIndex = root.index
     }
     onDoubleClicked: root.openDetail(root.record.id)
+    Keys.onReturnPressed: root.openDetail(root.record.id)
+    Keys.onEnterPressed: root.openDetail(root.record.id)
+    Accessible.name: root.name + ", " + Status.compactStatus(root.status, root.containerState, root.runningFor)
 
     TapHandler {
         acceptedButtons: Qt.RightButton

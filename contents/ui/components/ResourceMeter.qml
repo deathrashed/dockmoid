@@ -8,9 +8,13 @@ RowLayout {
     property string label: "CPU"
     property real value: 0
     property real maximum: 5
+    /* Colour the bar amber from warnAt and red from twice that; 0 keeps it plain. */
+    property real warnAt: 0
     property bool compact: false
     property real barWidth: compact ? 28 : 44
-    property color barColor: label === "CPU" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.highlightColor
+    property color barColor: root.warnAt > 0 && root.value >= root.warnAt * 2 ? Kirigami.Theme.negativeTextColor
+        : root.warnAt > 0 && root.value >= root.warnAt ? Kirigami.Theme.neutralTextColor
+        : label === "CPU" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.highlightColor
     property bool bold: false
     property string numberColumnText: "1000.00%"
     readonly property font metricFont: {
