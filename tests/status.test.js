@@ -38,3 +38,29 @@ context.compactStatus(exited, "exited");
 assert.equal(exited, "Exited (137) 3 days ago", "the original status, including exit code, remains available for the tooltip");
 
 console.log("status labels ok");
+
+// ---- presentation helpers ----
+{
+  assert.equal(context.statusTone("failed", "", true, false), "bad");
+  assert.equal(context.statusTone("unhealthy", "", true, true), "bad");
+  assert.equal(context.statusTone("paused", "", true, true), "warn");
+  assert.equal(context.statusTone("restarting", "", true, true), "warn");
+  assert.equal(context.statusTone("running", "", true, true), "text");
+  assert.equal(context.statusTone("stopped", "", true, false), "muted");
+  assert.equal(context.statusTone("running", "Done", true, true), "ok");
+  assert.equal(context.statusTone("running", "Failed", false, true), "bad");
+  assert.equal(context.glyphTone("failed", false), "bad");
+  assert.equal(context.glyphTone("paused", true), "warn");
+  assert.equal(context.glyphTone("running", true), "ok");
+  assert.equal(context.glyphTone("stopped", false), "muted");
+  assert.equal(context.statusGlyph("running", false, true, "always"), "container-running");
+  assert.equal(context.statusGlyph("stopped", false, false, "always"), "container-exited");
+  assert.equal(context.statusGlyph("running", true, true, "always"), "view-refresh");
+  assert.equal(context.statusGlyph("failed", false, false, "always"), "circle-x");
+  assert.equal(context.statusGlyph("running", false, true, "attention"), "");
+  assert.equal(context.statusGlyph("unhealthy", false, true, "attention"), "dialog-warning");
+  assert.equal(context.statusGlyph("failed", false, false, "none"), "");
+  assert.equal(context.prefixKey("restarting"), "restarting");
+  assert.equal(context.prefixKey("running"), "");
+  console.log("status presentation helpers ok");
+}

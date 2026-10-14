@@ -81,23 +81,13 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing / 2
-                            ActionIcon {
-                                visible: ["failed", "unhealthy", "paused", "restarting"].indexOf(tile.attention) >= 0
-                                glyph: tile.attention === "failed" ? "circle-x" : tile.attention === "unhealthy" ? "dialog-warning" : tile.attention === "paused" ? "media-playback-pause" : "view-refresh"
-                                implicitWidth: Kirigami.Units.iconSizes.small
-                                implicitHeight: implicitWidth
-                                color: tile.attention === "failed" || tile.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.neutralTextColor
-                            }
                             StateDot { containerState: tile.containerState; health: tile.health; showHealth: plasmoid.configuration.showHealth; failed: tile.attention === "failed" }
-                            PlasmaComponents.BusyIndicator { visible: tile.operation.busy; running: visible; Layout.preferredWidth: Kirigami.Units.iconSizes.small; Layout.preferredHeight: Layout.preferredWidth }
-                            PlasmaComponents.Label {
+                            StatusLine {
                                 Layout.fillWidth: true
-                                text: tile.operation.label || ((tile.attention === "failed" ? i18n("Failed") + " · " : tile.attention === "unhealthy" ? i18n("Unhealthy") + " · " : tile.attention === "paused" ? i18n("Paused") + " · " : tile.attention === "restarting" ? i18n("Restarting") + " · " : "") + Status.compactStatus(tile.status, tile.containerState, tile.record.runningFor || ""))
-                                font: Kirigami.Theme.smallFont
-                                color: tile.operation.label ? (tile.operation.ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor) : tile.attention === "failed" || tile.attention === "unhealthy" ? Kirigami.Theme.negativeTextColor : tile.attention === "paused" || tile.attention === "restarting" ? Kirigami.Theme.neutralTextColor : tile.isRunning ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
-                                elide: Text.ElideRight
-                                PlasmaComponents.ToolTip.text: (tile.status || tile.containerState) + (tile.operation.label ? "\n" + tile.operation.label : "")
-                                PlasmaComponents.ToolTip.visible: tileHover.hovered
+                                status: tile.status; containerState: tile.containerState; runningFor: tile.record.runningFor || ""
+                                isRunning: tile.isRunning; attention: tile.attention
+                                operationLabel: tile.operation.label; operationOk: tile.operation.ok; operationBusy: tile.operation.busy
+                                glyphMode: "attention"; showBusy: true
                             }
                         }
                     }
