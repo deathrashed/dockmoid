@@ -10,6 +10,8 @@ Item {
     id: root
     objectName: "doctorPage"
     required property var backend
+    /* True when shown inside the main page's dock. */
+    property bool embedded: false
     required property var dialogs
     readonly property var doctor: backend.doctor
     property int tab: 0
@@ -40,6 +42,7 @@ Item {
         anchors.fill: parent
         spacing: 0
         Components.PageHeader {
+            compact: root.embedded
             title: i18n("Doctor")
             subtitle: doctor.checkedAt ? i18n("Checked %1", new Date(doctor.checkedAt).toLocaleTimeString()) : i18n("Not checked yet")
             Components.DockButton { variant: "primary"; glyph: "view-refresh"; text: i18n("Check"); enabled: !doctor.scanning && !doctor.executing; onClicked: doctor.scan() }
@@ -115,6 +118,7 @@ Item {
                             RowLayout {
                                 Layout.fillWidth:true
                                 Components.ActionIcon {glyph:root.findingGlyph(finding.modelData);color:finding.severityColor}
+                                Components.Pill {dense:true;variant:"outline";text:finding.modelData.severity==="error"?i18n("Error"):finding.modelData.severity==="warning"?i18n("Warning"):i18n("Info");tone:finding.modelData.severity==="error"?"bad":finding.modelData.severity==="warning"?"amber":"blue"}
                                 PlasmaComponents.Label {Layout.fillWidth:true;text:finding.modelData.title;font.bold:true;wrapMode:Text.Wrap;color:finding.severityColor}
                             }
                             PlasmaComponents.Label {Layout.fillWidth:true;text:finding.modelData.evidence;textFormat:Text.PlainText;wrapMode:Text.WrapAnywhere}

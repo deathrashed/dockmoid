@@ -39,7 +39,7 @@ test("fills get stronger from surface to hover", () => {
 });
 
 test("lines get stronger from faint to strong", () => {
-  const order = ["divider", "borderFaint", "border", "borderAccent", "borderStrong"];
+  const order = ["divider", "borderFaint", "border", "borderSoft", "borderAccent", "borderStrong"];
   const values = order.map((name) => alpha[name]);
   assert.deepEqual(values, [...values].sort((a, b) => a - b));
 });

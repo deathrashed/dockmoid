@@ -15,6 +15,8 @@ Item {
     id: root
 
     required property var backend
+    /* True when shown inside the main page's dock. */
+    property bool embedded: false
     required property var dialogs
     required property var navigator
 
@@ -214,6 +216,7 @@ Item {
         spacing: 0
 
         Components.PageHeader {
+            compact: root.embedded
             title: i18n("Resources")
             subtitle: i18n("Images, volumes and networks on %1", root.backend.engineName)
         }

@@ -27,12 +27,27 @@ Item {
     property bool operationOk: true
     property bool operationBusy: false
     property string glyphMode: "always"
+    /* Show the state as a badge, then the elapsed time. */
+    property bool badge: false
     /* Draw the spinner here while an action runs; list rows draw their own. */
     property bool showBusy: false
     /* Replaces the status text, for views that explain *why* (Needs attention). */
     property string labelOverride: ""
 
-    readonly property string glyphName: Status.statusGlyph(root.attention, root.operationBusy, root.isRunning, root.glyphMode)
+    readonly property string glyphName: root.badge ? "" : Status.statusGlyph(root.attention, root.operationBusy, root.isRunning, root.glyphMode)
+    readonly property var spec: Status.badgeSpec(root.attention)
+    readonly property bool showBadge: root.badge && root.operationLabel === "" && root.labelOverride === ""
+    readonly property string badgeWord: {
+        switch (root.spec.key) {
+        case "running": return i18n("Running")
+        case "unhealthy": return i18n("Unhealthy")
+        case "failed": return i18n("Failed")
+        case "paused": return i18n("Paused")
+        case "restarting": return i18n("Restarting")
+        case "not-created": return i18n("Not created")
+        default: return i18n("Stopped")
+        }
+    }
     readonly property string prefix: {
         switch (Status.prefixKey(root.attention)) {
         case "failed": return i18n("Failed") + " · "
@@ -44,6 +59,7 @@ Item {
     }
     readonly property string text: root.operationLabel !== "" ? root.operationLabel
         : root.labelOverride !== "" ? root.labelOverride
+        : root.showBadge ? (root.spec.key === "not-created" ? "" : Status.compactStatus(root.status, root.containerState, root.runningFor))
         : root.prefix + Status.compactStatus(root.status, root.containerState, root.runningFor)
 
     implicitWidth: line.implicitWidth
@@ -63,6 +79,15 @@ Item {
             implicitWidth: Kirigami.Units.iconSizes.small
             implicitHeight: implicitWidth
         }
+        Pill {
+            visible: root.showBadge
+            dense: true
+            text: root.badgeWord
+            tone: root.spec.tone
+            variant: root.spec.variant
+            glyph: root.spec.glyph
+            statusDot: root.spec.dot
+        }
         PlasmaComponents.BusyIndicator {
             visible: root.showBusy && root.operationBusy
             running: visible
@@ -72,6 +97,7 @@ Item {
         PlasmaComponents.Label {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
+            visible: root.text !== ""
             text: root.text
             elide: Text.ElideRight
             font: Kirigami.Theme.smallFont

@@ -69,3 +69,14 @@ console.log("status labels ok");
   assert.equal(context.accentTone("not-created"), "");
   console.log("status presentation helpers ok");
 }
+
+{
+  const spec = (attention) => JSON.parse(JSON.stringify(context.badgeSpec(attention)));
+  assert.deepEqual(spec("running"), { key: "running", tone: "ok", variant: "ghost", glyph: "", dot: true });
+  assert.equal(spec("failed").tone, "bad");
+  assert.equal(spec("paused").tone, "amber");
+  assert.equal(spec("not-created").variant, "outline");
+  assert.equal(spec("stopped").key, "stopped");
+  assert.equal(spec("anything-else").key, "stopped");
+  console.log("status badge specs ok");
+}

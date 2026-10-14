@@ -22,12 +22,14 @@ Card {
     property bool compact: false
     signal clicked()
 
-    padding: root.compact ? Kirigami.Units.smallSpacing : Kirigami.Units.smallSpacing * 1.5
+    padding: Kirigami.Units.smallSpacing
     interactive: root.clickable
     hovered: hover.hovered
     selected: root.active
+    implicitHeight: Kirigami.Units.gridUnit * 1.7
     implicitWidth: line.implicitWidth + padding * 2
-    implicitHeight: line.implicitHeight + padding * 2
+    scale: root.clickable && hover.hovered ? 1.03 : 1
+    Behavior on scale { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutQuad } }
 
     Accessible.role: root.clickable ? Accessible.Button : Accessible.StaticText
     Accessible.name: root.value + " " + root.label
@@ -36,10 +38,11 @@ Card {
 
     RowLayout {
         id: line
+        anchors.centerIn: parent
         spacing: Kirigami.Units.smallSpacing
         Rectangle {
             Layout.alignment: Qt.AlignVCenter
-            implicitWidth: Kirigami.Units.iconSizes.smallMedium + Kirigami.Units.smallSpacing
+            implicitWidth: Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing
             implicitHeight: implicitWidth
             radius: Kirigami.Units.smallSpacing
             color: Qt.alpha(palette.color(root.toneName), Style.ALPHA.tintStrong)
@@ -47,24 +50,20 @@ Card {
                 anchors.centerIn: parent
                 glyph: root.glyph
                 color: palette.color(root.toneName)
-                implicitWidth: Kirigami.Units.iconSizes.small
+                implicitWidth: Kirigami.Units.iconSizes.small * 0.85
                 implicitHeight: implicitWidth
             }
         }
-        ColumnLayout {
-            spacing: 0
-            PlasmaComponents.Label {
-                text: String(root.value)
-                font.bold: true
-                font.pointSize: Kirigami.Theme.defaultFont.pointSize + 2
-                font.features: ({"tnum": 1})
-            }
-            PlasmaComponents.Label {
-                visible: !root.compact
-                text: root.label
-                font: Kirigami.Theme.smallFont
-                color: Kirigami.Theme.disabledTextColor
-            }
+        PlasmaComponents.Label {
+            text: String(root.value)
+            font.bold: true
+            font.features: ({"tnum": 1})
+        }
+        PlasmaComponents.Label {
+            visible: !root.compact
+            text: root.label
+            font: Kirigami.Theme.smallFont
+            color: Kirigami.Theme.disabledTextColor
         }
     }
 

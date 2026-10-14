@@ -28,6 +28,13 @@ Rectangle {
     default property alias content: body.data
     property real padding: Kirigami.Units.largeSpacing
     readonly property color stripe: root.tone !== "" ? tones.color(root.tone) : root.accent
+    readonly property font titleFont: {
+        const f = Kirigami.Theme.smallFont
+        f.bold = true
+        f.capitalization = Font.AllUppercase
+        f.letterSpacing = 0.6
+        return f
+    }
     readonly property bool hasAccent: root.stripe.a > 0
 
     radius: Kirigami.Units.smallSpacing * 1.5
@@ -75,10 +82,7 @@ Rectangle {
             PlasmaComponents.Label {
                 Layout.fillWidth: true
                 text: root.title
-                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                font.bold: true
-                font.capitalization: Font.AllUppercase
-                font.letterSpacing: 0.6
+                font: root.titleFont
                 color: Kirigami.Theme.disabledTextColor
                 elide: Text.ElideRight
             }

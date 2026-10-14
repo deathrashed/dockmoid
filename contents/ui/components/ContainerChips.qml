@@ -72,7 +72,7 @@ Item {
                                 status: card.status; containerState: card.containerState; runningFor: card.runningFor
                                 isRunning: card.isRunning; attention: card.attention
                                 operationLabel: card.operation.label; operationOk: card.operation.ok; operationBusy: card.operation.busy
-                                glyphMode: "attention"; showBusy: true
+                                glyphMode: "attention"; showBusy: true; badge: true
                             }
                         }
                     }

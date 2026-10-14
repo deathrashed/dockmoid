@@ -24,6 +24,7 @@ var ALPHA = {
     divider: 0.08,        // hairline between rows
     borderFaint: 0.12,    // card outlines
     border: 0.2,          // separators, split handles, emphasised outlines
+    borderSoft: 0.3,      // outline of a ghost badge
     borderAccent: 0.45,   // outline of a tinted chip
     borderStrong: 0.7,    // outline of a selected or hovered tinted item
     /* Gauges. */

@@ -17,11 +17,13 @@ Item {
 
     property string title: ""
     property string subtitle: ""
+    /* Tighter, for a page shown inside the dock. */
+    property bool compact: false
     property alias leading: leadingRow.data
     property alias badges: badgeRow.data
     default property alias actions: actionRow.data
 
-    implicitHeight: line.implicitHeight + Kirigami.Units.largeSpacing * 2
+    implicitHeight: line.implicitHeight + (root.compact ? Kirigami.Units.smallSpacing : Kirigami.Units.largeSpacing) * 2
     Layout.fillWidth: true
 
     Rectangle {
@@ -54,7 +56,7 @@ Item {
             PlasmaExtras.Heading {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                level: 3
+                level: root.compact ? 4 : 3
                 text: root.title
                 elide: Text.ElideRight
             }

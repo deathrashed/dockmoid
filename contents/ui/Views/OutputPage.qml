@@ -98,7 +98,8 @@ Item {
                 visible: root.live && root.requestGeneration === root.backend.generation
                 text: i18n("Following")
                 tone: "ok"
-                glyph: "media-playback-start"
+                statusDot: true
+                pulse: true
             }
             Components.ActionToolButton {
                 visible: root.live && root.requestGeneration === root.backend.generation

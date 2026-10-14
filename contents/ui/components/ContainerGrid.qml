@@ -88,7 +88,7 @@ Item {
                                 status: tile.status; containerState: tile.containerState; runningFor: tile.record.runningFor || ""
                                 isRunning: tile.isRunning; attention: tile.attention
                                 operationLabel: tile.operation.label; operationOk: tile.operation.ok; operationBusy: tile.operation.busy
-                                glyphMode: "attention"; showBusy: true
+                                glyphMode: "attention"; showBusy: true; badge: true
                             }
                         }
                     }

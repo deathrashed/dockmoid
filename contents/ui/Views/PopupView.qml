@@ -1004,6 +1004,7 @@ PlasmaExtras.Representation {
                 onUpdatesRequested: reviewUpdates.open()
                 onViewRequested: function(mode) { root.selectView(mode) }
                 onActivityRequested: root.showActivity()
+                onClearFiltersRequested: root.clearFilters()
                 proxy: proxy
                 dialogs: dialogs
                 viewMode: root.viewMode
@@ -1011,7 +1012,6 @@ PlasmaExtras.Representation {
                 searchText: root.searchText
                 rowFilter: root.rowFilter
                 activeFilterCount: root.activeFilterCount
-                onClearFiltersRequested: root.clearFilters()
                 onCreateRequested: root.showDeployment()
                 onResourcesRequested:root.showResources()
                 onOpenDetail: function (recordId) { root.showDetail(recordId) }

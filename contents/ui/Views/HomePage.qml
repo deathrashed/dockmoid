@@ -5,12 +5,16 @@ import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.kirigami as Kirigami
-import org.kde.kitemmodels as KItemModels
 
 import "../components" as Components
 import "../../lib/style.js" as Style
 
-/* Three sections share the popup's current search/state filters. */
+/*
+ * The main page: the overview strip, then two stacked panes.
+ *
+ *   top   the containers the strip's selection asks for (All shows every one)
+ *   dock  a collapsible page host: Preview, Activity, Doctor, Resources or New
+ */
 Item {
     id: root
     objectName: "homeSectionPage"
@@ -36,16 +40,17 @@ Item {
     signal openOutput(string title, string content, bool live, string recordId)
 
     readonly property var cfg: plasmoid.configuration
-    readonly property string viewKey: viewMode === 1 ? "table" : viewMode === 2 ? "groups" : viewMode === 3 ? "grid" : "list"
+
+    // ------------------------------------------------------- stored layout ---
     function parsedSettings() {
         try { const value = JSON.parse(String(cfg.serviceSectionSettings || "{}")); return value && typeof value === "object" ? value : ({}) }
         catch (e) { return ({}) }
     }
     /* Parsed once per change of the stored string, not on every binding read. */
     readonly property var settingsCache: { const stored = cfg.serviceSectionSettings; return parsedSettings() }
+    /* Per-view settings, kept for the view components and the test harness. */
+    readonly property string viewKey: viewMode === 1 ? "table" : viewMode === 2 ? "groups" : viewMode === 3 ? "grid" : "list"
     function viewSettings() { return settingsCache[viewKey] || ({}) }
-    function expanded(section) { const value = viewSettings()[section]; return value === undefined ? true : value === true }
-    function compactDensity() { return viewSettings().inactiveDensity === "compact" }
     function updateSetting(key, value) {
         const all = parsedSettings()
         const prefs = all[viewKey] || ({})
@@ -53,70 +58,48 @@ Item {
         all[viewKey] = prefs
         cfg.serviceSectionSettings = JSON.stringify(all)
     }
-    function toggleSection(section) { updateSetting(section, !expanded(section)) }
-    function toggleDensity() { updateSetting("inactiveDensity", compactDensity() ? "comfortable" : "compact") }
-    function previewMode() { return viewSettings().previewMode || "off" }
-    function toolEnabled(key) { return viewSettings()["tool_" + key] === true }
-    function paneHeight(key, fallback) { const sizes = viewSettings().paneSizes || ({}); return Number(sizes[key]) > 0 ? Number(sizes[key]) : fallback }
-    function savePanes() {
-        const sizes=Object.assign({},viewSettings().paneSizes || {})
-        if(root.expanded("running"))sizes.running=runningPanel.height
-        if(root.expanded("inactive"))sizes.inactive=inactivePanel.height
-        if(attentionPanel.visible && root.expanded("attention"))sizes.attention=attentionPanel.height
-        serviceSections.contentChildren.forEach(function(item){if(String(item.objectName).indexOf("embedded_")===0 && item.visible && root.expanded(item.objectName))sizes[item.objectName]=item.height})
-        updateSetting("paneSizes",sizes)
+    /* The dock is shared by every view. */
+    function dockSetting(key, fallback) { const dock = settingsCache.dock || ({}); return dock[key] === undefined ? fallback : dock[key] }
+    function setDock(key, value) {
+        const all = parsedSettings()
+        const dock = all.dock || ({})
+        dock[key] = value
+        all.dock = dock
+        cfg.serviceSectionSettings = JSON.stringify(all)
     }
-    Binding {target:root.backend;property:"previewMode";value:root.visible ? root.previewMode() : "off"}
-    Component {id:doctorTool;DoctorPage {backend:root.backend;dialogs:root.dialogs;onOpenDetail:function(id,tab){root.openDetail(id)};onOpenResources:root.resourcesRequested()}}
-    Component {id:newTool;DeploymentPage {backend:root.backend;onCloseRequested:root.updateSetting("tool_new",false)}}
-    Component {id:resourcesTool;ResourcesPage {backend:root.backend;dialogs:root.dialogs;navigator:null;onOpenDetail:function(id){root.openDetail(id)};onDeploymentRequested:root.createRequested()}}
+    readonly property string dockPage: String(dockSetting("page", "preview"))
+    readonly property bool dockExpanded: dockSetting("expanded", true) === true
+    function previewMode() { return String(dockSetting("previewMode", "selection")) }
 
-    function categoryFilter(category) {
-        const base = root.rowFilter
-        return function(sourceRow) {
-            const row = root.backend.containerModel.get(sourceRow)
-            if (!row || !base(sourceRow)) return false
-            const state = String(row.containerState || row.state || "").toLowerCase()
-            const attention = root.backend.isProblem(row)
-            if (category === "attention") return attention
-            if (category === "running") return (state === "running" || row.isRunning === true) && !attention
-            return !attention && state !== "running" && row.isRunning !== true
-        }
+    Binding {
+        target: root.backend
+        property: "previewMode"
+        value: root.visible && root.dockExpanded && root.dockPage === "preview" ? root.previewMode() : "off"
     }
-    KItemModels.KSortFilterProxyModel {
-        id: runningProxy
-        objectName: "runningSectionProxy"
-        sourceModel: root.backend.containerModel
-        filterRowCallback: root.categoryFilter("running")
-        dynamicSortFilter: true
-        sortRoleName: root.cfg.sortRole
-        sortOrder: root.cfg.sortAscending ? Qt.AscendingOrder : Qt.DescendingOrder
-    }
-    KItemModels.KSortFilterProxyModel {
-        id: attentionProxy
-        objectName: "attentionSectionProxy"
-        sourceModel: root.backend.containerModel
-        filterRowCallback: root.categoryFilter("attention")
-        dynamicSortFilter: true
-        sortRoleName: root.cfg.sortRole
-        sortOrder: root.cfg.sortAscending ? Qt.AscendingOrder : Qt.DescendingOrder
-    }
-    KItemModels.KSortFilterProxyModel {
-        id: inactiveProxy
-        objectName: "inactiveSectionProxy"
-        sourceModel: root.backend.containerModel
-        filterRowCallback: root.categoryFilter("inactive")
-        dynamicSortFilter: true
-        sortRoleName: root.cfg.sortRole
-        sortOrder: root.cfg.sortAscending ? Qt.AscendingOrder : Qt.DescendingOrder
-    }
-    readonly property int sectionHeaderHeight: Kirigami.Units.gridUnit * 2.1
-    readonly property int innerSpacing: Kirigami.Units.smallSpacing
 
+    readonly property int dockHeaderHeight: Kirigami.Units.gridUnit * 2.4
+
+    // ----------------------------------------------------------- dock pages ---
+    readonly property var dockTabs: [
+        {key: "preview", label: i18n("Preview"), glyph: "eye"},
+        {key: "activity", label: i18n("Activity"), glyph: "bell-ring"},
+        {key: "doctor", label: i18n("Doctor"), glyph: "stethoscope"},
+        {key: "resources", label: i18n("Resources"), glyph: "boxes"},
+        {key: "new", label: i18n("New"), glyph: "package-plus"}
+    ]
+    Component { id: previewPage; Components.ServicePreview { backend: root.backend; onOpenDetail: function(id) { root.openDetail(id) } } }
+    Component { id: activityPage; ActivityPage { backend: root.backend; embedded: true; onOpenDetail: function(id) { root.openDetail(id) } } }
+    Component { id: doctorPage; DoctorPage { backend: root.backend; dialogs: root.dialogs; embedded: true; onOpenDetail: function(id, tab) { root.openDetail(id) }; onOpenResources: root.setDock("page", "resources") } }
+    Component { id: resourcesPage; ResourcesPage { backend: root.backend; dialogs: root.dialogs; navigator: null; embedded: true; onOpenDetail: function(id) { root.openDetail(id) }; onDeploymentRequested: root.setDock("page", "new") } }
+    Component { id: newPage; DeploymentPage { backend: root.backend; embedded: true; onCloseRequested: root.setDock("page", "preview") } }
+    readonly property var dockComponent: dockPage === "activity" ? activityPage : dockPage === "doctor" ? doctorPage
+        : dockPage === "resources" ? resourcesPage : dockPage === "new" ? newPage : previewPage
+
+    // ---------------------------------------------------- the container list ---
     Component {
         id: listComponent
         Components.ContainerList {
-            backend: root.backend; proxy: runningProxy; dialogs: root.dialogs; detailLevel: root.detailLevel
+            backend: root.backend; proxy: root.proxy; dialogs: root.dialogs; detailLevel: root.detailLevel
             onOpenDetail: function(recordId) { root.openDetail(recordId) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
@@ -124,7 +107,7 @@ Item {
     Component {
         id: minimalComponent
         Components.ContainerChips {
-            backend: root.backend; proxy: runningProxy; dialogs: root.dialogs
+            backend: root.backend; proxy: root.proxy; dialogs: root.dialogs
             onOpenDetail: function(recordId) { root.openDetail(recordId) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
@@ -132,7 +115,7 @@ Item {
     Component {
         id: tableComponent
         Components.ContainerTable {
-            detailLevel: root.detailLevel; backend: root.backend; proxy: runningProxy; dialogs: root.dialogs
+            detailLevel: root.detailLevel; backend: root.backend; proxy: root.proxy; dialogs: root.dialogs
             onOpenDetail: function(recordId) { root.openDetail(recordId) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
@@ -141,7 +124,7 @@ Item {
         id: groupComponent
         Components.ComposeGroupView {
             backend: root.backend; dialogs: root.dialogs; searchText: root.searchText
-            rowFilter: root.categoryFilter("running"); detailLevel: root.detailLevel
+            rowFilter: root.rowFilter; detailLevel: root.detailLevel
             onOpenDetail: function(recordId) { root.openDetail(recordId) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
@@ -149,7 +132,7 @@ Item {
     Component {
         id: gridComponent
         Components.ContainerGrid {
-            detailLevel: root.detailLevel; backend: root.backend; proxy: runningProxy; dialogs: root.dialogs
+            detailLevel: root.detailLevel; backend: root.backend; proxy: root.proxy; dialogs: root.dialogs
             onOpenDetail: function(recordId) { root.openDetail(recordId) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
@@ -159,30 +142,16 @@ Item {
         : detailLevel === 0 ? minimalComponent : listComponent
 
     Controls.Menu {
-        id:layoutMenu
-        Controls.MenuItem {text:i18n("Preview off");checkable:true;checked:root.previewMode()==="off";onTriggered:root.updateSetting("previewMode","off")}
-        Controls.MenuItem {text:i18n("Preview on hover");checkable:true;checked:root.previewMode()==="hover";onTriggered:root.updateSetting("previewMode","hover")}
-        Controls.MenuItem {text:i18n("Preview on selection");checkable:true;checked:root.previewMode()==="selection";onTriggered:root.updateSetting("previewMode","selection")}
-        Controls.MenuSeparator {}
-        Controls.MenuItem {text:i18n("Embed Doctor");checkable:true;checked:root.toolEnabled("doctor");onTriggered:root.updateSetting("tool_doctor",!checked?false:true)}
-        Controls.MenuItem {text:i18n("Embed New containers");checkable:true;checked:root.toolEnabled("new");onTriggered:root.updateSetting("tool_new",!checked?false:true)}
-        Controls.MenuItem {text:i18n("Embed Resources");checkable:true;checked:root.toolEnabled("resources");onTriggered:root.updateSetting("tool_resources",!checked?false:true)}
+        id: layoutMenu
+        Controls.MenuItem { text: i18n("Preview off"); checkable: true; checked: root.previewMode() === "off"; onTriggered: root.setDock("previewMode", "off") }
+        Controls.MenuItem { text: i18n("Preview on hover"); checkable: true; checked: root.previewMode() === "hover"; onTriggered: root.setDock("previewMode", "hover") }
+        Controls.MenuItem { text: i18n("Preview on selection"); checkable: true; checked: root.previewMode() === "selection"; onTriggered: root.setDock("previewMode", "selection") }
     }
-    Controls.SplitView {
-        id:workspaceSplit
-        property bool wasResizing:false
-        onResizingChanged:{if(resizing)wasResizing=true;else if(wasResizing){wasResizing=false;root.updateSetting("previewWidth",previewPane.width);root.updateSetting("previewHeight",previewPane.height)}}
-        anchors.fill:parent
-        orientation:root.width>=760?Qt.Horizontal:Qt.Vertical
-        handle:Item {implicitWidth:7;implicitHeight:7;Rectangle {anchors.centerIn:parent;width:parent.width>parent.height?parent.width:2;height:parent.width>parent.height?2:parent.height;radius:1;color:Controls.SplitHandle.pressed||Controls.SplitHandle.hovered?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)}}
-        Item {
-            Controls.SplitView.fillWidth:true
-            Controls.SplitView.fillHeight:true
-            Controls.SplitView.minimumWidth:Math.min(300,root.width)
-            Controls.SplitView.minimumHeight:150
+
     ColumnLayout {
         anchors.fill: parent
-        spacing: root.innerSpacing
+        spacing: Kirigami.Units.smallSpacing
+
         Components.OverviewStrip {
             Layout.fillWidth: true
             backend: root.backend
@@ -197,157 +166,134 @@ Item {
             onActivityRequested: root.activityRequested()
             onOptionsRequested: function(anchor) { layoutMenu.popup(anchor, 0, anchor.height) }
         }
+
+        RowLayout {
+            Layout.fillWidth: true
+            visible: root.activeFilterCount > 0 && root.backend.engineActive
+            spacing: Kirigami.Units.smallSpacing
+            Components.Pill {
+                text: i18n("Showing %1 of %2", root.proxy.count, root.backend.total)
+                tone: "blue"
+                glyph: "list-filter"
+            }
+            Item { Layout.fillWidth: true }
+            Components.DockButton { variant: "flat"; glyph: "x"; text: i18n("Clear filters"); onClicked: root.clearFiltersRequested() }
+        }
+
         Controls.SplitView {
-            id: serviceSections
-            objectName:"servicePaneSplitter"
+            id: panes
+            objectName: "servicePaneSplitter"
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumHeight: 0
             orientation: Qt.Vertical
-            handle: Item {implicitHeight:7;Rectangle {anchors.centerIn:parent;width:parent.width;height:2;radius:1;color:Controls.SplitHandle.pressed||Controls.SplitHandle.hovered?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)}}
-            property bool wasResizing:false
-            onResizingChanged: {if(resizing)wasResizing=true;else if(wasResizing){wasResizing=false;root.savePanes()}}
-        Rectangle {
-            id: attentionPanel
-            objectName:"attentionServiceSection"
-            visible: root.backend.total > 0 && attentionProxy.count > 0
-            Controls.SplitView.fillWidth: true
-            Controls.SplitView.minimumHeight: visible ? root.sectionHeaderHeight : 0
-            Controls.SplitView.maximumHeight:root.expanded("attention")?16777215:root.sectionHeaderHeight
-            Controls.SplitView.preferredHeight: !visible ? 0 : root.expanded("attention")
-                ? root.paneHeight("attention",Math.min(root.height * 0.36, root.sectionHeaderHeight + attentionProxy.count * Kirigami.Units.gridUnit * 3.5))
-                : root.sectionHeaderHeight
-            color: Qt.alpha(Kirigami.Theme.neutralTextColor, Style.ALPHA.surface2)
-            radius: Kirigami.Units.smallSpacing
-            ColumnLayout {
-                anchors.fill: parent
-                spacing: 0
-                Components.SectionHeader {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: root.sectionHeaderHeight
-                    glyph: "triangle-alert"; glyphColor: Style.HUE.amber
-                    title: i18n("Needs attention · %1", attentionProxy.count)
-                    expanded: root.expanded("attention")
-                    onToggled: root.toggleSection("attention")
-                }
-                Components.AttentionServices {
-                    visible: root.expanded("attention")
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.minimumHeight: 0
-                    backend: root.backend; proxy: attentionProxy; dialogs: root.dialogs
-                    onOpenDetail: function(recordId) { root.openDetail(recordId) }
-                    onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
+            handle: Item {
+                implicitHeight: 7
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width
+                    height: 2
+                    radius: 1
+                    color: Controls.SplitHandle.pressed || Controls.SplitHandle.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
                 }
             }
-        }
+            property bool wasResizing: false
+            onResizingChanged: { if (resizing) wasResizing = true; else if (wasResizing) { wasResizing = false; if (root.dockExpanded) root.setDock("height", Math.round(dockPanel.height)) } }
 
+            // ---- top: what the selection asks for
             Rectangle {
-                id: runningPanel
-                objectName: "runningServiceSection"
+                id: mainPanel
+                objectName: "containerListPane"
                 Controls.SplitView.fillWidth: true
-                /* Keep at least one row visible when Running is open. */
-                Controls.SplitView.minimumHeight: root.expanded("running") ? root.sectionHeaderHeight + Kirigami.Units.gridUnit * 3.2 : root.sectionHeaderHeight
-                Controls.SplitView.maximumHeight:root.expanded("running")?16777215:root.sectionHeaderHeight
-            Controls.SplitView.preferredHeight: root.expanded("running") ? root.paneHeight("running",root.height / 2) : root.sectionHeaderHeight
-                Controls.SplitView.fillHeight: root.expanded("running")
-                color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1); radius: Kirigami.Units.smallSpacing
+                Controls.SplitView.fillHeight: true
+                Controls.SplitView.minimumHeight: Kirigami.Units.gridUnit * 6
+                color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
+                radius: Kirigami.Units.smallSpacing
+
+                Loader {
+                    anchors.fill: parent
+                    visible: root.backend.engineActive && root.proxy.count > 0
+                    sourceComponent: root.selectedViewComponent
+                }
+                PlasmaComponents.Label {
+                    anchors.centerIn: parent
+                    visible: !root.backend.engineActive
+                    text: root.backend.refreshing ? i18n("Connecting…") : i18n("%1 is not running", root.backend.engineName)
+                    color: Kirigami.Theme.disabledTextColor
+                }
+                Kirigami.PlaceholderMessage {
+                    anchors.centerIn: parent
+                    width: parent.width - Kirigami.Units.gridUnit * 2
+                    visible: root.backend.engineActive && root.proxy.count === 0
+                    text: root.backend.total === 0 ? (root.backend.refreshing ? i18n("Loading containers…") : i18n("No containers yet")) : i18n("No containers match the active filters")
+                    explanation: root.backend.total === 0 ? i18n("Create a container from an image, or refresh the engine.") : i18n("Clear filters to see all containers.")
+                    helpfulAction: Kirigami.Action {
+                        text: root.backend.total === 0 ? i18n("New container…") : i18n("Clear filters")
+                        icon.name: root.backend.total === 0 ? "list-add" : "edit-clear"
+                        enabled: root.backend.total === 0 ? !root.backend.readOnly : root.activeFilterCount > 0
+                        onTriggered: root.backend.total === 0 ? root.createRequested() : root.clearFiltersRequested()
+                    }
+                }
+            }
+
+            // ---- bottom: a page host
+            Rectangle {
+                id: dockPanel
+                objectName: "dockPanel"
+                Controls.SplitView.fillWidth: true
+                Controls.SplitView.minimumHeight: root.dockHeaderHeight
+                Controls.SplitView.maximumHeight: root.dockExpanded ? 16777215 : root.dockHeaderHeight
+                Controls.SplitView.preferredHeight: root.dockExpanded ? Math.max(root.dockHeaderHeight + Kirigami.Units.gridUnit * 4, Number(root.dockSetting("height", Kirigami.Units.gridUnit * 14))) : root.dockHeaderHeight
+                color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
+                radius: Kirigami.Units.smallSpacing
+
                 ColumnLayout {
-                    anchors.fill: parent; spacing: 0
-                    Components.SectionHeader {
-                        Layout.fillWidth: true; Layout.preferredHeight: root.sectionHeaderHeight
-                        glyph: "circle-play"; glyphColor: Kirigami.Theme.positiveTextColor
-                        title: i18n("Running · %1", runningProxy.count)
-                        expanded: root.expanded("running")
-                        onToggled: root.toggleSection("running")
+                    anchors.fill: parent
+                    spacing: 0
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: root.dockHeaderHeight
+                        Layout.leftMargin: Kirigami.Units.smallSpacing
+                        Layout.rightMargin: Kirigami.Units.smallSpacing
+                        spacing: Kirigami.Units.smallSpacing / 2
+                        Repeater {
+                            model: root.dockTabs
+                            delegate: Components.DockButton {
+                                required property var modelData
+                                variant: "flat"
+                                glyph: modelData.glyph
+                                text: modelData.label
+                                iconOnly: root.width < Kirigami.Units.gridUnit * 30
+                                checkable: true
+                                checked: root.dockPage === modelData.key && root.dockExpanded
+                                onClicked: { root.setDock("page", modelData.key); root.setDock("expanded", true) }
+                            }
+                        }
+                        Item { Layout.fillWidth: true }
+                        Components.ActionToolButton {
+                            glyph: root.dockExpanded ? "chevron-down" : "chevron-up"
+                            text: root.dockExpanded ? i18n("Collapse the page area") : i18n("Expand the page area")
+                            onClicked: root.setDock("expanded", !root.dockExpanded)
+                        }
+                    }
+                    Rectangle {
+                        visible: root.dockExpanded
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+                        color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
                     }
                     Loader {
-                        visible: root.expanded("running") && root.backend.engineActive
-                        Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 0
-                        sourceComponent: root.selectedViewComponent
-                    }
-                    PlasmaComponents.Label {
-                        visible: root.expanded("running") && !root.backend.engineActive
-                        Layout.fillWidth: true; Layout.fillHeight: true
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                        text: root.backend.refreshing ? i18n("Connecting…") : i18n("%1 is not running", root.backend.engineName)
-                        color: Kirigami.Theme.disabledTextColor
+                        objectName: "dockLoader"
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.minimumHeight: 0
+                        visible: root.dockExpanded
+                        active: root.dockExpanded && root.visible
+                        sourceComponent: root.dockComponent
                     }
                 }
             }
-            Rectangle {
-                id: inactivePanel
-                objectName: "inactiveServiceSection"
-                Controls.SplitView.fillWidth: true
-                Controls.SplitView.minimumHeight: root.sectionHeaderHeight
-                Controls.SplitView.maximumHeight:root.expanded("inactive")?16777215:root.sectionHeaderHeight
-            Controls.SplitView.preferredHeight: root.expanded("inactive") ? root.paneHeight("inactive",root.height / 2) : root.sectionHeaderHeight
-                Controls.SplitView.fillHeight: root.expanded("inactive")
-                color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1); radius: Kirigami.Units.smallSpacing
-                ColumnLayout {
-                    anchors.fill: parent; spacing: 0
-                    Components.SectionHeader {
-                        Layout.fillWidth: true; Layout.preferredHeight: root.sectionHeaderHeight
-                        glyph: "circle-pause"; glyphColor: Style.HUE.slate
-                        title: i18n("Inactive · %1", inactiveProxy.count)
-                        expanded: root.expanded("inactive")
-                        onToggled: root.toggleSection("inactive")
-                        Controls.ComboBox {
-                            objectName:"inactiveViewChoice"
-                            model:[i18n("Cards"),i18n("List"),i18n("Icons")]
-                            currentIndex:Math.max(0,["cards","list","icons"].indexOf(root.viewSettings().inactiveView || "cards"))
-                            onActivated:root.updateSetting("inactiveView",["cards","list","icons"][currentIndex])
-                            Accessible.name:i18n("Inactive presentation")
-                        }
-                        Components.ActionToolButton { glyph: root.compactDensity() ? "view-list-text" : "view-list-details"; text: root.compactDensity() ? i18n("Comfortable density") : i18n("Compact density"); onClicked: root.toggleDensity() }
-                    }
-                    Components.InactiveServices {
-                        visible: root.expanded("inactive")
-                        Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 0
-                        backend: root.backend; proxy: inactiveProxy; dialogs: root.dialogs; compact: root.compactDensity(); displayMode: root.viewSettings().inactiveView || "cards"
-                        onOpenDetail: function(recordId) { root.openDetail(recordId) }
-                        onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
-                    }
-                }
-            }
-            Repeater {
-                model:[{key:"doctor",label:i18n("Doctor"),component:doctorTool},{key:"new",label:i18n("Images and new containers"),component:newTool},{key:"resources",label:i18n("Resources"),component:resourcesTool}]
-                delegate:Rectangle {
-                    id:toolPane
-                    objectName:"embedded_"+modelData.key
-                    required property var modelData
-                    visible:root.toolEnabled(modelData.key)
-                    Controls.SplitView.minimumHeight:root.sectionHeaderHeight
-                    Controls.SplitView.preferredHeight:root.expanded("embedded_"+modelData.key)?root.paneHeight("embedded_"+modelData.key,360):root.sectionHeaderHeight
-                    Controls.SplitView.maximumHeight:root.expanded("embedded_"+modelData.key)?16777215:root.sectionHeaderHeight
-                    color:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.surface1);border.color:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.borderFaint);radius:Kirigami.Units.smallSpacing
-                    ColumnLayout {
-                        anchors.fill:parent;spacing:0
-                        Components.SectionHeader {Layout.fillWidth:true;Layout.preferredHeight:root.sectionHeaderHeight;title:toolPane.modelData.label;expanded:root.expanded("embedded_"+toolPane.modelData.key);onToggled:root.toggleSection("embedded_"+toolPane.modelData.key)}
-                        Loader {objectName:"embeddedLoader_"+toolPane.modelData.key;Layout.fillWidth:true;Layout.fillHeight:true;Layout.minimumHeight:0;active:toolPane.visible && root.visible && root.expanded("embedded_"+toolPane.modelData.key);visible:active;sourceComponent:toolPane.modelData.component}
-                    }
-                }
-            }
-        }
-        Kirigami.PlaceholderMessage {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            visible: root.backend.engineActive && (root.backend.total === 0 || (runningProxy.count + attentionProxy.count + inactiveProxy.count === 0))
-            text: root.backend.total === 0 ? (root.backend.refreshing ? i18n("Loading containers…") : i18n("No containers yet")) : i18n("No containers match the active filters")
-            explanation: root.backend.total === 0 ? i18n("Create a container from an image, or refresh the engine.") : i18n("Clear filters to see all containers.")
-            helpfulAction: Kirigami.Action { text: root.backend.total === 0 ? i18n("New container…") : i18n("Clear filters"); icon.name: root.backend.total === 0 ? "list-add" : "edit-clear"; enabled: root.backend.total === 0 ? !root.backend.readOnly : root.activeFilterCount > 0; onTriggered: root.backend.total === 0 ? root.createRequested() : root.clearFiltersRequested() }
-        }
-    }
-        }
-        Components.ServicePreview {
-            id:previewPane
-            visible:root.previewMode()!=="off"
-            Controls.SplitView.preferredWidth:Number(root.viewSettings().previewWidth)||270
-            Controls.SplitView.minimumWidth:Math.min(180,root.width)
-            Controls.SplitView.preferredHeight:Number(root.viewSettings().previewHeight)||220
-            Controls.SplitView.minimumHeight:120
-            backend:root.backend
-            onOpenDetail:function(id){root.openDetail(id)}
         }
     }
 }

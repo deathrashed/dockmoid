@@ -12,6 +12,8 @@ Item {
     id: root
     objectName: "activityPage"
     required property var backend
+    /* True when shown inside the main page's dock. */
+    property bool embedded: false
     signal openDetail(string recordId)
 
     readonly property var kinds: ({
@@ -30,6 +32,7 @@ Item {
         spacing: 0
 
         Components.PageHeader {
+            compact: root.embedded
             title: i18n("Activity")
             subtitle: root.backend.activity.length === 0 ? i18n("Nothing has changed since Dockmoid started")
                 : i18np("%1 recent change", "%1 recent changes", root.backend.activity.length)

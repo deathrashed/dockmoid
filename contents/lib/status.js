@@ -75,3 +75,17 @@ function accentTone(attention) {
     if (attention === "stopped" || attention === "not-created" || attention === "") return ""
     return glyphTone(attention, attention === "running")
 }
+
+/* How a state badge looks. Returns keys only: the QML side owns the words.
+   variant: "ghost" | "outline"; dot: draw a status dot. */
+function badgeSpec(attention) {
+    switch (attention) {
+    case "running": return {key: "running", tone: "ok", variant: "ghost", glyph: "", dot: true}
+    case "unhealthy": return {key: "unhealthy", tone: "bad", variant: "ghost", glyph: "heart-pulse", dot: false}
+    case "failed": return {key: "failed", tone: "bad", variant: "ghost", glyph: "circle-x", dot: false}
+    case "paused": return {key: "paused", tone: "amber", variant: "ghost", glyph: "pause", dot: false}
+    case "restarting": return {key: "restarting", tone: "amber", variant: "ghost", glyph: "rotate-cw", dot: false}
+    case "not-created": return {key: "not-created", tone: "cyan", variant: "outline", glyph: "package-plus", dot: false}
+    default: return {key: "stopped", tone: "slate", variant: "outline", glyph: "", dot: false}
+    }
+}

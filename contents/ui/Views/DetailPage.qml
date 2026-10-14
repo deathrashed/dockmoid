@@ -132,6 +132,7 @@ Item {
         default: return i18n("Stopped")
         }
     }
+    readonly property var badgeInfo: Status.badgeSpec(root.attention)
     readonly property string stateTone: root.attention === "not-created" ? "cyan"
         : root.attention === "stopped" ? "slate"
         : Status.glyphTone(root.attention, root.hasRecord && root.record.isRunning === true)
@@ -158,14 +159,23 @@ Item {
                 Components.Pill {
                     visible: root.hasRecord
                     text: root.stateWord
-                    tone: root.stateTone
-                    glyph: Status.statusGlyph(root.attention, false, root.hasRecord && root.record.isRunning === true, "attention")
+                    tone: root.badgeInfo.tone
+                    variant: root.badgeInfo.variant
+                    glyph: root.badgeInfo.glyph
+                    statusDot: root.badgeInfo.dot
+                    pulse: root.badgeInfo.dot
+                },
+                Components.Pill {
+                    visible: root.hasRecord && root.record.isRunning === true && root.record.health !== "" && root.record.health !== "none"
+                    label: i18n("health")
+                    text: root.record.health
+                    tone: root.record.health === "healthy" ? "ok" : root.record.health === "unhealthy" ? "bad" : "amber"
                 },
                 Components.Pill {
                     visible: root.hasRecord && root.record.updateAvailable === true
                     text: i18n("Update available")
                     tone: "violet"
-                    glyph: "package-upgrade"
+                    glyph: "cloud-download"
                 }
             ]
 

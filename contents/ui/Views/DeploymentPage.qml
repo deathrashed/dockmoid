@@ -10,6 +10,8 @@ import "../../lib/style.js" as Style
 Item {
     id: root
     required property var backend
+    /* True when shown inside the main page's dock. */
+    property bool embedded: false
     property int initialTab: 0
     signal closeRequested()
     readonly property var controller: backend.deployment
@@ -57,6 +59,7 @@ Item {
         anchors.fill: parent
         spacing: 0
         Components.PageHeader {
+            compact: root.embedded
             title: i18n("Images and new containers")
             subtitle: i18n("Selected engine: %1", root.backend.engineBinary)
         }
@@ -111,7 +114,7 @@ Item {
                             id:result;required property var modelData;width:ListView.view.width
                             background:Components.Card {interactive:true;hovered:result.hovered}
                             contentItem:ColumnLayout {
-                                RowLayout {Layout.fillWidth:true;PlasmaComponents.Label {Layout.fillWidth:true;text:result.modelData.name;font.bold:true;color:Kirigami.Theme.linkColor;elide:Text.ElideRight}PlasmaComponents.Label {visible:result.modelData.official===true;text:i18n("Official");font:Kirigami.Theme.smallFont;color:Kirigami.Theme.positiveTextColor}}
+                                RowLayout {Layout.fillWidth:true;PlasmaComponents.Label {Layout.fillWidth:true;text:result.modelData.name;font.bold:true;color:Kirigami.Theme.linkColor;elide:Text.ElideRight}Components.Pill {visible:result.modelData.official===true;dense:true;variant:"outline";text:i18n("Official");tone:"ok";glyph:"badge-check"}}
                                 Flow {
                                     Layout.fillWidth:true;spacing:8
                                     PlasmaComponents.Label {text:"★ "+result.modelData.stars;color:Kirigami.Theme.neutralTextColor}

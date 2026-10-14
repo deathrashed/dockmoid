@@ -32,6 +32,13 @@ PlasmaComponents.Button {
         : control.primary ? control.onAccent
         : Kirigami.Theme.textColor
 
+    /* One control height everywhere; icon-only buttons are square. */
+    implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
+                             implicitContentHeight + topPadding + bottomPadding,
+                             Kirigami.Units.gridUnit * 1.7)
+    implicitWidth: control.iconOnly ? implicitHeight
+        : Math.max(implicitBackgroundWidth + leftInset + rightInset, implicitContentWidth + leftPadding + rightPadding)
+
     flat: control.iconOnly || control.variant === "flat"
     display: control.iconOnly ? PlasmaComponents.AbstractButton.IconOnly : PlasmaComponents.AbstractButton.TextBesideIcon
     icon.name: ""

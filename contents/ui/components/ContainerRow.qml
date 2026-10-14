@@ -207,7 +207,7 @@ PlasmaComponents.ItemDelegate {
                     isRunning: root.record.isRunning === true
                     attention: root.attention
                     operationLabel: root.operation.label; operationOk: root.operation.ok; operationBusy: root.operation.busy
-                    glyphMode: "always"
+                    glyphMode: "always"; badge: true
                 }
                 ResourceMeter {
                     visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
