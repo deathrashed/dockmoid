@@ -190,7 +190,7 @@ PlasmaComponents.ItemDelegate {
                 }
                 ResourceMeter {
                     visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
-                    label: "CPU"; value: root.cpuPct; compact: root.compactMetrics; maximum: root.cfg.resourceBarMax
+                    label: "CPU"; value: root.cpuPct; compact: root.compactMetrics; maximum: root.cfg.resourceBarMax; warnAt: root.cfg.alertCpu
                 }
             }
 
@@ -210,7 +210,7 @@ PlasmaComponents.ItemDelegate {
                 }
                 ResourceMeter {
                     visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
-                    label: "RAM"; value: root.memPct; compact: root.compactMetrics; maximum: root.cfg.resourceBarMax
+                    label: "RAM"; value: root.memPct; compact: root.compactMetrics; maximum: root.cfg.resourceBarMax; warnAt: root.cfg.alertMem
                 }
             }
 

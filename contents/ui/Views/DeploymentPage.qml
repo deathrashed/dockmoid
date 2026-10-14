@@ -22,7 +22,8 @@ Item {
     property bool officialOnly: false
     readonly property var sortedResults: controller.results.filter(function(r){return !root.officialOnly || r.official}).slice().sort(function(a,b){return root.searchOrder===0 ? Number(b.stars)-Number(a.stars) : root.searchOrder===1 ? Number(b.pulls||0)-Number(a.pulls||0) : String(a.name).localeCompare(String(b.name))})
     property int outputPanelHeight: 112
-    property bool outputPanelExpanded: true
+    property bool outputPanelExpanded: false
+    Connections { target: root.controller; function onBusyChanged() { if (root.controller.busy) root.outputPanelExpanded = true } }
     objectName: "deploymentPage"
 
     function show(tab) { if (tab !== undefined) tabs.currentIndex = tab; root.visible = true }
@@ -107,7 +108,7 @@ Item {
                             id:result;required property var modelData;width:ListView.view.width
                             background:Rectangle {radius:Kirigami.Units.smallSpacing;color:Qt.alpha(Kirigami.Theme.textColor,result.hovered?Style.ALPHA.hover:Style.ALPHA.surface1);border.width:1;border.color:Qt.alpha(Kirigami.Theme.highlightColor,result.hovered?Style.ALPHA.borderStrong:Style.ALPHA.border)}
                             contentItem:ColumnLayout {
-                                PlasmaComponents.Label {Layout.fillWidth:true;text:result.modelData.name;font.bold:true;color:Kirigami.Theme.linkColor;elide:Text.ElideRight}
+                                RowLayout {Layout.fillWidth:true;PlasmaComponents.Label {Layout.fillWidth:true;text:result.modelData.name;font.bold:true;color:Kirigami.Theme.linkColor;elide:Text.ElideRight}PlasmaComponents.Label {visible:result.modelData.official===true;text:i18n("Official");font:Kirigami.Theme.smallFont;color:Kirigami.Theme.positiveTextColor}}
                                 Flow {
                                     Layout.fillWidth:true;spacing:8
                                     PlasmaComponents.Label {text:"★ "+result.modelData.stars;color:Kirigami.Theme.neutralTextColor}

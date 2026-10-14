@@ -904,11 +904,19 @@ Item {
         stopped = Math.max(0, records.length - running - pausedCount - notCreated)
     }
 
+    /* id -> record, rebuilt only when the records array itself is replaced.
+       The cache is a plain object held by a property that never changes, so
+       filling it inside a binding does not invalidate that binding. */
+    readonly property var recordCache: ({source: null, map: ({})})
     function findRecord(id) {
-        for (let i = 0; i < records.length; i++) {
-            if (records[i].id === id) return records[i]
+        const cache = recordCache
+        if (cache.source !== records) {
+            const map = {}
+            for (let i = 0; i < records.length; i++) map[records[i].id] = records[i]
+            cache.map = map
+            cache.source = records
         }
-        return null
+        return cache.map[id] || null
     }
 
     // =============================================== presentation helpers ==

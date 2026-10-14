@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Shared building blocks: style tokens (`lib/style.js`), `DockButton`, `StatusLine`, `SectionHeader` and `Tones`.
+- Podman users see "Podman" instead of "Docker"; the usage-bar scale setting is honoured; usage bars turn amber/red past the CPU/memory alert thresholds.
+- Doctor findings carry an explicit severity; log colours follow light and dark themes; a failing health check hollows the state dot.
+- The toolbar hides list-only controls on other pages; a host chip shows remote or context connections.
+- Needs attention rows offer Restart and Logs; the panel tooltip names the containers that need attention.
+- Destructive dialogs use verb buttons; Docker Hub results show an Official badge; the deployment output panel opens when a command runs.
+- Faster record lookups, cached view settings and one fewer pass over log lines.
+- Removed three unused settings pages that duplicated live ones.
+
 ## 2.4.0 — 2026-10-15
 
 This release refreshes the main layout, settings, diagnostics and Compose service visibility.

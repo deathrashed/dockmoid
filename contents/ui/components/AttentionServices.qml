@@ -68,6 +68,8 @@ Item {
                             glyphMode: "always"; showBusy: true; labelOverride: row.reason()
                         }
                 }
+                ActionToolButton { glyph: "view-refresh"; text: i18n("Restart"); visible: actions.canPerform("restart"); onClicked: actions.perform("restart") }
+                ActionToolButton { glyph: "text-x-generic"; text: i18n("Logs"); visible: actions.canPerform("logs"); onClicked: actions.perform("logs") }
                 ActionToolButton { glyph: "document-view"; text: i18n("Details"); onClicked: root.openDetail(row.containerKey) }
                 ActionToolButton { glyph: "application-menu"; text: i18n("Other actions"); onClicked: actions.popup(this,0,height) }
             }

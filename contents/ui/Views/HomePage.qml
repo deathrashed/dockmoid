@@ -34,7 +34,9 @@ Item {
         try { const value = JSON.parse(String(cfg.serviceSectionSettings || "{}")); return value && typeof value === "object" ? value : ({}) }
         catch (e) { return ({}) }
     }
-    function viewSettings() { const all = parsedSettings(); return all[viewKey] || ({}) }
+    /* Parsed once per change of the stored string, not on every binding read. */
+    readonly property var settingsCache: { const stored = cfg.serviceSectionSettings; return parsedSettings() }
+    function viewSettings() { return settingsCache[viewKey] || ({}) }
     function expanded(section) { const value = viewSettings()[section]; return value === undefined ? true : value === true }
     function compactDensity() { return viewSettings().inactiveDensity === "compact" }
     function updateSetting(key, value) {

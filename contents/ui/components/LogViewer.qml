@@ -115,7 +115,6 @@ Item {
         ? {error:"#ff8787",warn:"#ffd43b",info:"#74c0fc",debug:"#9aa0a6"}
         : {error:"#c92a2a",warn:"#946200",info:"#1864ab",debug:"#6c757d"}
     readonly property var rawLines: String(root.sourceText).split("\n")
-    readonly property var allLines: root.rawLines.map(function (line) { return root.formatTimestampLine(root.stripAnsi(line)) })
     readonly property var matchedRawLines: {
         const n = root.needle.toLowerCase()
         const level = /\b(error|err|fatal|panic|crit|critical|warn|warning|exception|fail|failed|denied|refused)\b/i
@@ -169,7 +168,7 @@ Item {
 
             PlasmaComponents.Label {
                 visible: root.needle !== "" || root.errorsOnly
-                text: i18n("%1 of %2", root.shownLines.length, root.allLines.length)
+                text: i18n("%1 of %2", root.shownLines.length, root.rawLines.length)
                 font: Kirigami.Theme.smallFont
                 opacity: 0.7
             }

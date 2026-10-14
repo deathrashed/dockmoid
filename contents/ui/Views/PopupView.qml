@@ -42,6 +42,8 @@ PlasmaExtras.Representation {
     readonly property int detailLevel: viewMode === 1 ? tableDetail : viewMode === 3 ? gridDetail : listDetail
     readonly property var detailNames: [i18n("Minimal"), i18n("Normal"), i18n("Detailed"), i18n("Verbose")]
     property string searchText: ""
+    /* View, Detail, Filter, Sort and Search only act on the container list. */
+    readonly property bool onHome: stack.depth <= 1
     /* Show only what needs attention: unhealthy, restarting, crashed or paused. */
     property bool problemsOnly: false
     readonly property int activeFilterCount: Number(stateFilter !== "all") + Number(problemsOnly) + Number(searchText.trim() !== "")
@@ -583,6 +585,7 @@ PlasmaExtras.Representation {
                     id: primaryControls
                     spacing: Kirigami.Units.smallSpacing / 2
                     RowLayout {
+                        visible: root.onHome
                         spacing: Kirigami.Units.smallSpacing / 2
                         Components.ToolbarButton {
                             id: viewButton
@@ -606,9 +609,9 @@ PlasmaExtras.Representation {
                             onClicked: detailMenu.popup(this, 0, height)
                         }
                     }
-                    Components.ToolbarSeparator { visible: root.directFilter || root.directSort || root.directSearch }
+                    Components.ToolbarSeparator { visible: root.onHome && (root.directFilter || root.directSort || root.directSearch) }
                     RowLayout {
-                        visible: root.directFilter || root.directSort || root.directSearch
+                        visible: root.onHome && (root.directFilter || root.directSort || root.directSearch)
                         spacing: Kirigami.Units.smallSpacing / 2
                         Components.ToolbarButton {
                             id: filterButton
@@ -660,6 +663,23 @@ PlasmaExtras.Representation {
                 RowLayout {
                     id: actionControls
                     spacing: Kirigami.Units.smallSpacing / 2
+                    /* Say which host is being driven; a remote engine is easy to forget. */
+                    Rectangle {
+                        visible: root.backend.contextName !== "" || root.backend.remoteEngine
+                        implicitWidth: hostRow.implicitWidth + Kirigami.Units.smallSpacing * 2
+                        implicitHeight: hostRow.implicitHeight + Kirigami.Units.smallSpacing
+                        radius: Kirigami.Units.smallSpacing
+                        color: Qt.alpha(Kirigami.Theme.neutralTextColor, Style.ALPHA.tintWeak)
+                        border.color: Qt.alpha(Kirigami.Theme.neutralTextColor, Style.ALPHA.borderAccent)
+                        RowLayout {
+                            id: hostRow
+                            anchors.centerIn: parent
+                            spacing: Kirigami.Units.smallSpacing / 2
+                            Components.ActionIcon { glyph: "network-server"; color: Kirigami.Theme.neutralTextColor; implicitWidth: Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth }
+                            PlasmaComponents.Label { text: root.backend.contextName !== "" ? root.backend.contextName : i18n("Remote host"); font: Kirigami.Theme.smallFont }
+                        }
+                        Accessible.name: i18n("Connected to %1", root.backend.contextName !== "" ? root.backend.contextName : i18n("a remote host"))
+                    }
                     RowLayout {
                         visible: root.directNew || root.directResources || root.directDoctor || root.directMaintain
                         spacing: Kirigami.Units.smallSpacing / 2
@@ -1017,6 +1037,7 @@ PlasmaExtras.Representation {
         modal: true
         anchors.centerIn: parent
         standardButtons: QQC2.Dialog.Yes | QQC2.Dialog.No
+        onOpened: { standardButton(QQC2.Dialog.Yes).text = i18n("Stop %1", root.backend.engineName); standardButton(QQC2.Dialog.No).text = i18n("Cancel") }
         onAccepted: root.backend.stopEngine()
 
         ColumnLayout {
