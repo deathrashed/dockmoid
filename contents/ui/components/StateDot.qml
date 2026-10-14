@@ -19,13 +19,16 @@ Rectangle {
     property bool showHealth: true
     property bool failed: false
 
-    implicitWidth: 8
+    implicitWidth: 10
     implicitHeight: implicitWidth
 
     radius: width / 2
-    border.width: height > Kirigami.Units.iconSizes.small ? 2 : 1
+    /* A ring marks health. A failing check hollows the dot out, so it cannot
+       be mistaken for a container that exited with an error (solid red). */
+    readonly property bool ringed: healthColor.a > 0
+    border.width: root.ringed ? 2 : 0
     border.color: healthColor
-    color: fillColor
+    color: (root.ringed && root.unhealthy) ? "transparent" : fillColor
 
     readonly property bool healthy: health === "healthy"
     readonly property bool unhealthy: health === "unhealthy"

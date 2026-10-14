@@ -367,7 +367,7 @@ Item {
             spacing: 0
 
             PlasmaComponents.ScrollView {
-        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AsNeeded
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 background: null

@@ -64,7 +64,7 @@ Item {
     }
 
     PlasmaComponents.ScrollView {
-        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AsNeeded
         id: scroll
         anchors.fill: parent
         background: null
@@ -111,7 +111,7 @@ Item {
                 width: parent.width - Kirigami.Units.largeSpacing * 2
                 visible: view.count === 0
                 text: !root.backend.engineActive
-                    ? i18n("Docker is not running")
+                    ? i18n("%1 is not running", root.backend.engineName)
                     : (root.backend.total === 0
                        ? i18n("No containers yet.")
                        : i18n("No container matches."))

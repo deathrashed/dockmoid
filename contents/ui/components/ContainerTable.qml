@@ -240,7 +240,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         background: null
-        Controls.ScrollBar.horizontal.policy: root.minimumTableWidth > scroll.availableWidth ? Controls.ScrollBar.AlwaysOn : Controls.ScrollBar.AlwaysOff
+        Controls.ScrollBar.horizontal.policy: root.minimumTableWidth > scroll.availableWidth ? Controls.ScrollBar.AsNeeded : Controls.ScrollBar.AlwaysOff
         Controls.ScrollBar.vertical.policy: Controls.ScrollBar.AlwaysOn
 
         contentItem: ListView {
@@ -329,7 +329,7 @@ Item {
                                 compact: true
                                 label: cell.modelData.key === "cpu" ? "CPU" : "RAM"
                                 value: cell.modelData.key === "cpu" ? rowItem.cpuPct : rowItem.memPct
-                                maximum: 5
+                                maximum: root.cfg.resourceBarMax
                             }
                             RowLayout {
                                 anchors.fill: parent
@@ -451,7 +451,7 @@ Item {
             width: parent.width - Kirigami.Units.largeSpacing * 2
             visible: table.count === 0
             text: !root.backend.engineActive
-                ? i18n("Docker is not running")
+                ? i18n("%1 is not running", root.backend.engineName)
                 : (root.backend.total === 0
                    ? i18n("No containers yet.")
                    : i18n("No container matches your search."))

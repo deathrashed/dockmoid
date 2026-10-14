@@ -244,7 +244,7 @@ Item {
             PlasmaComponents.Label {
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAnywhere
-                font.family: "monospace"
+                font.family: Kirigami.Theme.fixedWidthFont.family
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                 opacity: 0.7
                 text: root.backend.cleanupCommand({images:pruneImages.checked,containers:pruneContainers.checked})

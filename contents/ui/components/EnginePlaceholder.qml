@@ -23,8 +23,8 @@ Item {
         icon.name: root.problem === "missing" ? "dialog-question"
                  : (root.problem === "permission" ? "dialog-password" : "docker")
         text: root.problem === "missing" ? i18n("The container command was not found")
-            : (root.problem === "permission" ? i18n("You are not allowed to use Docker")
-               : i18n("Docker is not running"))
+            : (root.problem === "permission" ? i18n("You are not allowed to use %1", root.backend.engineName)
+               : i18n("%1 is not running", root.backend.engineName))
         explanation: root.problem === "missing"
             ? i18n("%1 is not installed, or is not on the PATH Plasma sees. Install it, or set the engine command under Configure → Advanced → Connection.", root.backend.engineBase)
             : (root.problem === "permission"
@@ -35,7 +35,7 @@ Item {
             icon.name: root.problem === "missing" ? "internet-services"
                      : (root.problem === "permission" ? "edit-copy" : "media-playback-start")
             text: root.problem === "missing" ? i18n("Open the install guide")
-                : (root.problem === "permission" ? i18n("Copy the command") : i18n("Start Docker"))
+                : (root.problem === "permission" ? i18n("Copy the command") : i18n("Start %1", root.backend.engineName))
             onTriggered: {
                 if (root.problem === "missing") Qt.openUrlExternally("https://docs.docker.com/engine/install/")
                 else if (root.problem === "permission") clipboard.content = root.fixCommand
@@ -48,7 +48,7 @@ Item {
         visible: root.problem === "permission"
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height * 0.5 + Kirigami.Units.gridUnit * 5
-        font.family: "monospace"
+        font.family: Kirigami.Theme.fixedWidthFont.family
         text: root.fixCommand
         opacity: 0.8
     }

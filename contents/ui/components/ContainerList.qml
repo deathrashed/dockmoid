@@ -13,7 +13,7 @@ import org.kde.plasma.extras as PlasmaExtras
  * delegate highlight and the surrounding popup share one background.
  */
 PlasmaComponents.ScrollView {
-        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AsNeeded
     id: root
 
     required property var backend
@@ -33,6 +33,8 @@ PlasmaComponents.ScrollView {
         id: view
         model: root.proxy
         currentIndex: -1
+        keyNavigationEnabled: true
+        activeFocusOnTab: true
         reuseItems: true
         clip: true
         boundsBehavior: Flickable.StopAtBounds
@@ -57,7 +59,7 @@ PlasmaComponents.ScrollView {
             width: parent.width - Kirigami.Units.largeSpacing * 2
             visible: view.count === 0
             text: {
-                if (!root.backend.engineActive) return i18n("Docker is not running")
+                if (!root.backend.engineActive) return i18n("%1 is not running", root.backend.engineName)
                 if (root.backend.refreshing) return i18n("Looking for containers…")
                 if (root.backend.total === 0) {
                     return i18n("No containers yet.\nStart one with a tool such as Portainer, or from a terminal.")

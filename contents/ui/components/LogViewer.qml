@@ -67,7 +67,7 @@ Item {
     function ansiHtml(line) {
         const parts = String(line).split(/(\u001b\[[0-?]*[ -/]*[@-~])/g)
         let color = "", out = "", bold = false
-        const palette = {30:"#667085",31:"#ff6b6b",32:"#51cf66",33:"#ffd43b",34:"#74c0fc",35:"#da77f2",36:"#66d9e8",37:"#e9ecef",90:"#9aa0a6",91:"#ff8787",92:"#8ce99a",93:"#ffe066",94:"#91caff",95:"#e599f7",96:"#99e9f2",97:"#ffffff"}
+        const palette = root.ansiPalette
         for (let i = 0; i < parts.length; ++i) {
             const token = parts[i], match = /^\u001b\[([0-9;]*)m$/.exec(token)
             if (match) {
@@ -90,10 +90,10 @@ Item {
             let escaped = root.escapeHtml(token)
             if (color || bold) escaped = '<span style="' + (color ? "color:" + color + ";" : "") + (bold ? "font-weight:700;" : "") + '">' + escaped + '</span>'
             if (!color && !bold) {
-                escaped = escaped.replace(/\b(ERROR|FATAL|PANIC|CRITICAL)\b/gi, '<span style="color:#ff8787;font-weight:700">$1</span>')
-                escaped = escaped.replace(/\b(WARN(?:ING)?)\b/gi, '<span style="color:#ffd43b;font-weight:700">$1</span>')
-                escaped = escaped.replace(/\b(INFO)\b/gi, '<span style="color:#74c0fc;font-weight:700">$1</span>')
-                escaped = escaped.replace(/\b(DEBUG|TRACE)\b/gi, '<span style="color:#9aa0a6;font-weight:700">$1</span>')
+                escaped = escaped.replace(/\b(ERROR|FATAL|PANIC|CRITICAL)\b/gi, '<span style=\"color:' + root.levelColors.error + ';font-weight:700\">$1</span>')
+                escaped = escaped.replace(/\b(WARN(?:ING)?)\b/gi, '<span style=\"color:' + root.levelColors.warn + ';font-weight:700\">$1</span>')
+                escaped = escaped.replace(/\b(INFO)\b/gi, '<span style=\"color:' + root.levelColors.info + ';font-weight:700\">$1</span>')
+                escaped = escaped.replace(/\b(DEBUG|TRACE)\b/gi, '<span style=\"color:' + root.levelColors.debug + ';font-weight:700\">$1</span>')
             }
             out += escaped
         }
@@ -106,6 +106,14 @@ Item {
         const prefix = match[1] + (match[2] || "") + match[3] + match[4]
         return root.formatTimestampLine(clean).slice(0, root.formatTimestampLine(clean).length - match[5].length) + String(line).slice(prefix.length)
     }
+    /* Pastel colours read well on a dark panel and vanish on a light one. */
+    readonly property bool darkTheme: Kirigami.Theme.backgroundColor.hslLightness < 0.5
+    readonly property var ansiPalette: root.darkTheme
+        ? {30:"#667085",31:"#ff6b6b",32:"#51cf66",33:"#ffd43b",34:"#74c0fc",35:"#da77f2",36:"#66d9e8",37:"#e9ecef",90:"#9aa0a6",91:"#ff8787",92:"#8ce99a",93:"#ffe066",94:"#91caff",95:"#e599f7",96:"#99e9f2",97:"#ffffff"}
+        : {30:"#343a40",31:"#c92a2a",32:"#2b8a3e",33:"#946200",34:"#1864ab",35:"#862e9c",36:"#0b7285",37:"#495057",90:"#6c757d",91:"#e03131",92:"#2f9e44",93:"#a66f00",94:"#1c7ed6",95:"#9c36b5",96:"#1098ad",97:"#212529"}
+    readonly property var levelColors: root.darkTheme
+        ? {error:"#ff8787",warn:"#ffd43b",info:"#74c0fc",debug:"#9aa0a6"}
+        : {error:"#c92a2a",warn:"#946200",info:"#1864ab",debug:"#6c757d"}
     readonly property var rawLines: String(root.sourceText).split("\n")
     readonly property var allLines: root.rawLines.map(function (line) { return root.formatTimestampLine(root.stripAnsi(line)) })
     readonly property var matchedRawLines: {
@@ -262,8 +270,7 @@ Item {
                 readOnly: true
                 selectByMouse: true
                 wrapMode: root.wrap ? TextEdit.WrapAnywhere : TextEdit.NoWrap
-                font.family: "monospace"
-                font.pointSize: 9
+                font: Kirigami.Theme.fixedWidthFont
                 textFormat: TextEdit.RichText
                 text: root.shown !== "" ? root.renderedHtml : root.escapeHtml(root.emptyText)
                 background: null

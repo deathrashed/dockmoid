@@ -901,14 +901,14 @@ PlasmaExtras.Representation {
                                 visible: !root.backend.engineActive && root.backend.canControlService && !root.backend.readOnly
                                 icon.name: ""
                                 icon.source: Qt.resolvedUrl(ActionIcons.path("media-playback-start"))
-                                text: i18n("Start the Docker service")
+                                text: i18n("Start the %1 service", root.backend.engineName)
                                 onTriggered: root.backend.startEngine()
                             }
                             Components.ActionMenuDelegate {
                                 visible: root.backend.engineActive && root.backend.canControlService && !root.backend.readOnly
                                 icon.name: ""
                                 icon.source: Qt.resolvedUrl(ActionIcons.path("system-shutdown"))
-                                text: i18n("Stop the Docker service…")
+                                text: i18n("Stop the %1 service…", root.backend.engineName)
                                 onTriggered: confirmStopEngine.open()
                             }
                             Components.ActionMenuDelegate {
@@ -1013,7 +1013,7 @@ PlasmaExtras.Representation {
 
     QQC2.Dialog {
         id: confirmStopEngine
-        title: i18n("Stop Docker?")
+        title: i18n("Stop %1?", root.backend.engineName)
         modal: true
         anchors.centerIn: parent
         standardButtons: QQC2.Dialog.Yes | QQC2.Dialog.No
@@ -1024,7 +1024,7 @@ PlasmaExtras.Representation {
             PlasmaExtras.Heading {
                 Layout.fillWidth: true
                 level: 3
-                text: i18n("Stop the Docker service?")
+                text: i18n("Stop the %1 service?", root.backend.engineName)
             }
             PlasmaComponents.Label {
                 Layout.fillWidth: true

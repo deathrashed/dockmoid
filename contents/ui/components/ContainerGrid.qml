@@ -107,7 +107,7 @@ Item {
                     Layout.fillWidth: true
                     label: "CPU"
                     value: tile.cpuPct
-                    maximum: 5
+                    maximum: plasmoid.configuration.resourceBarMax
                     barWidth: Kirigami.Units.gridUnit * 4
                 }
                 ResourceMeter {
@@ -115,7 +115,7 @@ Item {
                     Layout.fillWidth: true
                     label: "RAM"
                     value: tile.memPct
-                    maximum: 5
+                    maximum: plasmoid.configuration.resourceBarMax
                     barWidth: Kirigami.Units.gridUnit * 4
                 }
                 PlasmaComponents.Label {

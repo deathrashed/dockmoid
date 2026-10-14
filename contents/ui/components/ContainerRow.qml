@@ -190,7 +190,7 @@ PlasmaComponents.ItemDelegate {
                 }
                 ResourceMeter {
                     visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
-                    label: "CPU"; value: root.cpuPct; compact: root.compactMetrics
+                    label: "CPU"; value: root.cpuPct; compact: root.compactMetrics; maximum: root.cfg.resourceBarMax
                 }
             }
 
@@ -210,7 +210,7 @@ PlasmaComponents.ItemDelegate {
                 }
                 ResourceMeter {
                     visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
-                    label: "RAM"; value: root.memPct; compact: root.compactMetrics
+                    label: "RAM"; value: root.memPct; compact: root.compactMetrics; maximum: root.cfg.resourceBarMax
                 }
             }
 
@@ -451,6 +451,9 @@ PlasmaComponents.ItemDelegate {
         ListView.view.currentIndex = root.index
     }
     onDoubleClicked: root.openDetail(root.record.id)
+    Keys.onReturnPressed: root.openDetail(root.record.id)
+    Keys.onEnterPressed: root.openDetail(root.record.id)
+    Accessible.name: root.name + ", " + Status.compactStatus(root.status, root.containerState, root.runningFor)
 
     TapHandler {
         acceptedButtons: Qt.RightButton

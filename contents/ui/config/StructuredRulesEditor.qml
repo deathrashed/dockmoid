@@ -175,7 +175,7 @@ ColumnLayout {
         Layout.minimumWidth: 0
         Layout.preferredHeight: Kirigami.Units.gridUnit * 8
         wrapMode: TextEdit.NoWrap
-        font.family: "monospace"
+        font.family: Kirigami.Theme.fixedWidthFont.family
         text: root.value
         selectByMouse: true
         onTextEdited: root.value = text

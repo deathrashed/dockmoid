@@ -17,7 +17,7 @@ Item {
     signal openOutput(string title, string content, bool live, string recordId)
 
     PlasmaComponents.ScrollView {
-        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AsNeeded
         anchors.fill: parent
         background: null
         contentItem: GridView {

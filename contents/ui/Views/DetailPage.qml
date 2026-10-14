@@ -630,7 +630,7 @@ Item {
                     id: commandField
                     Layout.fillWidth: true
                     placeholderText: i18n("A command to run inside the container, e.g. ls /app")
-                    font.family: "monospace"
+                    font.family: Kirigami.Theme.fixedWidthFont.family
                     enabled: !root.runBusy
                     onAccepted: { root.runCommand(text); selectAll() }
                 }

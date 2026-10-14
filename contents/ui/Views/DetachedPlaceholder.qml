@@ -43,7 +43,7 @@ Item {
             text: root.backend.engineActive
                 ? i18np("%1 of %2 containers running", "%1 of %2 containers running",
                         root.backend.running, root.backend.total)
-                : i18n("Docker is not running")
+                : i18n("%1 is not running", root.backend.engineName)
             color: root.backend.engineActive
                 ? Kirigami.Theme.textColor
                 : Kirigami.Theme.negativeTextColor

@@ -251,7 +251,7 @@ Item {
                         visible: root.expanded("running") && !root.backend.engineActive
                         Layout.fillWidth: true; Layout.fillHeight: true
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                        text: root.backend.refreshing ? i18n("Connecting…") : i18n("Docker is not running")
+                        text: root.backend.refreshing ? i18n("Connecting…") : i18n("%1 is not running", root.backend.engineName)
                         color: Kirigami.Theme.disabledTextColor
                     }
                 }

@@ -4,7 +4,7 @@ const P={};vm.createContext(P);vm.runInContext(fs.readFileSync(path.join(base,'l
 const I={};vm.createContext(I);vm.runInContext(fs.readFileSync(path.join(base,'lib/icons.js'),'utf8'),I);
 const source=fs.readFileSync(path.join(base,'ui/Backend/DockerBackend.qml'),'utf8');
 function backend(names, extra={}) {
- const c={cfg:{},beginOperation:()=>true,finishOperation(){},readOnly:false,isPodman:false,Engines:globalThis.__engineHelpers,engineBinary:'docker',i18n:(s,...xs)=>s.replace(/%(\d+)/g,(_,n)=>String(xs[n-1])), ...extra};c.backend=c;if(!c.runner)c.runner={run:(...args)=>c.run(...args)};vm.createContext(c);
+ const c={cfg:{},beginOperation:()=>true,finishOperation(){},readOnly:false,isPodman:false,engineName:"Docker",Engines:globalThis.__engineHelpers,engineBinary:'docker',i18n:(s,...xs)=>s.replace(/%(\d+)/g,(_,n)=>String(xs[n-1])), ...extra};c.backend=c;if(!c.runner)c.runner={run:(...args)=>c.run(...args)};vm.createContext(c);
  if(names.includes("prune"))names=["cleanupCommand",...names];
  for(const name of names){const start=source.indexOf('    function '+name+'(');assert.notEqual(start,-1,'backend method '+name+' exists');const end=source.indexOf('\n    }',start);vm.runInContext(source.slice(start,end+6),c);}
  return c;

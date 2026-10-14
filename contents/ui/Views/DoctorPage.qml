@@ -21,12 +21,7 @@ Item {
     signal openDetail(string recordId, int initialTab)
     signal openResources()
     function openUrl(url) { if(doctor.validUrl(url))Qt.openUrlExternally(url) }
-    function findingSeverity(finding) {
-        const text = String(finding.title + " " + finding.evidence).toLowerCase()
-        if (/engine connection unavailable|recent reported error|health check failed|could not/.test(text)) return "error"
-        if (/not created|unavailable|needs attention|restart|missing or inaccessible/.test(text)) return "warning"
-        return "info"
-    }
+    function findingSeverity(finding) { return finding.severity || "info" }
     function findingColor(finding) {
         const severity = root.findingSeverity(finding)
         if (severity === "error") return Kirigami.Theme.negativeTextColor
@@ -175,7 +170,7 @@ Item {
                             ColumnLayout {
                                 id:planContent;anchors.fill:parent;anchors.margins:Kirigami.Units.smallSpacing
                                 Controls.CheckBox {text:planRow.modelData.name+" · "+planRow.modelData.action;checked:planRow.modelData.selected;enabled:!doctor.executing;onToggled:doctor.selectPlan(planRow.index,checked)}
-                                Controls.TextArea {Layout.fillWidth:true;text:planRow.modelData.command;readOnly:true;selectByMouse:true;wrapMode:TextEdit.Wrap;font.family:"monospace"}
+                                Controls.TextArea {Layout.fillWidth:true;text:planRow.modelData.command;readOnly:true;selectByMouse:true;wrapMode:TextEdit.Wrap;font.family: Kirigami.Theme.fixedWidthFont.family}
                                 PlasmaComponents.Label {Layout.fillWidth:true;text:planRow.modelData.expected+(planRow.modelData.downtime?"\n"+i18n("Downtime expected."):"");wrapMode:Text.Wrap}
                             }
                         }
