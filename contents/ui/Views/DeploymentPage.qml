@@ -20,6 +20,7 @@ Item {
     property var importedOptions: ({})
     property string formError: ""
     property bool searchExpanded: true
+    property bool directExpanded: false
     property int searchOrder: 0
     property bool officialOnly: false
     readonly property var sortedResults: controller.results.filter(function(r){return !root.officialOnly || r.official}).slice().sort(function(a,b){return root.searchOrder===0 ? Number(b.stars)-Number(a.stars) : root.searchOrder===1 ? Number(b.pulls||0)-Number(a.pulls||0) : String(a.name).localeCompare(String(b.name))})
@@ -61,6 +62,7 @@ Item {
         Components.PageHeader {
             compact: root.embedded
             title: i18n("Images and new containers")
+            tone: "lime"; glyph: "package-plus"
             subtitle: i18n("Selected engine: %1", root.backend.engineBinary)
         }
         ColumnLayout {
@@ -81,24 +83,24 @@ Item {
                 width:scroll.availableWidth
                 spacing:Kirigami.Units.smallSpacing*2
                 ColumnLayout {
-                    visible:tabs.currentIndex===0;Layout.fillWidth:true
-                    Flow {
-                        Layout.fillWidth:true;spacing:6
-                        Components.ActionButton {text:root.searchExpanded?i18n("Hide image controls"):i18n("Show image controls");glyph:root.searchExpanded?"go-up":"go-down";onClicked:root.searchExpanded=!root.searchExpanded}
-                        Controls.ComboBox {model:[i18n("Most stars"),i18n("Most downloads"),i18n("Name")];currentIndex:root.searchOrder;onActivated:root.searchOrder=currentIndex}
-                        Controls.CheckBox {text:i18n("Official");checked:root.officialOnly;onToggled:root.officialOnly=checked}
-                    }
-                    PlasmaComponents.Label {visible:root.searchExpanded;Layout.fillWidth:true;text:i18n("Search Docker Hub, or enter a fully qualified image from any registry.");wrapMode:Text.Wrap}
+                    visible:tabs.currentIndex===0;Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
                     RowLayout {
-                        Layout.fillWidth:true
-                        visible:root.searchExpanded
-                        Controls.TextField{id:query;Layout.fillWidth:true;placeholderText:i18n("Search Docker Hub");onAccepted:root.controller.search(text)}
-                        Components.ActionButton {text:i18n("Popular");PlasmaComponents.ToolTip.text:i18n("Browse Docker Hub results ranked by downloads. Sorting applies to the first 50 returned images.");PlasmaComponents.ToolTip.visible:hovered;glyph:"view-sort-ascending";enabled:!root.controller.busy;onClicked:{query.text="";root.searchOrder=1;root.controller.search("__popular__")}}
-                        Components.ActionButton {text:i18n("Search");glyph:"edit-find";enabled:!root.controller.busy && query.text.trim()!=="";onClicked:root.controller.search(query.text)}
+                        Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
+                        Controls.TextField{id:query;Layout.fillWidth:true;placeholderText:i18n("Search Docker Hub…");onAccepted:root.controller.search(text)}
+                        Components.DockButton{variant:"primary";text:i18n("Search");glyph:"search";enabled:!root.controller.busy && query.text.trim()!=="";onClicked:root.controller.search(query.text)}
+                    }
+                    RowLayout {
+                        Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
+                        Components.DockButton {variant:"flat";text:i18n("Popular");glyph:"trending-up";iconTone:"orange";PlasmaComponents.ToolTip.text:i18n("Browse Docker Hub results ranked by downloads. Sorting applies to the first 50 returned images.");PlasmaComponents.ToolTip.visible:hovered;enabled:!root.controller.busy;onClicked:{query.text="";root.searchOrder=1;root.controller.search("__popular__")}}
+                        Components.DockButton {variant:"flat";checkable:true;checked:root.officialOnly;text:i18n("Official only");glyph:"badge-check";iconTone:"emerald";onClicked:root.officialOnly=checked}
+                        Item {Layout.fillWidth:true}
+                        PlasmaComponents.Label {text:i18n("Sort");font:Kirigami.Theme.smallFont;color:Kirigami.Theme.disabledTextColor}
+                        Controls.ComboBox {model:[i18n("Most stars"),i18n("Most downloads"),i18n("Name")];currentIndex:root.searchOrder;onActivated:root.searchOrder=currentIndex}
                     }
                     ListView {
                         id: imageResults
-                        Layout.fillWidth:true;Layout.preferredHeight:Math.min(260,Math.max(100,count*64));clip:true
+                        Layout.fillWidth:true;Layout.preferredHeight:Math.min(Kirigami.Units.gridUnit*11,Math.max(Kirigami.Units.gridUnit*5,count*Kirigami.Units.gridUnit*3.4));clip:true
+                        spacing:Kirigami.Units.smallSpacing
                         model:root.sortedResults
                         PlasmaComponents.Label {
                             anchors.centerIn: parent
@@ -108,7 +110,7 @@ Item {
                             wrapMode: Text.Wrap
                             color: root.controller.failed ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.disabledTextColor
                             text: root.controller.busy ? i18n("Searching…") : root.controller.failed ? root.controller.message
-                                : root.controller.searchPerformed ? i18n("No images match this search") : i18n("Search for an image to see results here")
+                                : root.controller.searchPerformed ? i18n("No images match this search") : i18n("Search Docker Hub, or open “Use a specific image” below.")
                         }
                         delegate:Controls.ItemDelegate {
                             id:result;required property var modelData;width:ListView.view.width
@@ -126,12 +128,13 @@ Item {
                             onClicked:root.useImage("docker.io/"+modelData.name)
                         }
                     }
+                    Components.DockButton {variant:"flat";checkable:true;checked:root.directExpanded;glyph:root.directExpanded?"chevron-down":"chevron-right";iconTone:"slate";text:i18n("Use a specific image…");onClicked:root.directExpanded=checked}
                     RowLayout {
                         Layout.fillWidth:true
-                        visible:root.searchExpanded
+                        visible:root.directExpanded
                         Controls.TextField{id:directImage;Layout.fillWidth:true;placeholderText:i18n("registry.example.com/image:tag")}
-                        Components.ActionButton{text:i18n("Pull");glyph:"system-download";enabled:directImage.text.trim()!==""&&!root.backend.readOnly&&!root.controller.busy;onClicked:root.controller.pull(directImage.text)}
-                        Components.ActionButton{text:i18n("Configure…");glyph:"package-upgrade";enabled:directImage.text.trim()!=="";onClicked:root.useImage(directImage.text)}
+                        Components.DockButton{text:i18n("Pull");glyph:"cloud-download";enabled:directImage.text.trim()!==""&&!root.backend.readOnly&&!root.controller.busy;onClicked:root.controller.pull(directImage.text)}
+                        Components.DockButton{text:i18n("Configure…");glyph:"settings-2";enabled:directImage.text.trim()!=="";onClicked:root.useImage(directImage.text)}
                     }
                 }
                 ColumnLayout {

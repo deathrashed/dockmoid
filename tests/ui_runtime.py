@@ -98,13 +98,17 @@ def check(index,w,m,l):
  if os.environ.get('DOCKMOID_UI_CAPTURE_DIR'):
   folder=pathlib.Path(os.environ['DOCKMOID_UI_CAPTURE_DIR']);folder.mkdir(parents=True,exist_ok=True);image.save(str(folder/f'w{w}-m{m}-l{l}.png'))
  checks.append([w,m,l]);step(index+1)
-PAGES=[(n,w) for n in (os.environ.get('DOCKMOID_UI_ONLY') or 'doctor,resources,deploy,detail,detail1,activity').split(',') for w in [1050,360]]
+PAGES=[(n,w) for n in (os.environ.get('DOCKMOID_UI_ONLY') or 'doctor,resources,deploy,detail,detail1,activity,dock-new,dock-resources,dock-doctor,dock-preview').split(',') for w in [1050,360]]
 def pages(i):
  if i==len(PAGES):app.quit();return
- n,w=PAGES[i];view.resize(w,760);view.rootObject().showPage(n)
+ n,w=PAGES[i];view.resize(w,760)
+ if n.startswith('dock-'):
+  home=view.rootObject().findChild(QObject,"homeSectionPage");home.setDock("page",n[5:]);home.setDock("expanded",True)
+  if n=='dock-preview':QTest.mouseClick(view,Qt.LeftButton,Qt.NoModifier,QPoint(120,200))
+ else:view.rootObject().showPage(n)
  def grab():
   folder=pathlib.Path(os.environ.get('DOCKMOID_UI_CAPTURE_DIR') or out);folder.mkdir(parents=True,exist_ok=True)
-  view.grabWindow().save(str(folder/f'page-{n}-w{w}.png'));view.rootObject().presentation(0,1);QTimer.singleShot(150,safe(lambda:pages(i+1)))
+  view.grabWindow().save(str(folder/f'page-{n}-w{w}.png'));view.rootObject().presentation(0,1);(view.rootObject().findChild(QObject,'homeSectionPage').setDock('page','preview') if n.startswith('dock-') else None);QTimer.singleShot(150,safe(lambda:pages(i+1)))
  QTimer.singleShot(700,safe(grab))
 QTimer.singleShot(500,safe(step));app.exec()
 errors=[m for m in messages if any(e in m for e in ['TypeError','ReferenceError','Cannot assign','Unable to assign','Required property','Binding loop'])]

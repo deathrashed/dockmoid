@@ -146,6 +146,7 @@ Item {
         // -------------------------------------------------- header -------
         Components.PageHeader {
             title: root.hasRecord ? root.record.name : i18n("Container is gone")
+            tone: root.hasRecord ? root.stateTone : ""
             subtitle: root.hasRecord ? String(root.record.image || "").replace(/@sha256:([0-9a-f]{12})[0-9a-f]+/i, "@sha256:$1…") : ""
             leading: Components.ServiceIcon {
                 visible: root.hasRecord
@@ -385,11 +386,12 @@ Item {
                     Layout.bottomMargin: 0
                     padding: Kirigami.Units.smallSpacing
                     title: i18n("Overview")
-                    titleGlyph: "badge-info"; titleTone: "blue"
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Status"); value: root.record.status }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Health"); value: root.record.health !== "none" ? root.record.health : "" }
+                    tone: "indigo"; titleGlyph: "badge-info"; titleTone: "indigo"
+                    Components.FieldRow { Layout.fillWidth: true; glyph: "activity"; glyphTone: "emerald"; label: i18n("Status"); value: root.record.status }
+                    Components.FieldRow { Layout.fillWidth: true; glyph: "heart-pulse"; glyphTone: "rose"; label: i18n("Health"); value: root.record.health !== "none" ? root.record.health : "" }
                     Components.FieldRow {
                         Layout.fillWidth: true
+                        glyph: "box"; glyphTone: "indigo"
                         label: i18n("Image")
                         value: String(root.record.image || "").replace(/@sha256:([0-9a-f]{12})[0-9a-f]+/i, "@sha256:$1…")
                         copyValue: root.record.image
@@ -397,8 +399,8 @@ Item {
                         revealable: true
                         wrap: true
                     }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Project"); value: root.record.project }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Service"); value: root.record.service }
+                    Components.FieldRow { Layout.fillWidth: true; glyph: "folder-kanban"; glyphTone: "yellow"; label: i18n("Project"); value: root.record.project }
+                    Components.FieldRow { Layout.fillWidth: true; glyph: "workflow"; glyphTone: "cyan"; label: i18n("Service"); value: root.record.service }
                     RowLayout {
                         Layout.fillWidth: true
                         Layout.leftMargin: Kirigami.Units.largeSpacing
@@ -418,11 +420,13 @@ Item {
                     }
                     Components.FieldRow {
                         Layout.fillWidth: true
+                        glyph: "globe"; glyphTone: "sky"
                         label: i18n("Web page")
                         value: root.record.probe === "" ? "" : (root.record.probe === "up" ? i18n("answers (%1 ms)", root.record.probeMs) : i18n("does not answer"))
                     }
                     Components.FieldRow {
                         Layout.fillWidth: true
+                        glyph: "cloud-download"; glyphTone: "violet"
                         label: i18n("Image update")
                         value: root.record.updateAvailable ? i18n("a newer version is available") : ""
                     }
@@ -435,16 +439,17 @@ Item {
                     padding: Kirigami.Units.smallSpacing
                     visible: String(root.record.ports || "") !== "" || String(root.record.mounts || "") !== ""
                     title: i18n("Ports and storage")
-                    titleGlyph: "network"; titleTone: "teal"
+                    tone: "teal"; titleGlyph: "network"; titleTone: "teal"
                     Components.FieldRow {
                         Layout.fillWidth: true
+                        glyph: "plug"; glyphTone: "teal"
                         label: i18n("Ports")
                         value: String(root.record.ports || "").replace(/,(?=\d{3}(?:->|\/|:))/g, "")
                         copyValue: root.record.ports
                         copyable: true
                         wrap: true
                     }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Mounts"); value: root.record.mounts; wrap: true; copyable: true }
+                    Components.FieldRow { Layout.fillWidth: true; glyph: "hard-drive"; glyphTone: "orange"; label: i18n("Mounts"); value: root.record.mounts; wrap: true; copyable: true }
                 }
 
                 Components.Card {
@@ -455,7 +460,7 @@ Item {
                         && ((root.record.cpu !== "" && root.record.cpu !== "unavailable")
                             || (root.record.mem !== "" && root.record.mem !== "unavailable"))
                     title: i18n("Usage")
-                    titleGlyph: "gauge"; titleTone: "violet"
+                    tone: "fuchsia"; titleGlyph: "gauge"; titleTone: "fuchsia"
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.largeSpacing
@@ -467,7 +472,7 @@ Item {
                                 Layout.fillWidth: true
                                 implicitHeight: Kirigami.Units.gridUnit * 2.5
                                 samples: root.backend.revision >= 0 ? root.backend.historyFor(root.record.id).cpu : []
-                                color: Kirigami.Theme.positiveTextColor
+                                color: Style.HUE.cyan
                                 floor: 10
                             }
                         }
@@ -479,7 +484,7 @@ Item {
                                 Layout.fillWidth: true
                                 implicitHeight: Kirigami.Units.gridUnit * 2.5
                                 samples: root.backend.revision >= 0 ? root.backend.historyFor(root.record.id).mem : []
-                                color: Kirigami.Theme.highlightColor
+                                color: Style.HUE.fuchsia
                                 floor: 10
                             }
                         }

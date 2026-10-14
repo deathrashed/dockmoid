@@ -94,6 +94,7 @@ Item {
 
         Components.PageHeader {
             title: root.pageTitle
+            tone: "sky"; glyph: "scroll-text"
             badges: Components.Pill {
                 visible: root.live && root.requestGeneration === root.backend.generation
                 text: i18n("Following")

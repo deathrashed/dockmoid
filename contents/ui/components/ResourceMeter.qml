@@ -15,7 +15,7 @@ RowLayout {
     property real barWidth: compact ? 28 : 44
     property color barColor: root.warnAt > 0 && root.value >= root.warnAt * 2 ? Kirigami.Theme.negativeTextColor
         : root.warnAt > 0 && root.value >= root.warnAt ? Kirigami.Theme.neutralTextColor
-        : label === "CPU" ? Style.HUE.cyan : Style.HUE.violet
+        : label === "CPU" ? Style.HUE.cyan : Style.HUE.fuchsia
     property bool bold: false
     property string numberColumnText: "1000.00%"
     readonly property font metricFont: {

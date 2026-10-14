@@ -17,6 +17,9 @@ Item {
 
     property string title: ""
     property string subtitle: ""
+    /* A Tones name or hue: tints the band and, with `glyph`, adds an icon tile. */
+    property string tone: ""
+    property string glyph: ""
     /* Tighter, for a page shown inside the dock. */
     property bool compact: false
     property alias leading: leadingRow.data
@@ -26,9 +29,28 @@ Item {
     implicitHeight: line.implicitHeight + (root.compact ? Kirigami.Units.smallSpacing : Kirigami.Units.largeSpacing) * 2
     Layout.fillWidth: true
 
+    Tones { id: tones }
+    readonly property color band: root.tone !== "" ? tones.color(root.tone) : Kirigami.Theme.textColor
+
     Rectangle {
         anchors.fill: parent
-        color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
+        color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
+    }
+    Rectangle {
+        visible: root.tone !== ""
+        anchors.fill: parent
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0; color: Qt.alpha(root.band, Style.BAND.start) }
+            GradientStop { position: 0.7; color: Qt.alpha(root.band, Style.BAND.end) }
+            GradientStop { position: 1; color: "transparent" }
+        }
+    }
+    Rectangle {
+        visible: root.tone !== ""
+        anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+        width: 3
+        color: root.band
     }
     Rectangle {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
@@ -43,6 +65,22 @@ Item {
         anchors.rightMargin: Kirigami.Units.largeSpacing
         spacing: Kirigami.Units.largeSpacing
 
+        Rectangle {
+            visible: root.glyph !== ""
+            Layout.alignment: Qt.AlignVCenter
+            implicitWidth: Kirigami.Units.iconSizes.medium + Kirigami.Units.smallSpacing * 2
+            implicitHeight: implicitWidth
+            radius: Kirigami.Units.smallSpacing * 1.5
+            color: Qt.alpha(root.band, Style.ALPHA.tintStrong)
+            border.color: Qt.alpha(root.band, Style.ALPHA.borderSoft)
+            ActionIcon {
+                anchors.centerIn: parent
+                glyph: root.glyph
+                color: root.band
+                implicitWidth: Kirigami.Units.iconSizes.smallMedium
+                implicitHeight: implicitWidth
+            }
+        }
         RowLayout {
             id: leadingRow
             visible: children.length > 0

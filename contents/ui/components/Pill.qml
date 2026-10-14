@@ -5,14 +5,18 @@ import org.kde.plasma.components as PlasmaComponents
 import "../../lib/style.js" as Style
 
 /*
- * Pill — a small badge in the style of shadcn / shieldcn badges.
+ * Pill — a small badge in the style of shieldcn's ghost and outline badges.
  *
- *   variant  "ghost"      tinted wash with a hairline outline (default)
- *            "outline"    outline only
- *            "solid"      filled with the tone colour
- *            "secondary"  neutral wash, coloured text
+ * Transparent inside, a rounded outline in the tone colour, and plain
+ * foreground text and icon: the colour lives in the border (and the status
+ * dot), never in a tinted fill or tinted text.
+ *
+ *   variant  "ghost" / "outline"  outline only (the same look; default)
+ *            "solid"              filled with the tone colour
+ *            "secondary"          neutral wash, no outline
  *   label    when set, the badge is two-tone: a quiet label segment and the
  *            value segment ("health | healthy")
+ *   colorIcon  paint the icon in the tone colour instead of the foreground
  *   statusDot, pulse   a leading dot; pulse breathes it (keep it to one or two
  *            badges on screen)
  *
@@ -28,6 +32,7 @@ Rectangle {
     property string variant: "ghost"
     property bool statusDot: false
     property bool pulse: false
+    property bool colorIcon: false
     /* A shorter badge for use inside a list row. */
     property bool dense: false
 
@@ -37,20 +42,20 @@ Rectangle {
     readonly property bool split: root.label !== ""
     readonly property real pad: Kirigami.Units.smallSpacing * (root.dense ? 1.1 : 1.5)
     readonly property color onSolid: root.toneColor.hslLightness > 0.62 ? "#1b1e20" : "#ffffff"
-    readonly property color valueColor: root.variant === "solid" ? root.onSolid : root.toneColor
+    readonly property color valueColor: root.variant === "solid" ? root.onSolid : Qt.alpha(Kirigami.Theme.textColor, Style.TEXT.strong)
+    /* Icons take an opaque colour (the SVG renderer ignores translucent ones); softness comes from opacity. */
+    readonly property color iconColor: root.variant === "solid" ? root.onSolid
+        : root.colorIcon ? root.toneColor : Kirigami.Theme.textColor
 
     implicitHeight: Kirigami.Units.gridUnit * (root.dense ? 1.05 : 1.3)
     implicitWidth: line.implicitWidth
     radius: Kirigami.Units.smallSpacing * 1.25
     clip: true
     color: root.variant === "solid" ? root.toneColor
-        : root.variant === "ghost" ? Qt.alpha(root.toneColor, Style.ALPHA.tintStrong)
         : root.variant === "secondary" ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface3)
         : "transparent"
-    border.width: 1
-    border.color: root.variant === "solid" ? Qt.darker(root.toneColor, 1.2)
-        : root.variant === "outline" ? Qt.alpha(root.toneColor, Style.ALPHA.borderStrong)
-        : Qt.alpha(root.toneColor, Style.ALPHA.borderSoft)
+    border.width: root.variant === "secondary" ? 0 : 1.5
+    border.color: root.variant === "solid" ? Qt.darker(root.toneColor, 1.15) : root.toneColor
 
     Tones { id: tones }
 
@@ -69,7 +74,7 @@ Rectangle {
                 anchors.centerIn: parent
                 text: root.label
                 font: Kirigami.Theme.smallFont
-                color: Kirigami.Theme.disabledTextColor
+                color: Qt.alpha(Kirigami.Theme.textColor, Style.TEXT.soft)
             }
         }
         Item {
@@ -85,7 +90,7 @@ Rectangle {
                     implicitWidth: 6
                     implicitHeight: 6
                     radius: 3
-                    color: root.valueColor
+                    color: root.toneColor
                     SequentialAnimation on opacity {
                         running: root.pulse && root.statusDot && root.visible
                         loops: Animation.Infinite
@@ -96,7 +101,8 @@ Rectangle {
                 ActionIcon {
                     visible: root.glyph !== ""
                     glyph: root.glyph
-                    color: root.valueColor
+                    color: root.iconColor
+                    opacity: root.variant === "solid" || root.colorIcon ? 1 : Style.TEXT.normal
                     implicitWidth: Kirigami.Units.iconSizes.small * 0.8
                     implicitHeight: implicitWidth
                 }

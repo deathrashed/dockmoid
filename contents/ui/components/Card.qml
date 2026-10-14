@@ -22,6 +22,8 @@ Rectangle {
     property color accent: "transparent"
     /* Alternative to `accent`: a tone name ("ok", "warn", "bad", "info"), "" for none. */
     property string tone: ""
+    /* A Tones name or hue: tint the whole surface in that colour. */
+    property string washTone: ""
     property bool interactive: false
     property bool hovered: false
     property bool selected: false
@@ -38,11 +40,13 @@ Rectangle {
     readonly property bool hasAccent: root.stripe.a > 0
 
     radius: Kirigami.Units.smallSpacing * 1.5
-    color: root.selected ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong)
+    color: root.washTone !== "" ? Qt.alpha(tones.color(root.washTone), root.selected ? Style.WASH.selected : (root.interactive && root.hovered) ? Style.WASH.hover : Style.WASH.rest)
+        : root.selected ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong)
         : (root.interactive && root.hovered) ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.hover)
         : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
     border.width: 1
-    border.color: root.selected ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.borderStrong)
+    border.color: root.washTone !== "" ? Qt.alpha(tones.color(root.washTone), root.selected ? Style.WASH_BORDER.selected : (root.interactive && root.hovered) ? Style.WASH_BORDER.hover : Style.WASH_BORDER.rest)
+        : root.selected ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.borderStrong)
         : (root.interactive && root.hovered) ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.borderAccent)
         : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
 

@@ -15,6 +15,8 @@ PlasmaComponents.ToolButton {
     property string label: text
     property bool menuIndicator: false
     property string badgeText: ""
+    /* Tones name or hue for the icon; empty keeps the text colour. */
+    property string tint: ""
     readonly property bool stacked: presentation === 3
     readonly property bool showIcon: presentation !== 2
     readonly property bool showLabel: presentation !== 0
@@ -25,6 +27,8 @@ PlasmaComponents.ToolButton {
                 + (showIcon && showLabel ? Kirigami.Units.smallSpacing : 0))
         + (menuIndicator ? Kirigami.Units.iconSizes.small / 2 + Kirigami.Units.smallSpacing : 0))
     implicitWidth: idealWidth
+    Tones { id: tones }
+
     contentItem: RowLayout {
         spacing: Kirigami.Units.smallSpacing
         GridLayout {
@@ -38,7 +42,7 @@ PlasmaComponents.ToolButton {
             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             Layout.preferredWidth: Kirigami.Units.iconSizes.small
             Layout.preferredHeight: Kirigami.Units.iconSizes.small
-            color: control.enabled ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
+            color: control.enabled ? (control.tint !== "" ? tones.color(control.tint) : Kirigami.Theme.textColor) : Kirigami.Theme.disabledTextColor
         }
         PlasmaComponents.Label {
             id: caption

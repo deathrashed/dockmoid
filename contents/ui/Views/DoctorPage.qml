@@ -44,6 +44,7 @@ Item {
         Components.PageHeader {
             compact: root.embedded
             title: i18n("Doctor")
+            tone: "pink"; glyph: "stethoscope"
             subtitle: doctor.checkedAt ? i18n("Checked %1", new Date(doctor.checkedAt).toLocaleTimeString()) : i18n("Not checked yet")
             Components.DockButton { variant: "primary"; glyph: "view-refresh"; text: i18n("Check"); enabled: !doctor.scanning && !doctor.executing; onClicked: doctor.scan() }
         }

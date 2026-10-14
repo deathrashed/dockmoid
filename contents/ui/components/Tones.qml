@@ -45,7 +45,7 @@ Item {
         case "amber": return root.amber
         case "teal": return root.teal
         case "slate": return root.slate
-        default: return root.text
+        default: return Style.HUE[tone] !== undefined ? Style.HUE[tone] : root.text
         }
     }
 }

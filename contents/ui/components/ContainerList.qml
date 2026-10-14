@@ -43,6 +43,15 @@ PlasmaComponents.ScrollView {
         highlightResizeDuration: 0
         contentWidth: width
 
+        /* Headings only make sense while the default order keeps states together. */
+        section.property: root.backend.cfg.sortRole === "sortKey" ? "stateGroup" : ""
+        section.criteria: ViewSection.FullString
+        section.delegate: ListSection {
+            required property string section
+            width: view.width
+            group: section
+        }
+
         delegate: ContainerRow {
             width: view.width
             backend: root.backend

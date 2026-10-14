@@ -20,7 +20,6 @@ Item {
     signal attentionRequested()
     signal updatesRequested()
     signal viewRequested(int mode)
-    signal activityRequested()
     signal optionsRequested(Item anchor)
 
     readonly property bool wide: width >= Kirigami.Units.gridUnit * 38
@@ -44,11 +43,11 @@ Item {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignTop
             spacing: Kirigami.Units.smallSpacing
-            StatTile { visible: root.wide; compact: !root.wide; glyph: "layers"; value: root.backend.total; label: i18n("All"); toneName: "blue"; active: root.noFilter; onClicked: root.filterRequested("all") }
+            StatTile { visible: root.wide; compact: !root.wide; glyph: "layers"; value: root.backend.total; label: i18n("All"); toneName: "indigo"; active: root.noFilter; onClicked: root.filterRequested("all") }
             StatTile { compact: !root.wide; glyph: "circle-play"; value: root.backend.running; label: i18n("Running"); toneName: "ok"; active: root.stateFilter === "running" && !root.problemsOnly; onClicked: root.filterRequested("running") }
             StatTile { compact: !root.wide; glyph: "circle-pause"; value: root.backend.stopped; label: i18n("Stopped"); toneName: "slate"; active: root.stateFilter === "stopped" && !root.problemsOnly; onClicked: root.filterRequested("stopped") }
-            StatTile { compact: !root.wide; visible: root.backend.notCreated > 0; glyph: "package-plus"; value: root.backend.notCreated; label: i18n("Not created"); toneName: "cyan"; active: root.stateFilter === "not-created" && !root.problemsOnly; onClicked: root.filterRequested("not-created") }
-            StatTile { compact: !root.wide; glyph: "triangle-alert"; value: root.backend.problemCount; label: i18n("Attention"); toneName: root.backend.problemCount > 0 ? "bad" : "slate"; active: root.problemsOnly; onClicked: root.attentionRequested() }
+            StatTile { compact: !root.wide; visible: root.backend.notCreated > 0; glyph: "package-plus"; value: root.backend.notCreated; label: i18n("Not created"); toneName: "sky"; active: root.stateFilter === "not-created" && !root.problemsOnly; onClicked: root.filterRequested("not-created") }
+            StatTile { compact: !root.wide; glyph: "triangle-alert"; value: root.backend.problemCount; label: i18n("Attention"); toneName: root.backend.problemCount > 0 ? "rose" : "slate"; active: root.problemsOnly; onClicked: root.attentionRequested() }
             StatTile { compact: !root.wide; visible: root.backend.updateCount > 0; glyph: "cloud-download"; value: root.backend.updateCount; label: i18n("Updates"); toneName: "violet"; onClicked: root.updatesRequested() }
         }
 
@@ -86,21 +85,9 @@ Item {
                 }
             }
             ActionToolButton {
-                glyph: "bell-ring"
-                text: i18n("Activity log")
-                onClicked: root.activityRequested()
-            }
-            ActionToolButton {
-                glyph: root.cfg.readOnly ? "lock" : "lock-open"
-                text: root.cfg.readOnly ? i18n("Read-only mode is on. Click to allow changes.") : i18n("Turn on read-only mode")
-                checkable: true
-                checked: root.cfg.readOnly
-                onClicked: root.cfg.readOnly = checked
-            }
-            ActionToolButton {
                 id: optionsButton
                 glyph: "sliders-horizontal"
-                text: i18n("View options")
+                text: i18n("Sort, detail and preview options")
                 onClicked: root.optionsRequested(optionsButton)
             }
         }

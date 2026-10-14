@@ -34,9 +34,9 @@ Item {
     /* Replaces the status text, for views that explain *why* (Needs attention). */
     property string labelOverride: ""
 
-    readonly property string glyphName: root.badge ? "" : Status.statusGlyph(root.attention, root.operationBusy, root.isRunning, root.glyphMode)
+    readonly property string glyphName: root.showBadge ? "" : Status.statusGlyph(root.attention, root.operationBusy, root.isRunning, root.badge ? "always" : root.glyphMode)
     readonly property var spec: Status.badgeSpec(root.attention)
-    readonly property bool showBadge: root.badge && root.operationLabel === "" && root.labelOverride === ""
+    readonly property bool showBadge: root.badge && Status.isProblem(root.attention) && root.operationLabel === "" && root.labelOverride === ""
     readonly property string badgeWord: {
         switch (root.spec.key) {
         case "running": return i18n("Running")
@@ -59,7 +59,7 @@ Item {
     }
     readonly property string text: root.operationLabel !== "" ? root.operationLabel
         : root.labelOverride !== "" ? root.labelOverride
-        : root.showBadge ? (root.spec.key === "not-created" ? "" : Status.compactStatus(root.status, root.containerState, root.runningFor))
+        : root.showBadge ? Status.compactStatus(root.status, root.containerState, root.runningFor)
         : root.prefix + Status.compactStatus(root.status, root.containerState, root.runningFor)
 
     implicitWidth: line.implicitWidth

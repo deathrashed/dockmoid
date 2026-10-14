@@ -32,7 +32,7 @@ Item {
     signal attentionRequested()
     signal updatesRequested()
     signal viewRequested(int mode)
-    signal activityRequested()
+    signal detailRequested(int level)
     signal clearFiltersRequested()
     signal createRequested()
     signal resourcesRequested()
@@ -78,14 +78,17 @@ Item {
     }
 
     readonly property int dockHeaderHeight: Kirigami.Units.gridUnit * 2.4
+    /* Preview is a glance; the other pages need room to work in. */
+    readonly property real dockDefaultHeight: root.dockPage === "preview" ? Kirigami.Units.gridUnit * 12 : root.height * 0.55
+    readonly property real dockWantedHeight: Number(dockSetting("height_" + root.dockPage, root.dockDefaultHeight))
 
     // ----------------------------------------------------------- dock pages ---
     readonly property var dockTabs: [
-        {key: "preview", label: i18n("Preview"), glyph: "eye"},
-        {key: "activity", label: i18n("Activity"), glyph: "bell-ring"},
-        {key: "doctor", label: i18n("Doctor"), glyph: "stethoscope"},
-        {key: "resources", label: i18n("Resources"), glyph: "boxes"},
-        {key: "new", label: i18n("New"), glyph: "package-plus"}
+        {key: "preview", label: i18n("Preview"), glyph: "eye", tone: "sky"},
+        {key: "activity", label: i18n("Activity"), glyph: "bell-ring", tone: "orange"},
+        {key: "doctor", label: i18n("Doctor"), glyph: "stethoscope", tone: "pink"},
+        {key: "resources", label: i18n("Resources"), glyph: "boxes", tone: "teal"},
+        {key: "new", label: i18n("New"), glyph: "package-plus", tone: "lime"}
     ]
     Component { id: previewPage; Components.ServicePreview { backend: root.backend; onOpenDetail: function(id) { root.openDetail(id) } } }
     Component { id: activityPage; ActivityPage { backend: root.backend; embedded: true; onOpenDetail: function(id) { root.openDetail(id) } } }
@@ -141,11 +144,35 @@ Item {
         : viewMode === 2 ? groupComponent : viewMode === 3 ? gridComponent
         : detailLevel === 0 ? minimalComponent : listComponent
 
+    function sortBy(role) {
+        if (cfg.sortRole !== role) cfg.sortAscending = role !== "cpuPct" && role !== "memPct"
+        cfg.sortRole = role
+    }
+    readonly property var detailNames: [i18n("Minimal"), i18n("Normal"), i18n("Detailed"), i18n("Verbose")]
+
+    /* The one menu behind the strip's options button. */
     Controls.Menu {
         id: layoutMenu
-        Controls.MenuItem { text: i18n("Preview off"); checkable: true; checked: root.previewMode() === "off"; onTriggered: root.setDock("previewMode", "off") }
-        Controls.MenuItem { text: i18n("Preview on hover"); checkable: true; checked: root.previewMode() === "hover"; onTriggered: root.setDock("previewMode", "hover") }
-        Controls.MenuItem { text: i18n("Preview on selection"); checkable: true; checked: root.previewMode() === "selection"; onTriggered: root.setDock("previewMode", "selection") }
+        Controls.MenuItem { text: i18n("Sort by"); enabled: false }
+        Controls.MenuItem { text: i18n("Pinned, then running"); checkable: true; checked: root.cfg.sortRole === "sortKey"; onTriggered: root.sortBy("sortKey") }
+        Controls.MenuItem { text: i18n("Name"); checkable: true; checked: root.cfg.sortRole === "name"; onTriggered: root.sortBy("name") }
+        Controls.MenuItem { text: i18n("CPU"); checkable: true; checked: root.cfg.sortRole === "cpuPct"; onTriggered: root.sortBy("cpuPct") }
+        Controls.MenuItem { text: i18n("Memory"); checkable: true; checked: root.cfg.sortRole === "memPct"; onTriggered: root.sortBy("memPct") }
+        Controls.MenuItem { text: i18n("Project"); checkable: true; checked: root.cfg.sortRole === "project"; onTriggered: root.sortBy("project") }
+        Controls.MenuItem { text: root.cfg.sortAscending ? i18n("Switch to descending order") : i18n("Switch to ascending order"); onTriggered: root.cfg.sortAscending = !root.cfg.sortAscending }
+        Controls.MenuSeparator {}
+        Controls.MenuItem { text: i18n("How much to show"); enabled: false }
+        Controls.MenuItem { text: root.detailNames[0]; checkable: true; checked: root.detailLevel === 0; onTriggered: root.detailRequested(0) }
+        Controls.MenuItem { text: root.detailNames[1]; checkable: true; checked: root.detailLevel === 1; onTriggered: root.detailRequested(1) }
+        Controls.MenuItem { text: root.detailNames[2]; checkable: true; checked: root.detailLevel === 2; onTriggered: root.detailRequested(2) }
+        Controls.MenuItem { text: root.detailNames[3]; checkable: true; checked: root.detailLevel === 3; onTriggered: root.detailRequested(3) }
+        Controls.MenuSeparator {}
+        Controls.MenuItem { text: i18n("Preview pane follows"); enabled: false }
+        Controls.MenuItem { text: i18n("Selection"); checkable: true; checked: root.previewMode() === "selection"; onTriggered: root.setDock("previewMode", "selection") }
+        Controls.MenuItem { text: i18n("Mouse hover"); checkable: true; checked: root.previewMode() === "hover"; onTriggered: root.setDock("previewMode", "hover") }
+        Controls.MenuItem { text: i18n("Nothing"); checkable: true; checked: root.previewMode() === "off"; onTriggered: root.setDock("previewMode", "off") }
+        Controls.MenuSeparator {}
+        Controls.MenuItem { text: i18n("Read-only mode (no changes)"); checkable: true; checked: root.cfg.readOnly; onTriggered: root.cfg.readOnly = !root.cfg.readOnly }
     }
 
     ColumnLayout {
@@ -163,7 +190,6 @@ Item {
             onAttentionRequested: root.attentionRequested()
             onUpdatesRequested: root.updatesRequested()
             onViewRequested: function(mode) { root.viewRequested(mode) }
-            onActivityRequested: root.activityRequested()
             onOptionsRequested: function(anchor) { layoutMenu.popup(anchor, 0, anchor.height) }
         }
 
@@ -198,7 +224,7 @@ Item {
                 }
             }
             property bool wasResizing: false
-            onResizingChanged: { if (resizing) wasResizing = true; else if (wasResizing) { wasResizing = false; if (root.dockExpanded) root.setDock("height", Math.round(dockPanel.height)) } }
+            onResizingChanged: { if (resizing) wasResizing = true; else if (wasResizing) { wasResizing = false; if (root.dockExpanded) root.setDock("height_" + root.dockPage, Math.round(dockPanel.height)) } }
 
             // ---- top: what the selection asks for
             Rectangle {
@@ -208,6 +234,8 @@ Item {
                 Controls.SplitView.fillHeight: true
                 Controls.SplitView.minimumHeight: Kirigami.Units.gridUnit * 6
                 color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
+                border.width: 1
+                border.color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
                 radius: Kirigami.Units.smallSpacing
 
                 Loader {
@@ -243,9 +271,19 @@ Item {
                 Controls.SplitView.fillWidth: true
                 Controls.SplitView.minimumHeight: root.dockHeaderHeight
                 Controls.SplitView.maximumHeight: root.dockExpanded ? 16777215 : root.dockHeaderHeight
-                Controls.SplitView.preferredHeight: root.dockExpanded ? Math.max(root.dockHeaderHeight + Kirigami.Units.gridUnit * 4, Number(root.dockSetting("height", Kirigami.Units.gridUnit * 14))) : root.dockHeaderHeight
+                Controls.SplitView.preferredHeight: root.dockExpanded ? Math.max(root.dockHeaderHeight + Kirigami.Units.gridUnit * 4, root.dockWantedHeight) : root.dockHeaderHeight
                 color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
+                border.width: 1
+                border.color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
                 radius: Kirigami.Units.smallSpacing
+
+                /* The tab strip sits on its own darker band. */
+                Rectangle {
+                    anchors { left: parent.left; right: parent.right; top: parent.top }
+                    height: root.dockHeaderHeight
+                    radius: Kirigami.Units.smallSpacing
+                    color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface3)
+                }
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -263,6 +301,7 @@ Item {
                                 required property var modelData
                                 variant: "flat"
                                 glyph: modelData.glyph
+                                iconTone: modelData.tone
                                 text: modelData.label
                                 iconOnly: root.width < Kirigami.Units.gridUnit * 30
                                 checkable: true

@@ -23,6 +23,9 @@ Item {
     property bool revealed: false
     /* Long values (mounts, commands) read better wrapped than elided. */
     property bool wrap: false
+    /* A lucide icon and tone beside the label. */
+    property string glyph: ""
+    property string glyphTone: "muted"
 
     readonly property bool hasValue: value !== "" && value !== "—" && value.toLowerCase() !== "unavailable"
     readonly property string fullValue: copyValue !== "" ? copyValue : value
@@ -44,13 +47,27 @@ Item {
         anchors.rightMargin: Kirigami.Units.largeSpacing
         spacing: Kirigami.Units.smallSpacing
 
-        PlasmaComponents.Label {
-            Layout.preferredWidth: Kirigami.Units.gridUnit * 6
+        RowLayout {
+            Layout.fillWidth: false
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 7
             Layout.alignment: Qt.AlignTop
-            text: root.label
-            color: Kirigami.Theme.disabledTextColor
-            font.pixelSize: Kirigami.Theme.defaultFont.pixelSize
+            spacing: Kirigami.Units.smallSpacing
+            ActionIcon {
+                visible: root.glyph !== ""
+                glyph: root.glyph
+                color: rowTones.color(root.glyphTone)
+                implicitWidth: Kirigami.Units.iconSizes.small
+                implicitHeight: implicitWidth
+            }
+            PlasmaComponents.Label {
+                Layout.fillWidth: true
+                text: root.label
+                color: Kirigami.Theme.disabledTextColor
+                font.pixelSize: Kirigami.Theme.defaultFont.pixelSize
+                elide: Text.ElideRight
+            }
         }
+        Tones { id: rowTones }
 
         PlasmaComponents.Label {
             id: valueLabel

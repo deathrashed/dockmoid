@@ -21,6 +21,8 @@ PlasmaComponents.Button {
     property int glyphSize: Kirigami.Units.iconSizes.small
     property bool toolTipSuppressed: false
     property bool menuOpen: false
+    /* Colour of the icon alone (a Tones name or hue); the label keeps the text colour. */
+    property string iconTone: ""
 
     /* Colour while enabled. The disabled colour is read inside each child
        item, because Kirigami.Theme resolves it per item and an item inside a
@@ -66,11 +68,13 @@ PlasmaComponents.Button {
             : Qt.alpha(Qt.darker(Kirigami.Theme.highlightColor, 1.4), 0.8)
     }
 
+    Tones { id: iconTones }
+
     contentItem: RowLayout {
         spacing: control.iconOnly ? 0 : control.spacing
         ActionIcon {
             glyph: control.glyph
-            color: control.enabled ? control.activeColor : Kirigami.Theme.disabledTextColor
+            color: control.enabled ? (control.iconTone !== "" ? iconTones.color(control.iconTone) : control.activeColor) : Kirigami.Theme.disabledTextColor
             Layout.alignment: Qt.AlignCenter
             implicitWidth: control.glyphSize
             implicitHeight: control.glyphSize

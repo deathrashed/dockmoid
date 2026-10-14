@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
-import "../../lib/style.js" as Style
 
 /*
  * StatTile — a number with an icon and a label ("8 Running"). Tapping one
@@ -26,6 +25,7 @@ Card {
     interactive: root.clickable
     hovered: hover.hovered
     selected: root.active
+    washTone: root.toneName
     implicitHeight: Kirigami.Units.gridUnit * 1.7
     implicitWidth: line.implicitWidth + padding * 2
     scale: root.clickable && hover.hovered ? 1.03 : 1
@@ -40,19 +40,12 @@ Card {
         id: line
         anchors.centerIn: parent
         spacing: Kirigami.Units.smallSpacing
-        Rectangle {
+        ActionIcon {
             Layout.alignment: Qt.AlignVCenter
-            implicitWidth: Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing
+            glyph: root.glyph
+            color: palette.color(root.toneName)
+            implicitWidth: Kirigami.Units.iconSizes.small
             implicitHeight: implicitWidth
-            radius: Kirigami.Units.smallSpacing
-            color: Qt.alpha(palette.color(root.toneName), Style.ALPHA.tintStrong)
-            ActionIcon {
-                anchors.centerIn: parent
-                glyph: root.glyph
-                color: palette.color(root.toneName)
-                implicitWidth: Kirigami.Units.iconSizes.small * 0.85
-                implicitHeight: implicitWidth
-            }
         }
         PlasmaComponents.Label {
             text: String(root.value)

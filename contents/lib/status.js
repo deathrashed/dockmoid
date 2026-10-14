@@ -49,11 +49,17 @@ function statusTone(attention, operationLabel, operationOk, isRunning) {
     return isRunning ? "text" : "muted"
 }
 
+/* Problem states are the ones worth a badge in a list. */
+function isProblem(attention) {
+    return ["failed", "unhealthy", "paused", "restarting"].indexOf(attention) >= 0
+}
+
 /* Tone of the glyph in front of the status text. */
 function glyphTone(attention, isRunning) {
     if (attention === "failed" || attention === "unhealthy") return "bad"
     if (attention === "paused" || attention === "restarting") return "warn"
-    return isRunning ? "ok" : "muted"
+    if (attention === "not-created") return "sky"
+    return isRunning ? "ok" : "slate"
 }
 
 /* Glyph name for a status line. mode: "always", "attention" or "none". */
@@ -62,7 +68,8 @@ function statusGlyph(attention, busy, isRunning, mode) {
     var byAttention = {failed: "circle-x", unhealthy: "dialog-warning", paused: "media-playback-pause", restarting: "view-refresh"}
     if (mode === "attention") return byAttention[attention] || ""
     if (busy) return "view-refresh"
-    return byAttention[attention] || (isRunning ? "container-running" : "container-exited")
+    if (attention === "not-created") return "package-plus"
+    return byAttention[attention] || (isRunning ? "circle-play" : "circle-pause")
 }
 
 /* Key of the word shown before the status, or "" when there is none. */
@@ -85,7 +92,7 @@ function badgeSpec(attention) {
     case "failed": return {key: "failed", tone: "bad", variant: "ghost", glyph: "circle-x", dot: false}
     case "paused": return {key: "paused", tone: "amber", variant: "ghost", glyph: "pause", dot: false}
     case "restarting": return {key: "restarting", tone: "amber", variant: "ghost", glyph: "rotate-cw", dot: false}
-    case "not-created": return {key: "not-created", tone: "cyan", variant: "outline", glyph: "package-plus", dot: false}
+    case "not-created": return {key: "not-created", tone: "sky", variant: "outline", glyph: "package-plus", dot: false}
     default: return {key: "stopped", tone: "slate", variant: "outline", glyph: "", dot: false}
     }
 }

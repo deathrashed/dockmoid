@@ -34,9 +34,10 @@ Item {
         Components.PageHeader {
             compact: root.embedded
             title: i18n("Activity")
+            tone: "orange"
             subtitle: root.backend.activity.length === 0 ? i18n("Nothing has changed since Dockmoid started")
                 : i18np("%1 recent change", "%1 recent changes", root.backend.activity.length)
-            leading: Components.ActionIcon { glyph: "bell-ring"; color: Kirigami.Theme.highlightColor; implicitWidth: Kirigami.Units.iconSizes.medium; implicitHeight: implicitWidth }
+            glyph: "bell-ring"
             Components.DockButton {
                 glyph: "trash"
                 text: i18n("Clear")

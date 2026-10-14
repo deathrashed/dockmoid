@@ -87,7 +87,7 @@ Item {
         && /^unix:\/\/(?:\/var)?\/run\/docker\.sock$/.test(endpointHost)
     readonly property bool isPodman: /(?:^|\/)podman(?:\s|$)/.test(engineBase)
     /* What to call the engine in text the user reads. */
-    readonly property string engineName: isPodman ? i18n("Podman") : engineName
+    readonly property string engineName: isPodman ? i18n("Podman") : i18n("Docker")
     property bool composeAvailable: false
     property bool buildxAvailable: false
     property bool curlAvailable: false
@@ -351,7 +351,12 @@ Item {
             let r = records[i]
             let pin = pinnedNames.indexOf(r.name)
             r.pinned = pin >= 0
-            r.sortKey = (pin >= 0 ? "0" + ("000" + pin).slice(-3) : (r.isRunning ? "1" : "2"))
+            /* Pinned, then needs-attention, running, stopped, not created; by name inside each. */
+            const group = pin >= 0 ? "pinned" : isProblem(r) ? "attention" : r.isRunning ? "running"
+                : r.state === "not-created" ? "not-created" : "stopped"
+            r.stateGroup = group
+            r.sortKey = (pin >= 0 ? "0" + ("000" + pin).slice(-3)
+                : group === "attention" ? "1" : group === "running" ? "2" : group === "stopped" ? "3" : "4")
                 + r.name.toLowerCase()
         }
         records.sort(function (a, b) { return a.sortKey < b.sortKey ? -1 : (a.sortKey > b.sortKey ? 1 : 0) })
@@ -836,6 +841,7 @@ Item {
             "probe": rec.probe || "", "probeMs": rec.probeMs || 0,
             "updateAvailable": rec.updateAvailable === true,
             "sortKey": rec.sortKey,
+            "stateGroup": rec.stateGroup || "",
             // Groups a compose project together; a container that belongs to
             // no project is its own group, so the section view still works for
             // plain `docker run` containers. Must match groupKeyOf().
@@ -850,7 +856,7 @@ Item {
                    "platform", "project", "service", "composeFiles",
                    "composeWorkDir", "composeProfile", "cpu", "mem", "memU",
                    "blockio", "netio", "pids", "cpuPct", "memPct", "restartPolicy", "pinned",
-                   "probe", "probeMs", "updateAvailable", "sortKey",
+                   "probe", "probeMs", "updateAvailable", "sortKey", "stateGroup",
                    "groupKey", "searchKey"]
 
     function rowChanged(existing, row) {

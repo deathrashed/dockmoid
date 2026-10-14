@@ -83,6 +83,8 @@ PlasmaComponents.ItemDelegate {
     readonly property var operation: backend.operationsRevision >= 0 ? backend.operationFor(containerKey) : ({busy:false,label:"",ok:true})
     readonly property string attention: Status.attentionKind(root.record)
     readonly property bool compactMetrics: root.width < 560
+    /* Below this there is no room for a column of its own for the state. */
+    readonly property bool narrow: root.width < Kirigami.Units.gridUnit * 29
     readonly property bool hasStats: root.isRunning && root.cpu !== ""
 
     /* 0 means "follow the panel scale"; anything else is a pixel override. */
@@ -131,7 +133,8 @@ PlasmaComponents.ItemDelegate {
                 spacing: Kirigami.Units.smallSpacing
 
                 PlasmaComponents.Label {
-                    Layout.fillWidth: true
+                    Layout.fillWidth: false
+                    Layout.maximumWidth: Math.max(72, layout.width * 0.55)
                     Layout.minimumWidth: 72
                     text: root.record.name
                     HoverHandler { id: nameHover }
@@ -178,59 +181,37 @@ PlasmaComponents.ItemDelegate {
                     PlasmaComponents.ToolTip { visible: policyHover.hovered; text: root.backend.policyLabel(root.record.restartPolicy) }
                 }
                 PlasmaComponents.Label {
-                    visible: root.record.isRunning && root.record.health === "unhealthy" && root.cfg.showHealth
-                    text: i18n("unhealthy")
-                    color: Kirigami.Theme.negativeTextColor
-                    font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
-                }
-                PlasmaComponents.Label {
                     visible: root.record.isRunning && root.record.health === "starting" && root.cfg.showHealth
                     text: i18n("starting")
                     color: Kirigami.Theme.highlightColor
                     font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 }
-                ResourceMeter {
-                    visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
-                    label: "CPU"; value: root.cpuPct; compact: root.compactMetrics; maximum: root.cfg.resourceBarMax; warnAt: root.cfg.alertCpu
-                }
+                Item { Layout.fillWidth: true }
             }
 
-            // -- state / status (level >= 1) --------------------------
+            // -- image, and the state when there is no room for its own column --
             RowLayout {
                 Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing / 2
+                spacing: Kirigami.Units.smallSpacing
                 visible: root.detailLevel >= 1
-                StatusLine {
+                PlasmaComponents.Label {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
+                    text: String(root.record.image).replace(/(@sha256:)[a-f0-9]{20,}/, function(_,prefix) { return prefix + String(root.record.image).split("@sha256:")[1].slice(0,12) + "…" })
+                    HoverHandler { id: imageHover }
+                    PlasmaComponents.ToolTip { visible: imageHover.hovered; text: root.record.image }
+                    elide: Text.ElideMiddle
+                    font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
+                    color: Kirigami.Theme.disabledTextColor
+                }
+                StatusLine {
+                    visible: root.narrow
                     status: root.record.status; containerState: root.record.state; runningFor: root.record.runningFor
                     isRunning: root.record.isRunning === true
                     attention: root.attention
                     operationLabel: root.operation.label; operationOk: root.operation.ok; operationBusy: root.operation.busy
-                    glyphMode: "always"; badge: true
+                    glyphMode: "none"; badge: true
                 }
-                ResourceMeter {
-                    visible: root.detailLevel >= 1 && root.hasStats && root.cfg.showResourceBars
-                    label: "RAM"; value: root.memPct; compact: root.compactMetrics; maximum: root.cfg.resourceBarMax; warnAt: root.cfg.alertMem
-                }
-            }
-
-            // -- image + usage (level >= 2) ---------------------------
-            ColumnLayout {
-                Layout.fillWidth: true
-                visible: root.detailLevel >= 2
-                spacing: Kirigami.Units.smallSpacing / 2
-
-                PlasmaComponents.Label {
-                    Layout.fillWidth: true
-                    text: String(root.record.image).replace(/(@sha256:)[a-f0-9]{20,}/, function(_,prefix) { return prefix + String(root.record.image).split("@sha256:")[1].slice(0,12) + "…" })
-                    HoverHandler { id: imageHover }
-                    PlasmaComponents.ToolTip { visible: imageHover.hovered; text: root.record.image }
-                    elide: Text.ElideRight
-                    font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
-                    color: Kirigami.Theme.disabledTextColor
-                }
-
             }
 
             // -- ports (level >= 2) ----------------------------------
@@ -375,6 +356,32 @@ PlasmaComponents.ItemDelegate {
             }
         }
 
+        // ---------------------------------------------- state and usage columns --
+        StatusLine {
+            visible: root.detailLevel >= 1 && !root.narrow
+            Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 8.5
+            status: root.record.status; containerState: root.record.state; runningFor: root.record.runningFor
+            isRunning: root.record.isRunning === true
+            attention: root.attention
+            operationLabel: root.operation.label; operationOk: root.operation.ok; operationBusy: root.operation.busy
+            glyphMode: "none"; badge: true
+        }
+        Item {
+            visible: root.detailLevel >= 1 && root.width >= Kirigami.Units.gridUnit * 38 && root.cfg.showResourceBars
+            Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 9
+            implicitHeight: usage.implicitHeight
+            ColumnLayout {
+                id: usage
+                anchors.verticalCenter: parent.verticalCenter
+                visible: root.hasStats
+                spacing: 1
+                ResourceMeter { label: "CPU"; value: root.cpuPct; compact: false; maximum: root.cfg.resourceBarMax; warnAt: root.cfg.alertCpu }
+                ResourceMeter { label: "RAM"; value: root.memPct; compact: false; maximum: root.cfg.resourceBarMax; warnAt: root.cfg.alertMem }
+            }
+        }
+
         // -------------------------------------------------------- actions --
 
         PlasmaComponents.BusyIndicator {
@@ -383,42 +390,65 @@ PlasmaComponents.ItemDelegate {
             Layout.preferredWidth: Kirigami.Units.iconSizes.small
             Layout.preferredHeight: Kirigami.Units.iconSizes.small
         }
-        ActionToolButton {
-            id: recoveryButton
-            opacity: root.hovered || root.highlighted || recoveryButton.activeFocus ? 1 : 0.55
-            visible: root.width > 480 && root.detailLevel !== 0 && root.detailLevel !== 3 && !root.backend.readOnly && (root.record.updateAvailable === true
-                || (root.record.isRunning && (root.record.health === "unhealthy" || root.record.state === "restarting")))
-            glyph: root.record.updateAvailable ? "package-upgrade" : "configure"
-            text: root.record.updateAvailable ? i18n("Update image…") : i18n("Recovery options: logs, restart or update")
-            onClicked: {
-                if (root.record.updateAvailable) root.dialogs.confirmUpdate(root.record)
-                else actions.popup(this, 0, height)
-            }
-        }
 
-        ActionToolButton {
-            id: toggleButton
-            opacity: root.hovered || root.highlighted || toggleButton.activeFocus ? 1 : 0.55
-            visible: root.detailLevel !== 0 && root.detailLevel !== 3
-            enabled: !root.backend.readOnly && !root.operation.busy
-            glyph: root.record.isRunning ? "media-playback-stop" : "media-playback-start"
-            text: root.record.state === "not-created" ? i18n("Create and start") : root.record.isRunning ? i18n("Stop") : i18n("Start")
-            onClicked: {
-                if (root.record.isRunning) {
-                    root.backend.stopContainer(root.record)
-                } else {
-                    root.backend.startContainer(root.record)
-                }
-            }
-        }
 
-        ActionToolButton {
-            id: webButton
-            opacity: root.hovered || root.highlighted || webButton.activeFocus ? 1 : 0.55
-            glyph: "insert-link"
-            text: i18n("Web links")
-            visible: root.width > 440 && root.detailLevel !== 0 && root.detailLevel !== 3 && root.record.isRunning && root.backend.linksFor(root.record).length > 0
-            onClicked: webActions.popup(webButton, 0, webButton.height)
+
+
+
+        // The four action slots keep one width, so the columns to their left line up on every row.
+        Item {
+            Layout.alignment: root.detailLevel === 3 ? Qt.AlignTop : Qt.AlignVCenter
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.7 * 4 + Kirigami.Units.smallSpacing * 3
+            implicitHeight: actionSlots.implicitHeight
+            RowLayout {
+                id: actionSlots
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Kirigami.Units.smallSpacing
+                    ActionToolButton {
+                        id: recoveryButton
+                        opacity: root.hovered || root.highlighted || recoveryButton.activeFocus ? 1 : 0.55
+                        visible: root.width > 480 && root.detailLevel !== 0 && root.detailLevel !== 3 && !root.backend.readOnly && (root.record.updateAvailable === true
+                            || (root.record.isRunning && (root.record.health === "unhealthy" || root.record.state === "restarting")))
+                        glyph: root.record.updateAvailable ? "package-upgrade" : "configure"
+                        text: root.record.updateAvailable ? i18n("Update image…") : i18n("Recovery options: logs, restart or update")
+                        onClicked: {
+                            if (root.record.updateAvailable) root.dialogs.confirmUpdate(root.record)
+                            else actions.popup(this, 0, height)
+                        }
+                    }
+                    ActionToolButton {
+                        id: toggleButton
+                        opacity: root.hovered || root.highlighted || toggleButton.activeFocus ? 1 : 0.55
+                        visible: root.detailLevel !== 0 && root.detailLevel !== 3
+                        enabled: !root.backend.readOnly && !root.operation.busy
+                        glyph: root.record.isRunning ? "media-playback-stop" : "media-playback-start"
+                        text: root.record.state === "not-created" ? i18n("Create and start") : root.record.isRunning ? i18n("Stop") : i18n("Start")
+                        onClicked: {
+                            if (root.record.isRunning) {
+                                root.backend.stopContainer(root.record)
+                            } else {
+                                root.backend.startContainer(root.record)
+                            }
+                        }
+                    }
+                    ActionToolButton {
+                        id: webButton
+                        opacity: root.hovered || root.highlighted || webButton.activeFocus ? 1 : 0.55
+                        glyph: "insert-link"
+                        text: i18n("Web links")
+                        visible: root.width > 440 && root.detailLevel !== 0 && root.detailLevel !== 3 && root.record.isRunning && root.backend.linksFor(root.record).length > 0
+                        onClicked: webActions.popup(webButton, 0, webButton.height)
+                    }
+                    ActionToolButton {
+                        id: overflowButton
+                        opacity: root.hovered || root.highlighted || overflowButton.activeFocus ? 1 : 0.55
+                        Layout.alignment: root.detailLevel === 3 ? Qt.AlignTop : Qt.AlignVCenter
+                        glyph: "application-menu"
+                        text: i18n("More")
+                        onClicked: actions.popup(overflowButton, 0, overflowButton.height)
+                    }
+            }
         }
 
         ContainerActions {
@@ -428,16 +458,6 @@ PlasmaComponents.ItemDelegate {
             dialogs: root.dialogs
             browserOnly: true
         }
-
-        ActionToolButton {
-            id: overflowButton
-            opacity: root.hovered || root.highlighted || overflowButton.activeFocus ? 1 : 0.55
-            Layout.alignment: root.detailLevel === 3 ? Qt.AlignTop : Qt.AlignVCenter
-            glyph: "application-menu"
-            text: i18n("More")
-            onClicked: actions.popup(overflowButton, 0, overflowButton.height)
-        }
-
         ContainerActions {
             id: actions
             backend: root.backend

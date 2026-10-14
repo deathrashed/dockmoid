@@ -31,6 +31,18 @@ var ALPHA = {
     track: 0.12           // empty part of a usage bar
 };
 
+/* Coloured washes: a surface tinted in one hue, and the gradient behind a heading. */
+var WASH = {rest: 0.11, hover: 0.2, selected: 0.3};
+var WASH_BORDER = {rest: 0.35, hover: 0.6, selected: 0.95};
+var BAND = {start: 0.2, end: 0.06};
+
+/* Opacities for foreground text and icons on a quiet surface. */
+var TEXT = {
+    strong: 0.92,   // the value in a badge
+    normal: 0.85,   // icons beside it
+    soft: 0.7       // a label segment
+};
+
 /*
  * Accent hues beyond the theme's semantic colours. Mid-tones, so they stay
  * readable on both light and dark panels. Use them to tell things apart (CPU
@@ -44,7 +56,15 @@ var HUE = {
     pink: "#e64980",
     amber: "#f59f00",
     teal: "#12b886",
-    slate: "#868e96"
+    slate: "#868e96",
+    indigo: "#5c7cfa",
+    lime: "#82c91e",
+    orange: "#fd7e14",
+    fuchsia: "#cc5de8",
+    sky: "#4dabf7",
+    yellow: "#fab005",
+    emerald: "#20c997",
+    rose: "#fa5252"
 };
 
 /* Every value must be a usable opacity. Used by the tests. */

@@ -24,6 +24,20 @@ test("every token is a usable opacity", () => {
   assert.ok(!context.isValid("0.1"));
 });
 
+test("text opacities get softer from strong to soft", () => {
+  const text = vm.runInContext("TEXT", context);
+  assert.ok(text.strong > text.normal && text.normal > text.soft);
+  for (const value of Object.values(text)) assert.ok(context.isValid(value));
+});
+
+test("wash and band opacities are usable and ordered", () => {
+  const wash = vm.runInContext("WASH", context), border = vm.runInContext("WASH_BORDER", context), band = vm.runInContext("BAND", context);
+  assert.ok(wash.rest < wash.hover && wash.hover < wash.selected);
+  assert.ok(border.rest < border.hover && border.hover < border.selected);
+  assert.ok(band.start > band.end);
+  for (const value of [...Object.values(wash), ...Object.values(border), ...Object.values(band)]) assert.ok(context.isValid(value));
+});
+
 test("accent hues are distinct hex colours", () => {
   const hue = vm.runInContext("HUE", context);
   const values = Object.values(hue);
