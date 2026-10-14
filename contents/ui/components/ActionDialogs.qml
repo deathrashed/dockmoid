@@ -170,7 +170,7 @@ Item {
                 visible: false
                 wrapMode: Text.WordWrap
                 color: Kirigami.Theme.negativeTextColor
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font: Kirigami.Theme.smallFont
                 text: i18n("Names must start with a letter or digit and may contain letters, digits, dots, dashes and underscores.")
             }
         }
@@ -248,7 +248,7 @@ Item {
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAnywhere
                 font.family: Kirigami.Theme.fixedWidthFont.family
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
                 opacity: 0.7
                 text: root.backend.cleanupCommand({images:pruneImages.checked,containers:pruneContainers.checked})
             }

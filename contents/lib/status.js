@@ -69,3 +69,9 @@ function statusGlyph(attention, busy, isRunning, mode) {
 function prefixKey(attention) {
     return ["failed", "unhealthy", "paused", "restarting"].indexOf(attention) >= 0 ? attention : ""
 }
+
+/* Tone of the stripe on a card: "" when the container is simply stopped. */
+function accentTone(attention) {
+    if (attention === "stopped" || attention === "not-created" || attention === "") return ""
+    return glyphTone(attention, attention === "running")
+}

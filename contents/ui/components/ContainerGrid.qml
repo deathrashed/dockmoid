@@ -61,11 +61,12 @@ Item {
             }
             readonly property string attention: Status.attentionKind(tile.record)
 
-            Rectangle {
+            Card {
                 anchors.fill: parent
-                radius: Kirigami.Units.smallSpacing
-                color: tileHover.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong) : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
-                border.color: tileHover.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
+                interactive: true
+                hovered: tileHover.hovered
+                selected: root.backend.previewMode === "selection" && root.backend.previewRecordId === tile.containerKey
+                tone: Status.accentTone(tile.attention)
             }
             ColumnLayout {
                 anchors.fill: parent
@@ -73,7 +74,7 @@ Item {
                 spacing: Kirigami.Units.smallSpacing / 2
                 RowLayout {
                     Layout.fillWidth: true
-                    ServiceIcon { backend: root.backend; record: tile.record; iconSize: Kirigami.Units.iconSizes.medium }
+                    ServiceIcon { backend: root.backend; record: tile.record; iconSize: Kirigami.Units.iconSizes.medium; tile: true }
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 1

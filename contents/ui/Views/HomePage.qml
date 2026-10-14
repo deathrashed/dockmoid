@@ -167,7 +167,7 @@ Item {
         onResizingChanged:{if(resizing)wasResizing=true;else if(wasResizing){wasResizing=false;root.updateSetting("previewWidth",previewPane.width);root.updateSetting("previewHeight",previewPane.height)}}
         anchors.fill:parent
         orientation:root.width>=760?Qt.Horizontal:Qt.Vertical
-        handle:Rectangle {implicitWidth:6;implicitHeight:6;color:Controls.SplitHandle.pressed?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)}
+        handle:Item {implicitWidth:7;implicitHeight:7;Rectangle {anchors.centerIn:parent;width:parent.width>parent.height?parent.width:2;height:parent.width>parent.height?2:parent.height;radius:1;color:Controls.SplitHandle.pressed||Controls.SplitHandle.hovered?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)}}
         Item {
             Controls.SplitView.fillWidth:true
             Controls.SplitView.fillHeight:true
@@ -188,7 +188,7 @@ Item {
             Layout.fillHeight: true
             Layout.minimumHeight: 0
             orientation: Qt.Vertical
-            handle: Rectangle {implicitHeight:7;color:Controls.SplitHandle.pressed?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)}
+            handle: Item {implicitHeight:7;Rectangle {anchors.centerIn:parent;width:parent.width;height:2;radius:1;color:Controls.SplitHandle.pressed||Controls.SplitHandle.hovered?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)}}
             property bool wasResizing:false
             onResizingChanged: {if(resizing)wasResizing=true;else if(wasResizing){wasResizing=false;root.savePanes()}}
         Rectangle {

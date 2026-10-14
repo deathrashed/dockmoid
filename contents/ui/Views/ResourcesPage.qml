@@ -213,13 +213,18 @@ Item {
         anchors.fill: parent
         spacing: 0
 
+        Components.PageHeader {
+            title: i18n("Resources")
+            subtitle: i18n("Images, volumes and networks on %1", root.backend.engineName)
+        }
+
         RowLayout {
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.smallSpacing
             spacing: Kirigami.Units.smallSpacing
 
             Repeater {
-                model: [i18n("Images"), i18n("Docker volumes"), i18n("Networks")]
+                model: [i18n("Images"), i18n("Volumes"), i18n("Networks")]
                 delegate: Components.SectionTabButton {
                     required property int index
                     required property string modelData
@@ -367,7 +372,7 @@ Item {
             spacing: 0
 
             PlasmaComponents.ScrollView {
-        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AsNeeded
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 background: null

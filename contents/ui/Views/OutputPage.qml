@@ -3,11 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 
-import org.kde.kirigami as Kirigami
-import org.kde.plasma.components as PlasmaComponents
 
 import "../components" as Components
-import "../../lib/style.js" as Style
 
 /*
  * OutputPage — full-height viewer for command output: container logs, inspect
@@ -95,54 +92,30 @@ Item {
         anchors.fill: parent
         spacing: 0
 
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.margins: Kirigami.Units.smallSpacing
-            spacing: Kirigami.Units.smallSpacing
-
-            PlasmaComponents.Label {
-                Layout.fillWidth: true
-                text: root.pageTitle
-                font.bold: true
-                elide: Text.ElideRight
-            }
-
-            PlasmaComponents.Label {
+        Components.PageHeader {
+            title: root.pageTitle
+            badges: Components.Pill {
                 visible: root.live && root.requestGeneration === root.backend.generation
-                text: i18n("following")
-                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-                color: Kirigami.Theme.positiveTextColor
+                text: i18n("Following")
+                tone: "ok"
+                glyph: "media-playback-start"
             }
-
-            PlasmaComponents.ToolButton {
-                id: refreshButton
-                display: PlasmaComponents.AbstractButton.IconOnly
+            Components.ActionToolButton {
                 visible: root.live && root.requestGeneration === root.backend.generation
-                icon.name: "view-refresh"
+                glyph: "view-refresh"
                 text: i18n("Refresh now")
                 onClicked: root.refresh()
-                PlasmaComponents.ToolTip { text: refreshButton.text }
             }
-
-            PlasmaComponents.ToolButton {
-                id: followButton
-                display: PlasmaComponents.AbstractButton.IconOnly
+            Components.ActionToolButton {
                 visible: root.live && root.requestGeneration === root.backend.generation
-                icon.name: "utilities-terminal"
+                glyph: "utilities-terminal"
                 text: i18n("Follow in terminal")
                 onClicked: {
                     if (root.requestGeneration !== root.backend.generation) return
                     var rec = root.backend.findRecord(root.recordId)
                     if (rec) root.backend.followLogs(rec)
                 }
-                PlasmaComponents.ToolTip { text: followButton.text }
             }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
         }
 
         Loader {

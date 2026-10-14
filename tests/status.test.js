@@ -62,5 +62,10 @@ console.log("status labels ok");
   assert.equal(context.statusGlyph("failed", false, false, "none"), "");
   assert.equal(context.prefixKey("restarting"), "restarting");
   assert.equal(context.prefixKey("running"), "");
+  assert.equal(context.accentTone("running"), "ok");
+  assert.equal(context.accentTone("failed"), "bad");
+  assert.equal(context.accentTone("paused"), "warn");
+  assert.equal(context.accentTone("stopped"), "");
+  assert.equal(context.accentTone("not-created"), "");
   console.log("status presentation helpers ok");
 }

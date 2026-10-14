@@ -170,7 +170,7 @@ Item {
                         PlasmaComponents.Label {
                             visible: root.proxy.sortRoleName === headerCell.modelData.sort
                             text: root.proxy.sortOrder === Qt.AscendingOrder ? "▲" : "▼"
-                            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                            font: Kirigami.Theme.smallFont
                         }
                     }
 

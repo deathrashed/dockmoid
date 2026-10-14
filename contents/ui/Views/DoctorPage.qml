@@ -37,14 +37,18 @@ Item {
     Component.onCompleted: {doctor.scan(false);if(initialCleanup)doctor.cleanupPlan(initialCleanup)}
 
     ColumnLayout {
-        anchors.fill: parent; anchors.margins: Kirigami.Units.smallSpacing
-        spacing: Kirigami.Units.smallSpacing
-        RowLayout {
-            Layout.fillWidth: true
-            PlasmaComponents.Label {text:i18n("Doctor");font.bold:true;Layout.fillWidth:true}
-            PlasmaComponents.Label {text:doctor.checkedAt?i18n("Checked %1",new Date(doctor.checkedAt).toLocaleTimeString()):i18n("Not checked");font:Kirigami.Theme.smallFont}
-            Components.ActionButton {text:i18n("Check");glyph:"view-refresh";enabled:!doctor.scanning&&!doctor.executing;onClicked:doctor.scan()}
+        anchors.fill: parent
+        spacing: 0
+        Components.PageHeader {
+            title: i18n("Doctor")
+            subtitle: doctor.checkedAt ? i18n("Checked %1", new Date(doctor.checkedAt).toLocaleTimeString()) : i18n("Not checked yet")
+            Components.DockButton { variant: "primary"; glyph: "view-refresh"; text: i18n("Check"); enabled: !doctor.scanning && !doctor.executing; onClicked: doctor.scan() }
         }
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.margins: Kirigami.Units.smallSpacing
+            spacing: Kirigami.Units.smallSpacing
         Controls.ComboBox {
             Layout.fillWidth:true;visible:root.width<640
             Accessible.name:i18n("Doctor section")
@@ -102,7 +106,8 @@ Item {
                         required property var modelData
                         Layout.fillWidth:true;implicitHeight:findingContent.implicitHeight+16
                         readonly property color severityColor: root.findingColor(modelData)
-                        radius:Kirigami.Units.smallSpacing;color:Qt.alpha(severityColor,Style.ALPHA.tintWeak);border.width:1;border.color:Qt.alpha(severityColor,Style.ALPHA.borderStrong)
+                        color:"transparent"
+                        Components.Card { anchors.fill: parent; z: -1; tone: finding.modelData.severity === "error" ? "bad" : finding.modelData.severity === "warning" ? "warn" : "info" }
                         ColumnLayout {
                             id:findingContent;anchors.left:parent.left;anchors.right:parent.right;anchors.top:parent.top;anchors.margins:8;anchors.leftMargin:12
                             RowLayout {
@@ -183,6 +188,7 @@ Item {
                 }
                 Components.LogViewer {Layout.fillWidth:true;Layout.preferredHeight:240;visible:doctor.output!=="";text:doctor.output;emptyText:i18n("No action output");logMode:false}
             }
+        }
         }
     }
     Controls.Dialog {

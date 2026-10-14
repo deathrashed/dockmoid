@@ -1,7 +1,9 @@
 import QtQuick
 import QtQuick.Controls as Controls
 import org.kde.kirigami as Kirigami
+import "../../lib/style.js" as Style
 
+/* A flat tab: quiet text, a soft wash on hover and an accent underline when current. */
 Controls.TabButton {
     id: control
     implicitHeight: Kirigami.Units.gridUnit * 2
@@ -14,26 +16,23 @@ Controls.TabButton {
         font.family: control.font.family
         font.pointSize: control.font.pointSize
         font.bold: control.checked
-        color: Kirigami.Theme.textColor
+        color: control.checked ? Kirigami.Theme.textColor : Qt.alpha(Kirigami.Theme.textColor, 0.72)
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
     background: Rectangle {
         radius: Kirigami.Units.smallSpacing
-        color: control.checked ? Qt.alpha(Qt.darker(Kirigami.Theme.highlightColor, 1.7), 0.2)
-            : control.hovered ? Qt.darker(Kirigami.Theme.backgroundColor, 1.12)
-            : Qt.darker(Kirigami.Theme.backgroundColor, 1.12)
-        border.width: 1
-        border.color: control.checked ? Qt.alpha(Qt.lighter(Kirigami.Theme.highlightColor, 1.7), 0.82)
-            : Qt.alpha(Qt.lighter(Kirigami.Theme.backgroundColor, 1.7), 0.22)
+        color: control.checked ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintWeak)
+            : control.hovered ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
+            : "transparent"
         Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: control.checked ? 2 : 0
-            radius: height / 2
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: Kirigami.Units.smallSpacing; rightMargin: Kirigami.Units.smallSpacing }
+            height: 2
+            radius: 1
             color: Kirigami.Theme.highlightColor
+            opacity: control.checked ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
         }
     }
 }

@@ -8,6 +8,7 @@ import org.kde.plasma.components as PlasmaComponents
 
 import "../components" as Components
 import "../../lib/parsers.js" as Parsers
+import "../../lib/status.js" as Status
 import "../../lib/style.js" as Style
 
 /*
@@ -48,24 +49,6 @@ Item {
     property string inspectRequestId: ""
     property int logsSequence: 0
     property int inspectSequence: 0
-    property bool actionsExpanded: false
-
-    readonly property var stripActionKeys: {
-        var keys = ["details"]
-        if (root.isNotCreated) keys.push("create and start")
-        else if (root.record && root.record.isRunning) keys.push("stop")
-        else keys.push("start")
-        if (!root.isNotCreated && actions.canPerform("restart")) keys.push("restart")
-        if (!root.isNotCreated && actions.canPerform("logs")) keys.push("logs")
-        if (!root.isNotCreated && actions.canPerform("inspect")) keys.push("inspect")
-        if (root.record && root.record.isRunning && root.links.length > 0) keys.push("links")
-        if (root.actionsExpanded) {
-            if (!root.backend.readOnly) keys.push("manage")
-            keys.push("customize", "open", "diagnostics", "copy")
-            if (root.record && !root.backend.readOnly && root.backend.canUseCompose && root.record.project !== "") keys.push("compose")
-        }
-        return keys
-    }
 
     Component.onCompleted: {
         pageGeneration = backend.generation
@@ -136,77 +119,145 @@ Item {
 
     // =========================================================== chrome ====
 
+    readonly property bool narrow: root.width < 560
+    readonly property string attention: root.hasRecord ? Status.attentionKind(root.record) : ""
+    readonly property string stateWord: {
+        switch (root.attention) {
+        case "failed": return i18n("Failed")
+        case "unhealthy": return i18n("Unhealthy")
+        case "paused": return i18n("Paused")
+        case "restarting": return i18n("Restarting")
+        case "not-created": return i18n("Not created")
+        case "running": return i18n("Running")
+        default: return i18n("Stopped")
+        }
+    }
+    readonly property string stateTone: root.attention === "not-created" ? "info"
+        : root.attention === "stopped" ? "muted"
+        : Status.glyphTone(root.attention, root.hasRecord && root.record.isRunning === true)
+
+    Components.Tones { id: tones }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
         // -------------------------------------------------- header -------
-        ColumnLayout {
-            Layout.fillWidth: true
-            Layout.margins: Kirigami.Units.smallSpacing
-            spacing: Kirigami.Units.smallSpacing
-
-            RowLayout {
-                objectName: "detailIdentityRow"
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-
-                Components.StateDot {
+        Components.PageHeader {
+            title: root.hasRecord ? root.record.name : i18n("Container is gone")
+            subtitle: root.hasRecord ? String(root.record.image || "").replace(/@sha256:([0-9a-f]{12})[0-9a-f]+/i, "@sha256:$1…") : ""
+            leading: Components.ServiceIcon {
+                visible: root.hasRecord
+                backend: root.backend
+                record: root.record || ({})
+                iconSize: Kirigami.Units.iconSizes.medium
+                tile: true
+                tileColor: tones.color(root.stateTone)
+            }
+            badges: [
+                Components.Pill {
                     visible: root.hasRecord
-                    containerState: root.record.state
-                    health: root.cfg.showHealth ? root.record.health : "none"
+                    text: root.stateWord
+                    tone: root.stateTone
+                    glyph: Status.statusGlyph(root.attention, false, root.hasRecord && root.record.isRunning === true, "attention")
+                },
+                Components.Pill {
+                    visible: root.hasRecord && root.record.updateAvailable === true
+                    text: i18n("Update available")
+                    tone: "info"
+                    glyph: "package-upgrade"
                 }
+            ]
 
-                PlasmaComponents.Label {
-                    Layout.fillWidth: true
-                    text: root.hasRecord ? root.record.name : i18n("Container is gone")
-                    font.bold: true
-                    elide: Text.ElideRight
-                }
+            Components.DockButton {
+                visible: root.hasRecord && actions.canPerform("start-stop")
+                variant: root.record && root.record.isRunning ? "default" : "primary"
+                iconOnly: root.narrow
+                glyph: root.record && root.record.isRunning ? "media-playback-stop" : "media-playback-start"
+                text: root.isNotCreated ? i18n("Create and start") : (root.record && root.record.isRunning ? i18n("Stop") : i18n("Start"))
+                onClicked: actions.perform("start-stop")
             }
-
-
-
-            Components.ContainerActions {
-                id: webActions
-                backend: root.backend
-                record: root.record
-                dialogs: root.dialogs
-                browserOnly: true
+            Components.DockButton {
+                visible: root.hasRecord && !root.isNotCreated && actions.canPerform("restart")
+                iconOnly: root.narrow
+                glyph: "view-refresh"
+                text: i18n("Restart")
+                onClicked: actions.perform("restart")
             }
-
-            Components.ContainerActions {
-                id: actions
-                objectName: "detailActions"
-                backend: root.backend
-                record: root.record
-                dialogs: root.dialogs
-                excludedActions: root.stripActionKeys
-                onOpenOutput: function (title, content, live, id) {
-                    var request = root.backend.latestOutputRequest
-                    root.outputRequested(title, content, live, id,
-                                         request ? request.kind : "output",
-                                         request ? request.requestId : "",
-                                         request ? request.generation : root.backend.generation)
-                }
+            Components.DockButton {
+                visible: root.hasRecord && !root.isNotCreated
+                iconOnly: root.narrow
+                glyph: "text-x-generic"
+                text: i18n("Logs")
+                onClicked: root.tab = 1
+            }
+            Components.ActionToolButton {
+                visible: root.hasRecord
+                glyph: "application-menu"
+                text: i18n("More actions")
+                onClicked: actions.popup(this, 0, height)
             }
         }
 
         PlasmaComponents.Label {
             Layout.fillWidth: true
-            Layout.leftMargin: Kirigami.Units.smallSpacing
-            Layout.rightMargin: Kirigami.Units.smallSpacing
+            Layout.margins: Kirigami.Units.largeSpacing
             visible: !root.hasRecord
             wrapMode: Text.WordWrap
             text: i18n("This container no longer exists. Go back to see the current list.")
             color: Kirigami.Theme.negativeTextColor
         }
 
+        // ------------------------------------------------- web links ----
+        Flow {
+            Layout.fillWidth: true
+            Layout.leftMargin: Kirigami.Units.largeSpacing
+            Layout.rightMargin: Kirigami.Units.largeSpacing
+            Layout.topMargin: Kirigami.Units.smallSpacing
+            visible: root.hasRecord && root.record.isRunning && root.links.length > 0
+            spacing: Kirigami.Units.smallSpacing
+            Repeater {
+                model: root.links
+                delegate: Components.DockButton {
+                    required property var modelData
+                    glyph: "insert-link"
+                    text: String(modelData.label || i18n("Web UI")) + " · " + String(modelData.port || "")
+                    onClicked: root.backend.openLink(modelData)
+                    PlasmaComponents.ToolTip { text: modelData.url || Parsers.linkUrl(modelData) }
+                }
+            }
+        }
+
+        Components.ContainerActions {
+            id: webActions
+            backend: root.backend
+            record: root.record
+            dialogs: root.dialogs
+            browserOnly: true
+        }
+
+        Components.ContainerActions {
+            id: actions
+            objectName: "detailActions"
+            backend: root.backend
+            record: root.record
+            dialogs: root.dialogs
+            excludedActions: ["details", "start", "stop", "create and start", "restart", "logs"]
+            onOpenOutput: function (title, content, live, id) {
+                var request = root.backend.latestOutputRequest
+                root.outputRequested(title, content, live, id,
+                                     request ? request.kind : "output",
+                                     request ? request.requestId : "",
+                                     request ? request.generation : root.backend.generation)
+            }
+        }
+
         // --------------------------------------------------- tabs ---------
         RowLayout {
             Layout.fillWidth: true
-            Layout.leftMargin: Kirigami.Units.smallSpacing
-            Layout.rightMargin: Kirigami.Units.smallSpacing
+            Layout.leftMargin: Kirigami.Units.largeSpacing
+            Layout.rightMargin: Kirigami.Units.largeSpacing
+            Layout.topMargin: Kirigami.Units.smallSpacing
             visible: root.hasRecord
             spacing: Kirigami.Units.smallSpacing
 
@@ -217,7 +268,6 @@ Item {
                 checked: root.tab === 0
                 onClicked: root.tab = 0
             }
-
             Components.SectionTabButton {
                 id: tabLogs
                 objectName: "detailLogsTab"
@@ -227,7 +277,6 @@ Item {
                 checked: root.tab === 1
                 onClicked: root.tab = 1
             }
-
             Components.SectionTabButton {
                 id: tabInspect
                 objectName: "detailInspectTab"
@@ -237,7 +286,6 @@ Item {
                 checked: root.tab === 2
                 onClicked: root.tab = 2
             }
-
             Components.SectionTabButton {
                 id: tabRun
                 objectName: "detailRunTab"
@@ -257,7 +305,6 @@ Item {
                 text: i18n("Refresh logs")
                 onClicked: root.refreshLogs()
             }
-
             Components.ActionToolButton {
                 id: logsFollow
                 visible: root.tab === 1 && !root.isNotCreated
@@ -265,7 +312,6 @@ Item {
                 text: i18n("Follow in terminal")
                 onClicked: root.backend.followLogs(root.record)
             }
-
             Components.ActionToolButton {
                 id: inspectRefresh
                 visible: root.tab === 2 && !root.isNotCreated
@@ -278,7 +324,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
-            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
+            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
         }
 
         // --------------------------------------------------- body ---------
@@ -292,156 +338,6 @@ Item {
                    : (root.tab === 2 ? inspectComponent
                    : (root.tab === 3 ? runComponent : overviewComponent)))
         }
-        ColumnLayout {
-            Layout.fillWidth: true
-            Layout.margins: Kirigami.Units.smallSpacing
-            spacing: Kirigami.Units.smallSpacing
-            visible: root.hasRecord
-            Kirigami.Separator { Layout.fillWidth: true }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.topMargin: Kirigami.Units.smallSpacing
-                    Layout.bottomMargin: Kirigami.Units.smallSpacing
-                    Layout.leftMargin: Kirigami.Units.largeSpacing
-                    Layout.rightMargin: Kirigami.Units.largeSpacing
-                    visible: root.links.length > 0
-                    spacing: Kirigami.Units.smallSpacing
-
-                    PlasmaComponents.Label {
-                        text: i18n("Open in browser")
-                        color: Kirigami.Theme.disabledTextColor
-                        font.pixelSize: Kirigami.Theme.smallFont.pixelSize
-                    }
-
-                    Flow {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-
-                        Repeater {
-                            model: root.links
-                            delegate: Components.ActionButton {
-                                required property var modelData
-                                glyph: "insert-link"
-                                text: String(modelData.label || i18n("Web UI")) + " · " + String(modelData.port || "")
-                                onClicked: root.backend.openLink(modelData)
-                                PlasmaComponents.ToolTip { text: modelData.url || Parsers.linkUrl(modelData) }
-                            }
-                        }
-                    }
-                }
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-                visible: root.hasRecord
-
-                Flow {
-                    id: actionStrip
-                    objectName: "detailActionStrip"
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: Kirigami.Units.smallSpacing
-
-                Components.ActionButton {
-                    id: primaryButton
-                    objectName: "detailPrimaryAction"
-                    visible: actions.canPerform("start-stop")
-                    glyph: root.record && root.record.isRunning ? "media-playback-stop" : "media-playback-start"
-                    text: root.isNotCreated ? i18n("Create and start") : (root.record && root.record.isRunning ? i18n("Stop") : i18n("Start"))
-                    onClicked: actions.perform("start-stop")
-                }
-
-                Components.ActionButton {
-                    visible: !root.isNotCreated && actions.canPerform("restart")
-                    glyph: "view-refresh"
-                    text: i18n("Restart")
-                    onClicked: actions.perform("restart")
-                }
-
-                Components.ActionButton {
-                    visible: !root.isNotCreated && actions.canPerform("logs")
-                    glyph: "text-x-generic"
-                    text: i18n("Logs")
-                    onClicked: actions.perform("logs")
-                }
-
-                Components.ActionButton {
-                    visible: !root.isNotCreated && actions.canPerform("inspect")
-                    glyph: "document-properties"
-                    text: i18n("Inspect")
-                    onClicked: actions.perform("inspect")
-                }
-
-                Components.ActionButton {
-                    id: webButton
-                    visible: root.record && root.record.isRunning && root.links.length > 0
-                    glyph: "insert-link"
-                    text: i18n("Web links") + "  ▾"
-                    onClicked: webActions.popup(webButton, 0, webButton.height)
-                }
-
-                Components.ActionButton {
-                    id: manageButton
-                    visible: root.actionsExpanded && !root.backend.readOnly
-                    text: i18n("Manage") + "  ▾"
-                    glyph: "configure"
-                    onClicked: actions.popupSection("manage", manageButton)
-                }
-
-                Components.ActionButton {
-                    id: customizeButton
-                    visible: root.actionsExpanded
-                    text: i18n("Customize") + "  ▾"
-                    glyph: "preferences-desktop-icons"
-                    onClicked: actions.popupSection("customize", customizeButton)
-                }
-
-                Components.ActionButton {
-                    id: openButton
-                    visible: root.actionsExpanded
-                    text: i18n("Open") + "  ▾"
-                    glyph: "document-open"
-                    onClicked: actions.popupSection("open", openButton)
-                }
-
-                Components.ActionButton {
-                    id: composeButton
-                    visible: root.actionsExpanded && root.record && !root.backend.readOnly
-                        && root.backend.canUseCompose && root.record.project !== ""
-                    text: i18n("Compose") + "  ▾"
-                    glyph: "docker"
-                    onClicked: actions.popupSection("compose", composeButton)
-                }
-
-                Components.ActionButton {
-                    id: diagnosticsButton
-                    visible: root.actionsExpanded
-                    text: i18n("Diagnostics") + "  ▾"
-                    glyph: "utilities-system-monitor"
-                    onClicked: actions.popupSection("diagnostics", diagnosticsButton)
-                }
-
-                Components.ActionButton {
-                    id: copyButton
-                    visible: root.actionsExpanded
-                    text: i18n("Copy") + "  ▾"
-                    glyph: "edit-copy"
-                    onClicked: actions.popupSection("copy", copyButton)
-                }
-
-
-                }
-
-                PlasmaComponents.ToolButton {
-                    id: actionsDisclosure
-                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-                    text: root.actionsExpanded ? i18n("Fewer") : i18n("More")
-                    icon.name: root.actionsExpanded ? "arrow-up" : "arrow-down"
-                    display: PlasmaComponents.AbstractButton.TextBesideIcon
-                    onClicked: root.actionsExpanded = !root.actionsExpanded
-                }
-            }
-        }
-
     }
 
     // =========================================================== tabs ======
@@ -451,6 +347,7 @@ Item {
 
         PlasmaComponents.ScrollView {
             background: null
+            PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
 
             contentItem: Flickable {
                 objectName: "detailOverviewScroll"
@@ -471,133 +368,152 @@ Item {
                     text: i18n("This Compose service is configured, but its container has not been created yet. Create and start it to inspect logs or run commands.")
                     color: Kirigami.Theme.neutralTextColor
                 }
-                Components.FieldRow {
+
+                Components.Card {
                     Layout.fillWidth: true
-                    label: i18n("Status")
-                    value: root.record.status
-                }
-                Components.FieldRow {
-                    Layout.fillWidth: true
-                    label: i18n("Health")
-                    value: root.record.health !== "none" ? root.record.health : ""
-                }
-                Components.FieldRow {
-                    Layout.fillWidth: true
-                    label: i18n("Image")
-                    value: String(root.record.image || "").replace(/@sha256:([0-9a-f]{12})[0-9a-f]+/i, "@sha256:$1…")
-                    copyValue: root.record.image
-                    copyable: true
-                    revealable: true
-                    wrap: true
-                }
-                Components.FieldRow { Layout.fillWidth: true; label: i18n("Project"); value: root.record.project }
-                Components.FieldRow { Layout.fillWidth: true; label: i18n("Service"); value: root.record.service }
-                Components.FieldRow {
-                    Layout.fillWidth: true
-                    label: i18n("Ports")
-                    value: String(root.record.ports || "").replace(/,(?=\d{3}(?:->|\/|:))/g, "")
-                    copyValue: root.record.ports
-                    copyable: true
-                    wrap: true
-                }
-                Components.FieldRow { Layout.fillWidth: true; label: i18n("Mounts"); value: root.record.mounts; wrap: true; copyable: true }
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.leftMargin: Kirigami.Units.largeSpacing
-                    Layout.rightMargin: Kirigami.Units.largeSpacing
-                    visible: root.record.restartPolicy !== ""
-                    spacing: Kirigami.Units.smallSpacing
-                    PlasmaComponents.Label { Layout.preferredWidth: Kirigami.Units.gridUnit * 6; Layout.alignment: Qt.AlignTop; text: i18n("Autostart"); color: Kirigami.Theme.disabledTextColor }
-                    PlasmaComponents.ComboBox {
-                        enabled: !root.backend.readOnly && !root.backend.isPodman
+                    Layout.margins: Kirigami.Units.largeSpacing
+                    Layout.bottomMargin: 0
+                    padding: Kirigami.Units.smallSpacing
+                    title: i18n("Overview")
+                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Status"); value: root.record.status }
+                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Health"); value: root.record.health !== "none" ? root.record.health : "" }
+                    Components.FieldRow {
                         Layout.fillWidth: true
-                        readonly property var policies: ["no", "on-failure", "unless-stopped", "always"]
-                        model: policies.map(function (p) { return root.backend.policyLabel(p) })
-                        currentIndex: Math.max(0, policies.indexOf(root.record.restartPolicy))
-                        onActivated: function (index) { if (policies[index] !== root.record.restartPolicy) root.backend.setRestartPolicy(root.record, policies[index]) }
+                        label: i18n("Image")
+                        value: String(root.record.image || "").replace(/@sha256:([0-9a-f]{12})[0-9a-f]+/i, "@sha256:$1…")
+                        copyValue: root.record.image
+                        copyable: true
+                        revealable: true
+                        wrap: true
+                    }
+                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Project"); value: root.record.project }
+                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Service"); value: root.record.service }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.leftMargin: Kirigami.Units.largeSpacing
+                        Layout.rightMargin: Kirigami.Units.largeSpacing
+                        Layout.topMargin: Kirigami.Units.smallSpacing
+                        visible: root.record.restartPolicy !== ""
+                        spacing: Kirigami.Units.smallSpacing
+                        PlasmaComponents.Label { Layout.preferredWidth: Kirigami.Units.gridUnit * 6; Layout.alignment: Qt.AlignTop; text: i18n("Autostart"); color: Kirigami.Theme.disabledTextColor }
+                        PlasmaComponents.ComboBox {
+                            enabled: !root.backend.readOnly && !root.backend.isPodman
+                            Layout.fillWidth: true
+                            readonly property var policies: ["no", "on-failure", "unless-stopped", "always"]
+                            model: policies.map(function (p) { return root.backend.policyLabel(p) })
+                            currentIndex: Math.max(0, policies.indexOf(root.record.restartPolicy))
+                            onActivated: function (index) { if (policies[index] !== root.record.restartPolicy) root.backend.setRestartPolicy(root.record, policies[index]) }
+                        }
+                    }
+                    Components.FieldRow {
+                        Layout.fillWidth: true
+                        label: i18n("Web page")
+                        value: root.record.probe === "" ? "" : (root.record.probe === "up" ? i18n("answers (%1 ms)", root.record.probeMs) : i18n("does not answer"))
+                    }
+                    Components.FieldRow {
+                        Layout.fillWidth: true
+                        label: i18n("Image update")
+                        value: root.record.updateAvailable ? i18n("a newer version is available") : ""
                     }
                 }
-                RowLayout {
+
+                Components.Card {
                     Layout.fillWidth: true
-                    Layout.leftMargin: Kirigami.Units.largeSpacing
-                    Layout.rightMargin: Kirigami.Units.largeSpacing
-                    Layout.topMargin: Kirigami.Units.smallSpacing
+                    Layout.margins: Kirigami.Units.largeSpacing
+                    Layout.bottomMargin: 0
+                    padding: Kirigami.Units.smallSpacing
+                    visible: String(root.record.ports || "") !== "" || String(root.record.mounts || "") !== ""
+                    title: i18n("Ports and storage")
+                    Components.FieldRow {
+                        Layout.fillWidth: true
+                        label: i18n("Ports")
+                        value: String(root.record.ports || "").replace(/,(?=\d{3}(?:->|\/|:))/g, "")
+                        copyValue: root.record.ports
+                        copyable: true
+                        wrap: true
+                    }
+                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Mounts"); value: root.record.mounts; wrap: true; copyable: true }
+                }
+
+                Components.Card {
+                    Layout.fillWidth: true
+                    Layout.margins: Kirigami.Units.largeSpacing
+                    Layout.bottomMargin: 0
                     visible: root.record.isRunning
                         && ((root.record.cpu !== "" && root.record.cpu !== "unavailable")
                             || (root.record.mem !== "" && root.record.mem !== "unavailable"))
-                    spacing: Kirigami.Units.largeSpacing
-                    ColumnLayout {
+                    title: i18n("Usage")
+                    RowLayout {
                         Layout.fillWidth: true
-                        visible: root.record.cpu !== "" && root.record.cpu !== "unavailable"
-                        PlasmaComponents.Label { text: i18n("CPU %1", root.record.cpu); font: Kirigami.Theme.smallFont }
-                        Components.Sparkline {
+                        spacing: Kirigami.Units.largeSpacing
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            implicitHeight: Kirigami.Units.gridUnit * 2
-                            samples: root.backend.revision >= 0 ? root.backend.historyFor(root.record.id).cpu : []
-                            color: Kirigami.Theme.positiveTextColor
-                            floor: 10
+                            visible: root.record.cpu !== "" && root.record.cpu !== "unavailable"
+                            PlasmaComponents.Label { text: i18n("CPU %1", root.record.cpu); font: Kirigami.Theme.smallFont }
+                            Components.Sparkline {
+                                Layout.fillWidth: true
+                                implicitHeight: Kirigami.Units.gridUnit * 2.5
+                                samples: root.backend.revision >= 0 ? root.backend.historyFor(root.record.id).cpu : []
+                                color: Kirigami.Theme.positiveTextColor
+                                floor: 10
+                            }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            visible: root.record.mem !== "" && root.record.mem !== "unavailable"
+                            PlasmaComponents.Label { text: i18n("Memory %1", root.record.mem); font: Kirigami.Theme.smallFont }
+                            Components.Sparkline {
+                                Layout.fillWidth: true
+                                implicitHeight: Kirigami.Units.gridUnit * 2.5
+                                samples: root.backend.revision >= 0 ? root.backend.historyFor(root.record.id).mem : []
+                                color: Kirigami.Theme.highlightColor
+                                floor: 10
+                            }
                         }
                     }
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        visible: root.record.mem !== "" && root.record.mem !== "unavailable"
-                        PlasmaComponents.Label { text: i18n("Memory %1", root.record.mem); font: Kirigami.Theme.smallFont }
-                        Components.Sparkline {
-                            Layout.fillWidth: true
-                            implicitHeight: Kirigami.Units.gridUnit * 2
-                            samples: root.backend.revision >= 0 ? root.backend.historyFor(root.record.id).mem : []
-                            color: Kirigami.Theme.highlightColor
-                            floor: 10
-                        }
-                    }
-                }
-                Components.FieldRow {
-                    Layout.fillWidth: true
-                    label: i18n("Web page")
-                    value: root.record.probe === "" ? "" : (root.record.probe === "up" ? i18n("answers (%1 ms)", root.record.probeMs) : i18n("does not answer"))
-                }
-                Components.FieldRow {
-                    Layout.fillWidth: true
-                    label: i18n("Image update")
-                    value: root.record.updateAvailable ? i18n("a newer version is available") : ""
                 }
 
-                Components.DetailSection {
+                ColumnLayout {
                     Layout.fillWidth: true
-                    title: i18n("Resources")
-                    expanded: false
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("CPU"); value: root.record.cpu }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Memory"); value: root.record.memU !== "" && root.record.memU !== "unavailable" ? root.record.memU + (root.record.mem !== "" && root.record.mem !== "unavailable" ? "  (" + root.record.mem + ")" : "") : "" }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Net I/O"); value: root.record.netio }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Block I/O"); value: root.record.blockio }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("PIDs"); value: root.record.pids }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Size"); value: root.record.size }
-                }
-                Components.DetailSection {
-                    Layout.fillWidth: true
-                    title: i18n("Networking")
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Networks"); value: root.record.networks; wrap: true; copyable: true }
-                }
-                Components.DetailSection {
-                    Layout.fillWidth: true
-                    title: i18n("Storage")
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Volumes"); value: root.record.localVolumes; wrap: true; copyable: true }
-                }
-                Components.DetailSection {
-                    Layout.fillWidth: true
-                    title: i18n("Container information")
-                    Components.FieldRow {
+                    Layout.margins: Kirigami.Units.largeSpacing
+                    spacing: Kirigami.Units.smallSpacing
+                    Components.DetailSection {
                         Layout.fillWidth: true
-                        label: i18n("ID")
-                        value: String(root.record.id).length > 12 ? String(root.record.id).slice(0, 12) + "…" : root.record.id
-                        copyValue: root.record.id
-                        copyable: true
-                        revealable: true
+                        title: i18n("Resources")
+                        expanded: false
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("CPU"); value: root.record.cpu }
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("Memory"); value: root.record.memU !== "" && root.record.memU !== "unavailable" ? root.record.memU + (root.record.mem !== "" && root.record.mem !== "unavailable" ? "  (" + root.record.mem + ")" : "") : "" }
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("Net I/O"); value: root.record.netio }
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("Block I/O"); value: root.record.blockio }
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("PIDs"); value: root.record.pids }
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("Size"); value: root.record.size }
                     }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Command"); value: root.record.command; wrap: true; copyable: true }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Compose file"); value: root.record.composeFiles; wrap: true; copyable: true }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Created"); value: root.record.createdAt }
-                    Components.FieldRow { Layout.fillWidth: true; label: i18n("Platform"); value: root.record.platform }
+                    Components.DetailSection {
+                        Layout.fillWidth: true
+                        title: i18n("Networking")
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("Networks"); value: root.record.networks; wrap: true; copyable: true }
+                    }
+                    Components.DetailSection {
+                        Layout.fillWidth: true
+                        title: i18n("Storage")
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("Volumes"); value: root.record.localVolumes; wrap: true; copyable: true }
+                    }
+                    Components.DetailSection {
+                        Layout.fillWidth: true
+                        title: i18n("Container information")
+                        Components.FieldRow {
+                            Layout.fillWidth: true
+                            label: i18n("ID")
+                            value: String(root.record.id).length > 12 ? String(root.record.id).slice(0, 12) + "…" : root.record.id
+                            copyValue: root.record.id
+                            copyable: true
+                            revealable: true
+                        }
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("Command"); value: root.record.command; wrap: true; copyable: true }
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("Compose file"); value: root.record.composeFiles; wrap: true; copyable: true }
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("Created"); value: root.record.createdAt }
+                        Components.FieldRow { Layout.fillWidth: true; label: i18n("Platform"); value: root.record.platform }
+                    }
                 }
 
                 }

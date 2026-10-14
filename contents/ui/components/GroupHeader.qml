@@ -85,7 +85,7 @@ Item {
 
         PlasmaComponents.Label {
             text: i18np("%1/%2 up", "%1/%2 up", root.runningCount, root.members.length)
-            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            font: Kirigami.Theme.smallFont
             color: root.runningCount === root.members.length && root.members.length > 0
                 ? Kirigami.Theme.positiveTextColor
                 : Kirigami.Theme.disabledTextColor
@@ -94,7 +94,7 @@ Item {
         PlasmaComponents.Label {
             text: i18n("group")
             visible: !root.isProject
-            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            font: Kirigami.Theme.smallFont
             color: Kirigami.Theme.disabledTextColor
         }
 

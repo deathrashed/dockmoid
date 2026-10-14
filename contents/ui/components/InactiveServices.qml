@@ -5,7 +5,6 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/parsers.js" as Parsers
-import "../../lib/style.js" as Style
 
 Item {
     id: root
@@ -45,23 +44,39 @@ Item {
             height: cards.cellHeight - Kirigami.Units.smallSpacing
             readonly property var record: root.backend.findRecord(card.containerKey) || ({id:card.containerKey,name:card.name,image:card.image,state:card.containerState,isRunning:card.isRunning,project:card.project,service:card.service,composeFiles:card.composeFiles,composeWorkDir:card.composeWorkDir,pinned:false,restartPolicy:""})
             readonly property var operation: { const revision=root.backend.operationsRevision; return root.backend.operationFor(card.containerKey) }
-            Rectangle { anchors.fill: parent; radius: Kirigami.Units.smallSpacing; color: Qt.alpha(Kirigami.Theme.textColor, hover.hovered ? Style.ALPHA.hover : Style.ALPHA.surface2); border.color: Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.borderFaint) }
+            Card {
+                anchors.fill: parent
+                interactive: true
+                hovered: hover.hovered
+                selected: root.backend.previewMode === "selection" && root.backend.previewRecordId === card.containerKey
+            }
             RowLayout {
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.smallSpacing
                 spacing: Kirigami.Units.smallSpacing / 2
-                ServiceIcon { backend: root.backend; record: card.record; iconSize: Kirigami.Units.iconSizes.medium }
+                ServiceIcon { backend: root.backend; record: card.record; iconSize: Kirigami.Units.iconSizes.medium; tile: !root.compact }
                 ColumnLayout {
                     visible:root.displayMode!=="icons"
                     Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 1
                     PlasmaComponents.Label { Layout.fillWidth: true; text: card.name; font.bold: true; elide: Text.ElideRight; PlasmaComponents.ToolTip.text: card.name; PlasmaComponents.ToolTip.visible: hover.hovered }
-                    PlasmaComponents.Label {
+                    RowLayout {
                         Layout.fillWidth: true
-                        text: card.operation.label || (card.containerState === "not-created" ? i18n("Not created") : i18n("Stopped"))
-                        color: card.operation.label ? (card.operation.ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor) : Kirigami.Theme.disabledTextColor
-                        font: Kirigami.Theme.smallFont; elide: Text.ElideRight
-                        PlasmaComponents.ToolTip.text: (card.status || card.containerState) + (card.operation.label ? "\n" + card.operation.label : "")
-                        PlasmaComponents.ToolTip.visible: hover.hovered
+                        spacing: Kirigami.Units.smallSpacing
+                        Pill {
+                            visible: card.operation.label === ""
+                            text: card.containerState === "not-created" ? i18n("Not created") : i18n("Stopped")
+                            tone: card.containerState === "not-created" ? "info" : "muted"
+                            PlasmaComponents.ToolTip.text: card.status || card.containerState
+                            PlasmaComponents.ToolTip.visible: hover.hovered
+                        }
+                        PlasmaComponents.Label {
+                            visible: card.operation.label !== ""
+                            Layout.fillWidth: true
+                            text: card.operation.label
+                            color: card.operation.ok ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                            font: Kirigami.Theme.smallFont; elide: Text.ElideRight
+                        }
+                        Item { Layout.fillWidth: true; visible: card.operation.label === "" }
                     }
                 }
                 PlasmaComponents.BusyIndicator { visible: card.operation.busy; running: visible; Layout.preferredWidth: Kirigami.Units.iconSizes.small; Layout.preferredHeight: Layout.preferredWidth }

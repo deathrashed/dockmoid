@@ -48,6 +48,7 @@ Rectangle {
  function toolbar(style){config.toolbarStyle=style}
  function everything(){popup.selectView(0);popup.selectDetail(3)}
  function grid(){popup.selectView(3)}
+ function showPage(name){popup.selectView(0);if(name==='doctor')popup.showDoctor(0);else if(name==='resources')popup.showResources();else if(name==='deploy')popup.showDeployment();else if(name==='detail')popup.showDetail('000000000000',0);else if(name==='detail1')popup.showDetail('000000000009',0)}
  function presentation(mode,level){popup.selectView(mode);popup.selectDetail(level)}
  function level(){return popup.detailLevel}
  function mode(){return popup.viewMode}
@@ -78,7 +79,10 @@ def capture(name):view.grabWindow().save(str(out/name))
 cases=[(w,m,l) for w in [360,1050] for m in [0,1,2,3] for l in range(4)]
 checks=[]
 def step(index=0):
- if index==len(cases):app.quit();return
+ if index==len(cases):
+  if os.environ.get('DOCKMOID_UI_PAGES'):pages(0)
+  else:app.quit()
+  return
  w,m,l=cases[index];view.resize(w,760);view.rootObject().presentation(m,l)
  home=view.rootObject().findChild(QObject,"homeSectionPage");home.updateSetting("previewMode","selection")
  QTimer.singleShot(100,safe(lambda:check(index,w,m,l)))
@@ -91,6 +95,14 @@ def check(index,w,m,l):
  if os.environ.get('DOCKMOID_UI_CAPTURE_DIR'):
   folder=pathlib.Path(os.environ['DOCKMOID_UI_CAPTURE_DIR']);folder.mkdir(parents=True,exist_ok=True);image.save(str(folder/f'w{w}-m{m}-l{l}.png'))
  checks.append([w,m,l]);step(index+1)
+PAGES=[(n,w) for n in (os.environ.get('DOCKMOID_UI_ONLY') or 'doctor,resources,deploy,detail,detail1').split(',') for w in [1050,360]]
+def pages(i):
+ if i==len(PAGES):app.quit();return
+ n,w=PAGES[i];view.resize(w,760);view.rootObject().showPage(n)
+ def grab():
+  folder=pathlib.Path(os.environ.get('DOCKMOID_UI_CAPTURE_DIR') or out);folder.mkdir(parents=True,exist_ok=True)
+  view.grabWindow().save(str(folder/f'page-{n}-w{w}.png'));view.rootObject().presentation(0,1);QTimer.singleShot(150,safe(lambda:pages(i+1)))
+ QTimer.singleShot(700,safe(grab))
 QTimer.singleShot(500,safe(step));app.exec()
 errors=[m for m in messages if any(e in m for e in ['TypeError','ReferenceError','Cannot assign','Unable to assign','Required property','Binding loop'])]
 (out/'runtime.log').write_text('\n'.join(messages));print('Production QML demo cases:',len(checks),'failures:',failures,'errors:',errors)

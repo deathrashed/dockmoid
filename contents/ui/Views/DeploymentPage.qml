@@ -55,13 +55,16 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Kirigami.Units.smallSpacing
-        spacing: Kirigami.Units.smallSpacing * 2
-        RowLayout {
-            Layout.fillWidth: true
-            PlasmaComponents.Label { Layout.fillWidth: true; text: i18n("Images and new containers"); font.bold: true; font.pointSize: Kirigami.Theme.defaultFont.pointSize + 2 }
+        spacing: 0
+        Components.PageHeader {
+            title: i18n("Images and new containers")
+            subtitle: i18n("Selected engine: %1", root.backend.engineBinary)
         }
-        PlasmaComponents.Label { Layout.fillWidth:true; text:i18n("Selected engine: %1",root.backend.engineBinary); wrapMode:Text.Wrap }
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.margins: Kirigami.Units.smallSpacing
+            spacing: Kirigami.Units.smallSpacing * 2
         Controls.TabBar {
             id:tabs;objectName:"deploymentTabs";Layout.fillWidth:true
             Components.SectionTabButton{text:i18n("Images")}
@@ -106,7 +109,7 @@ Item {
                         }
                         delegate:Controls.ItemDelegate {
                             id:result;required property var modelData;width:ListView.view.width
-                            background:Rectangle {radius:Kirigami.Units.smallSpacing;color:Qt.alpha(Kirigami.Theme.textColor,result.hovered?Style.ALPHA.hover:Style.ALPHA.surface1);border.width:1;border.color:Qt.alpha(Kirigami.Theme.highlightColor,result.hovered?Style.ALPHA.borderStrong:Style.ALPHA.border)}
+                            background:Components.Card {interactive:true;hovered:result.hovered}
                             contentItem:ColumnLayout {
                                 RowLayout {Layout.fillWidth:true;PlasmaComponents.Label {Layout.fillWidth:true;text:result.modelData.name;font.bold:true;color:Kirigami.Theme.linkColor;elide:Text.ElideRight}PlasmaComponents.Label {visible:result.modelData.official===true;text:i18n("Official");font:Kirigami.Theme.smallFont;color:Kirigami.Theme.positiveTextColor}}
                                 Flow {
@@ -220,7 +223,8 @@ Item {
             Layout.fillWidth:true
             PlasmaComponents.BusyIndicator{visible:root.controller.busy;implicitWidth:22;implicitHeight:22}
             Item{Layout.fillWidth:true}
-            Components.ActionButton{text:i18n("Review deployment…");glyph:"package-check";visible:tabs.currentIndex===1;enabled:root.controller.canDeploy&&!root.controller.busy;onClicked:root.review()}
+            Components.DockButton{variant:"primary";text:i18n("Review deployment…");glyph:"package-check";visible:tabs.currentIndex===1;enabled:root.controller.canDeploy&&!root.controller.busy;onClicked:root.review()}
+        }
         }
     }
     Connections {target:root.backend;function onGenerationChanged(){reviewDialog.close();root.reviewed=null}}
