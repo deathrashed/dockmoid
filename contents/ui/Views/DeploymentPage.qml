@@ -62,7 +62,6 @@ Item {
         Components.PageHeader {
             compact: root.embedded
             title: i18n("Images and new containers")
-            tone: "lime"; glyph: "package-plus"
             subtitle: i18n("Selected engine: %1", root.backend.engineBinary)
         }
         ColumnLayout {

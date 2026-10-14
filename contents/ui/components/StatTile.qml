@@ -25,7 +25,7 @@ Card {
     interactive: root.clickable
     hovered: hover.hovered
     selected: root.active
-    washTone: root.toneName
+    washTone: root.active ? root.toneName : ""
     implicitHeight: Kirigami.Units.gridUnit * 1.7
     implicitWidth: line.implicitWidth + padding * 2
     scale: root.clickable && hover.hovered ? 1.03 : 1

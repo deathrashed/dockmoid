@@ -146,7 +146,6 @@ Item {
         // -------------------------------------------------- header -------
         Components.PageHeader {
             title: root.hasRecord ? root.record.name : i18n("Container is gone")
-            tone: root.hasRecord ? root.stateTone : ""
             subtitle: root.hasRecord ? String(root.record.image || "").replace(/@sha256:([0-9a-f]{12})[0-9a-f]+/i, "@sha256:$1…") : ""
             leading: Components.ServiceIcon {
                 visible: root.hasRecord
@@ -154,7 +153,6 @@ Item {
                 record: root.record || ({})
                 iconSize: Kirigami.Units.iconSizes.medium
                 tile: true
-                tileColor: tones.color(root.stateTone)
             }
             badges: [
                 Components.Pill {
@@ -386,12 +384,12 @@ Item {
                     Layout.bottomMargin: 0
                     padding: Kirigami.Units.smallSpacing
                     title: i18n("Overview")
-                    tone: "indigo"; titleGlyph: "badge-info"; titleTone: "indigo"
-                    Components.FieldRow { Layout.fillWidth: true; glyph: "activity"; glyphTone: "emerald"; label: i18n("Status"); value: root.record.status }
-                    Components.FieldRow { Layout.fillWidth: true; glyph: "heart-pulse"; glyphTone: "rose"; label: i18n("Health"); value: root.record.health !== "none" ? root.record.health : "" }
+                    titleGlyph: "badge-info"
+                    Components.FieldRow { Layout.fillWidth: true; glyph: "activity"; label: i18n("Status"); value: root.record.status }
+                    Components.FieldRow { Layout.fillWidth: true; glyph: "heart-pulse"; label: i18n("Health"); value: root.record.health !== "none" ? root.record.health : "" }
                     Components.FieldRow {
                         Layout.fillWidth: true
-                        glyph: "box"; glyphTone: "indigo"
+                        glyph: "box"
                         label: i18n("Image")
                         value: String(root.record.image || "").replace(/@sha256:([0-9a-f]{12})[0-9a-f]+/i, "@sha256:$1…")
                         copyValue: root.record.image
@@ -399,8 +397,8 @@ Item {
                         revealable: true
                         wrap: true
                     }
-                    Components.FieldRow { Layout.fillWidth: true; glyph: "folder-kanban"; glyphTone: "yellow"; label: i18n("Project"); value: root.record.project }
-                    Components.FieldRow { Layout.fillWidth: true; glyph: "workflow"; glyphTone: "cyan"; label: i18n("Service"); value: root.record.service }
+                    Components.FieldRow { Layout.fillWidth: true; glyph: "folder-kanban"; label: i18n("Project"); value: root.record.project }
+                    Components.FieldRow { Layout.fillWidth: true; glyph: "workflow"; label: i18n("Service"); value: root.record.service }
                     RowLayout {
                         Layout.fillWidth: true
                         Layout.leftMargin: Kirigami.Units.largeSpacing
@@ -420,13 +418,13 @@ Item {
                     }
                     Components.FieldRow {
                         Layout.fillWidth: true
-                        glyph: "globe"; glyphTone: "sky"
+                        glyph: "globe"
                         label: i18n("Web page")
                         value: root.record.probe === "" ? "" : (root.record.probe === "up" ? i18n("answers (%1 ms)", root.record.probeMs) : i18n("does not answer"))
                     }
                     Components.FieldRow {
                         Layout.fillWidth: true
-                        glyph: "cloud-download"; glyphTone: "violet"
+                        glyph: "cloud-download"
                         label: i18n("Image update")
                         value: root.record.updateAvailable ? i18n("a newer version is available") : ""
                     }
@@ -439,17 +437,17 @@ Item {
                     padding: Kirigami.Units.smallSpacing
                     visible: String(root.record.ports || "") !== "" || String(root.record.mounts || "") !== ""
                     title: i18n("Ports and storage")
-                    tone: "teal"; titleGlyph: "network"; titleTone: "teal"
+                    titleGlyph: "network"
                     Components.FieldRow {
                         Layout.fillWidth: true
-                        glyph: "plug"; glyphTone: "teal"
+                        glyph: "plug"
                         label: i18n("Ports")
                         value: String(root.record.ports || "").replace(/,(?=\d{3}(?:->|\/|:))/g, "")
                         copyValue: root.record.ports
                         copyable: true
                         wrap: true
                     }
-                    Components.FieldRow { Layout.fillWidth: true; glyph: "hard-drive"; glyphTone: "orange"; label: i18n("Mounts"); value: root.record.mounts; wrap: true; copyable: true }
+                    Components.FieldRow { Layout.fillWidth: true; glyph: "hard-drive"; label: i18n("Mounts"); value: root.record.mounts; wrap: true; copyable: true }
                 }
 
                 Components.Card {
@@ -460,7 +458,7 @@ Item {
                         && ((root.record.cpu !== "" && root.record.cpu !== "unavailable")
                             || (root.record.mem !== "" && root.record.mem !== "unavailable"))
                     title: i18n("Usage")
-                    tone: "fuchsia"; titleGlyph: "gauge"; titleTone: "fuchsia"
+                    titleGlyph: "gauge"
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.largeSpacing

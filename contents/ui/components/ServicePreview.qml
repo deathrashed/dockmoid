@@ -73,7 +73,6 @@ Item {
                     record: root.record || ({})
                     iconSize: Kirigami.Units.iconSizes.medium
                     tile: true
-                    tileColor: tones.color(Status.glyphTone(root.attention, root.running))
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -127,22 +126,21 @@ Item {
                     visible: !!root.record && !root.backend.readOnly
                     variant: root.running ? "default" : "primary"
                     glyph: root.running ? "square" : "play"
-                    iconTone: root.running ? "rose" : ""
                     text: root.record && root.record.state === "not-created" ? i18n("Create and start") : root.running ? i18n("Stop") : i18n("Start")
                     onClicked: root.running ? root.backend.stopContainer(root.record) : root.backend.startContainer(root.record)
                 }
                 DockButton {
                     visible: root.running && !root.backend.readOnly
-                    glyph: "rotate-cw"; iconTone: "emerald"; text: i18n("Restart")
+                    glyph: "rotate-cw"; text: i18n("Restart")
                     onClicked: root.backend.restartContainer(root.record)
                 }
                 DockButton {
                     visible: root.links.length > 0 && root.running
-                    glyph: "globe"; iconTone: "sky"; text: i18n("Open web UI")
+                    glyph: "globe"; text: i18n("Open web UI")
                     onClicked: root.backend.openLink(root.links[0])
                 }
                 DockButton {
-                    glyph: "badge-info"; iconTone: "indigo"; text: i18n("Details")
+                    glyph: "badge-info"; text: i18n("Details")
                     onClicked: root.openDetail(root.record.id)
                 }
             }
@@ -153,11 +151,11 @@ Item {
                 Layout.margins: Kirigami.Units.largeSpacing
                 Layout.topMargin: Kirigami.Units.smallSpacing
                 padding: Kirigami.Units.smallSpacing
-                FieldRow { Layout.fillWidth: true; glyph: "activity"; glyphTone: "emerald"; label: i18n("Status"); value: root.record ? (root.record.state === "not-created" ? i18n("Not created") : (root.record.status || root.record.state)) : "" }
-                FieldRow { Layout.fillWidth: true; glyph: "folder-kanban"; glyphTone: "yellow"; label: i18n("Project"); value: root.record ? [root.record.project, root.record.service].filter(Boolean).join(" / ") : "" }
-                FieldRow { Layout.fillWidth: true; glyph: "plug"; glyphTone: "teal"; label: i18n("Ports"); value: root.record ? String(root.record.ports || "") : ""; wrap: true }
-                FieldRow { Layout.fillWidth: true; glyph: "hard-drive"; glyphTone: "orange"; label: i18n("Mounts"); value: root.record ? String(root.record.mounts || "") : ""; wrap: true }
-                FieldRow { Layout.fillWidth: true; glyph: "gauge"; glyphTone: "fuchsia"; label: i18n("CPU / RAM"); value: root.record ? [root.record.cpu, root.record.mem].filter(Boolean).join(" / ") : "" }
+                FieldRow { Layout.fillWidth: true; glyph: "activity"; label: i18n("Status"); value: root.record ? (root.record.state === "not-created" ? i18n("Not created") : (root.record.status || root.record.state)) : "" }
+                FieldRow { Layout.fillWidth: true; glyph: "folder-kanban"; label: i18n("Project"); value: root.record ? [root.record.project, root.record.service].filter(Boolean).join(" / ") : "" }
+                FieldRow { Layout.fillWidth: true; glyph: "plug"; label: i18n("Ports"); value: root.record ? String(root.record.ports || "") : ""; wrap: true }
+                FieldRow { Layout.fillWidth: true; glyph: "hard-drive"; label: i18n("Mounts"); value: root.record ? String(root.record.mounts || "") : ""; wrap: true }
+                FieldRow { Layout.fillWidth: true; glyph: "gauge"; label: i18n("CPU / RAM"); value: root.record ? [root.record.cpu, root.record.mem].filter(Boolean).join(" / ") : "" }
             }
         }
     }

@@ -218,7 +218,6 @@ Item {
         Components.PageHeader {
             compact: root.embedded
             title: i18n("Resources")
-            tone: "teal"; glyph: "boxes"
             subtitle: i18n("Images, volumes and networks on %1", root.backend.engineName)
         }
 

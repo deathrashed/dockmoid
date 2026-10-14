@@ -44,7 +44,6 @@ Item {
         Components.PageHeader {
             compact: root.embedded
             title: i18n("Doctor")
-            tone: "pink"; glyph: "stethoscope"
             subtitle: doctor.checkedAt ? i18n("Checked %1", new Date(doctor.checkedAt).toLocaleTimeString()) : i18n("Not checked yet")
             Components.DockButton { variant: "primary"; glyph: "view-refresh"; text: i18n("Check"); enabled: !doctor.scanning && !doctor.executing; onClicked: doctor.scan() }
         }
@@ -78,10 +77,10 @@ Item {
                 spacing:Kirigami.Units.smallSpacing*2
                 Flow {
                     Layout.fillWidth:true;visible:root.tab===0;spacing:Kirigami.Units.smallSpacing
-                    Components.StatTile {clickable:false;glyph:"circle-play";value:backend.running;label:i18n("Running");toneName:"ok"}
-                    Components.StatTile {clickable:false;glyph:"circle-pause";value:backend.stopped;label:i18n("Stopped");toneName:"slate"}
-                    Components.StatTile {clickable:false;glyph:"package-plus";value:backend.notCreated;label:i18n("Not created");toneName:"cyan"}
-                    Components.StatTile {clickable:false;glyph:"triangle-alert";value:backend.problemCount;label:i18n("Need attention");toneName:backend.problemCount>0?"bad":"slate"}
+                    Components.StatTile {clickable:false;glyph:"circle-play";value:backend.running;label:i18n("Running")}
+                    Components.StatTile {clickable:false;glyph:"circle-pause";value:backend.stopped;label:i18n("Stopped")}
+                    Components.StatTile {clickable:false;glyph:"package-plus";value:backend.notCreated;label:i18n("Not created")}
+                    Components.StatTile {clickable:false;glyph:"triangle-alert";value:backend.problemCount;label:i18n("Need attention")}
                 }
                 Controls.ComboBox {
                     Layout.fillWidth:true;visible:root.tab===1||root.tab===4
