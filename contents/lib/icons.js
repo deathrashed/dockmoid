@@ -1,110 +1,16 @@
 /*
- * icons.js — image-substring -> bundled glyph mapping.
+ * icons.js — turning a container into the name of an icon in the library.
  *
- * Matching is done on the *lowercased image name*, so "lscr.io/linuxserver/
- * syncthing:latest" matches the "syncthing" entry. The first match in the list
- * wins, which means more specific keys must come before generic ones (that is
- * why "portainer" is listed before the trailing catch-alls).
- *
- * The user can extend or override this list from the Services config page
- * without touching code, so anything not shipped here can still get a glyph.
+ * Two layers decide it: the user's own rules (below), then a name match against
+ * the icon library (further down). Nothing about particular services is
+ * hard-coded here; the library is the data.
  */
 
-function defaults() {
-    return [
-        // --- container / management platforms -----------------------------
-        ["portainer", "portainer"],
-        ["dockge", "dockge"],
-        ["dokploy", "dokploy"],
-        ["watchtower", "watchtower"],
-
-        // --- media --------------------------------------------------------
-        ["jellyfin", "jellyfin"],
-        ["plex", "plex"],
-        ["emby", "emby"],
-        ["navidrome", "navidrome"],
-        ["airsonic", "airsonic"],
-        ["tautulli", "tautulli"],
-        ["kodi", "kodi"],
-        ["calibre", "calibre"],
-
-        // --- *arr stack ----------------------------------------------------
-        ["sonarr", "sonarr"],
-        ["radarr", "radarr"],
-        ["lidarr", "lidarr"],
-        ["readarr", "readarr"],
-        ["bazarr", "bazarr"],
-        ["prowlarr", "prowlarr"],
-
-        // --- downloads / usenet / torrents ----------------------------------
-        ["sabnzbd", "sabnzbd"],
-        ["nzbget", "nzbget"],
-        ["qbittorrent", "qbittorrent"],
-        ["transmission", "transmission"],
-        ["deluge", "deluge"],
-        ["rtorrent", "rtorrent"],
-        ["slskd", "slskd"],
-        ["soulseek", "slskd"],
-        ["saberren", "saberren"],
-        ["cross-seed", "cross-seed"],
-
-        // --- files / sync ----------------------------------------------------
-        ["syncthing", "syncthing"],
-        ["nextcloud", "nextcloud"],
-        ["owncloud", "owncloud"],
-        ["filebrowser", "filebrowser"],
-        ["rclone", "rclone"],
-        ["immich", "immich"],
-        ["photoprism", "photoprism"],
-        ["paperless", "paperless"],
-        ["paperless-ngx", "paperless"],
-
-        // --- databases / caches -----------------------------------------------
-        ["postgres", "postgres"],
-        ["postgresql", "postgres"],
-        ["mariadb", "mariadb"],
-        ["mysql", "mariadb"],
-        ["mongo", "mongo"],
-        ["redis", "redis"],
-        ["valkey", "redis"],
-        ["influxdb", "influxdb"],
-        ["meilisearch", "meilisearch"],
-        ["qdrant", "qdrant"],
-
-        // --- monitoring / networking -------------------------------------------
-        ["grafana", "grafana"],
-        ["prometheus", "prometheus"],
-        ["dozzle", "dozzle"],
-        ["pihole", "pihole"],
-        ["pi-hole", "pihole"],
-        ["adguard", "pihole"],
-        ["traefik", "traefik"],
-        ["nginx-proxy", "nginx"],
-        ["nginx", "nginx"],
-        ["caddy", "caddy"],
-        ["cloudflare", "cloudflare"],
-        ["wireguard", "wireguard"],
-        ["tailscale", "tailscale"],
-        ["wireguardwg", "wireguard"],
-        ["homeassistant", "homeassistant"],
-        ["home-assistant", "homeassistant"],
-        ["mosquitto", "mosquitto"],
-        ["nodered", "nodered"],
-        ["esphome", "esphome"],
-
-        // --- generic fallbacks ------------------------------------------------
-        ["proxy", "traefik"],
-        ["minecraft", "minecraft"],
-
-        // --- the daemon itself (must stay last) -------------------------------
-        ["docker", "docker"]
-    ];
-}
-
 /*
- * Parse the user supplied override list. One "substring=icon" pair per line.
- * Blank lines and lines starting with # are ignored. A bare "substring" (no
- * =) removes that substring from the mapping.
+ * Parse the user's rules. One "text=icon" pair per line: a container whose name,
+ * image or service contains `text` gets the library icon called `icon`. A bare
+ * "text" (no =) gives matching containers no icon at all. Blank lines and lines
+ * starting with # are ignored.
  */
 function parseOverrides(text) {
     var list = [];
@@ -136,27 +42,183 @@ function expandHome(path, home) {
 }
 
 /*
- * Build the effective mapping. Overrides are prepended so they win over the
- * bundled defaults; a null icon in an override masks that substring.
+ * First matching rule wins. Returns the icon name, null when the rule masks the
+ * container, or undefined when no rule applies.
  */
-function build(overrideText) {
-    var list = parseOverrides(overrideText);
-    var merged = [];
-    for (var i = 0; i < list.length; i++) merged.push(list[i]);
-    var defs = defaults();
-    for (var j = 0; j < defs.length; j++) merged.push(defs[j]);
-    return merged;
+function ruleMatch(rules, haystack) {
+    var text = String(haystack || "").toLowerCase();
+    for (var i = 0; i < rules.length; i++) {
+        if (rules[i][0] !== "" && text.indexOf(rules[i][0].toLowerCase()) !== -1)
+            return rules[i][1];
+    }
+    return undefined;
 }
 
-/* Return the glyph name for an image, or "" when nothing matches. */
-function match(map, image) {
-    if (!image || !map) return "";
-    var lower = String(image).toLowerCase();
-    for (var i = 0; i < map.length; i++) {
-        if (lower.indexOf(map[i][0]) === -1) continue;
-        // A null icon in an override masks the substring: it wins the match
-        // and suppresses every bundled rule below it.
-        return map[i][1] === null ? "" : map[i][1];
+/* ===================================================== icon library ====== */
+
+/*
+ * The library is a plain folder of provider artwork (selfh.st/icons layout:
+ * `plex.svg`, plus optional `plex-light.svg` / `plex-dark.svg` variants).
+ *
+ * QML cannot list a directory, so the backend runs `ls -1` on it and hands the
+ * output here. Nothing about the library is baked into the package, which means
+ * a freshly downloaded or updated folder is picked up without regenerating
+ * anything.
+ */
+
+var EXT_RANK = { "svg": 0, "webp": 1, "png": 2 };
+
+/* `ls -1` output -> { name: { file, light, dark } }. SVG beats WebP beats PNG. */
+function parseLibrary(listing) {
+    var entries = {};
+    var rank = {};
+    var lines = String(listing || "").split("\n");
+    for (var i = 0; i < lines.length; i++) {
+        var file = lines[i].trim();
+        var dot = file.lastIndexOf(".");
+        if (dot <= 0) continue;
+        var ext = file.slice(dot + 1).toLowerCase();
+        if (EXT_RANK[ext] === undefined) continue;
+        var stem = file.slice(0, dot).toLowerCase();
+        var slot = "file";
+        var base = stem;
+        if (/-light$/.test(stem)) { slot = "light"; base = stem.slice(0, -6); }
+        else if (/-dark$/.test(stem)) { slot = "dark"; base = stem.slice(0, -5); }
+        if (!entries[base]) entries[base] = { "file": "", "light": "", "dark": "" };
+        var key = base + "/" + slot;
+        if (rank[key] !== undefined && rank[key] <= EXT_RANK[ext]) continue;
+        rank[key] = EXT_RANK[ext];
+        entries[base][slot] = file;
     }
-    return "";
+    // A variant on its own (no plain file) still counts as the icon.
+    for (var name in entries) {
+        var e = entries[name];
+        if (e.file === "") e.file = e.light !== "" ? e.light : e.dark;
+    }
+    return entries;
+}
+
+function libraryCount(entries) {
+    var n = 0;
+    for (var k in entries) n++;
+    return n;
+}
+
+/* Registry paths that carry no information about the service. */
+var NOISE = ["docker", "docker.io", "ghcr.io", "lscr.io", "quay.io", "gcr.io",
+             "registry", "library", "linuxserver", "hotio", "latest", "release"];
+
+/* Names an image is commonly published under vs. how the library spells them. */
+var ALIASES = {
+    "pihole": "pi-hole",
+    "portainer-ce": "portainer",
+    "portainer-ee": "portainer",
+    "adguardhome": "adguard-home",
+    "homeassistant": "home-assistant",
+    "couchdb": "apache-couchdb",
+    "qbittorrent-nox": "qbittorrent",
+    "vaultwarden": "vaultwarden",
+    "uptime-kuma": "uptime-kuma",
+    "nginx-proxy-manager": "nginx-proxy-manager",
+    "jc21": "nginx-proxy-manager"
+};
+
+var SUFFIXES = ["-ce", "-ee", "-ngx", "-server", "-app", "-web", "-webui", "-ui",
+                "-gui", "-docker", "-nox", "-oss", "-community", "-latest"];
+
+function splitImage(image) {
+    var s = String(image || "").toLowerCase();
+    var colon = s.lastIndexOf(":");
+    if (colon > s.lastIndexOf("/")) s = s.slice(0, colon);
+    var at = s.indexOf("@");
+    if (at >= 0) s = s.slice(0, at);
+    return s.split("/").filter(function (p) { return p !== ""; });
+}
+
+/*
+ * Ordered, de-duplicated names worth looking up for one container, most
+ * specific first: the container's own name, its compose service, the image's
+ * final path component, then the rest of the image path. The Compose project
+ * is deliberately not used: a helper such as deemix often lives in another
+ * app's project and would inherit that app's icon.
+ * (An image shown only as a hex id contributes nothing, which is fine — the
+ * container and service names still resolve it.)
+ */
+function libraryCandidates(containerName, service, image, project) {
+    var raw = [containerName, service];
+    var parts = splitImage(image);
+    if (parts.length > 0 && !/^[0-9a-f]{12,64}$/.test(parts[parts.length - 1]))
+        raw.push(parts[parts.length - 1]);
+    for (var i = parts.length - 2; i >= 0; i--) raw.push(parts[i]);
+
+    var seen = {};
+    var out = [];
+    for (var j = 0; j < raw.length; j++) {
+        var c = String(raw[j] || "").toLowerCase().trim();
+        if (c === "" || seen[c] || NOISE.indexOf(c) >= 0) continue;
+        seen[c] = true;
+        out.push(c);
+    }
+    return out;
+}
+
+/* Spelling variants of one candidate, tried in order. */
+function variantsOf(candidate) {
+    var list = [candidate];
+    var underscored = candidate.replace(/_/g, "-");
+    if (underscored !== candidate) list.push(underscored);
+    if (ALIASES[candidate]) list.push(ALIASES[candidate]);
+    for (var i = 0; i < SUFFIXES.length; i++) {
+        var suf = SUFFIXES[i];
+        if (candidate.length > suf.length + 2 && candidate.slice(-suf.length) === suf)
+            list.push(candidate.slice(0, -suf.length));
+    }
+    var joined = candidate.replace(/[-_.]/g, "");
+    if (joined !== candidate) list.push(joined);
+    return list;
+}
+
+/*
+ * Pick the library entry for a container, or null.
+ *
+ * 1. exact / aliased / suffix-stripped match, candidate by candidate;
+ * 2. a library name that is the candidate minus up to two trailing letters
+ *    ("slskdn" -> "slskd"), which covers forks that append a suffix;
+ * 3. a hyphenated candidate whose individual words (4+ letters) are names.
+ * Later passes only run when every earlier pass found nothing, so a precise
+ * match can never be displaced by a loose one.
+ */
+function libraryMatch(entries, candidates) {
+    var i, j, v;
+    for (i = 0; i < candidates.length; i++) {
+        v = variantsOf(candidates[i]);
+        for (j = 0; j < v.length; j++) {
+            if (entries[v[j]]) return v[j];
+        }
+    }
+    for (i = 0; i < candidates.length; i++) {
+        var c = candidates[i];
+        for (var cut = 1; cut <= 2; cut++) {
+            if (c.length - cut >= 4 && entries[c.slice(0, -cut)]) return c.slice(0, -cut);
+        }
+    }
+    for (i = 0; i < candidates.length; i++) {
+        var words = candidates[i].split(/[-_.]/);
+        for (j = 0; j < words.length; j++) {
+            if (words[j].length >= 4 && entries[words[j]]) return words[j];
+        }
+    }
+    return null;
+}
+
+/* The file to draw for a matched name. variant: 0 standard, 1 match the theme. */
+function libraryFile(entries, name, variant, darkTheme) {
+    var e = entries[name];
+    if (!e) return "";
+    if (variant === 1) {
+        // "-light" artwork is white, drawn for dark backgrounds, and vice versa.
+        var themed = darkTheme ? e.light : e.dark;
+        if (themed !== "") return themed;
+    }
+    return e.file;
 }

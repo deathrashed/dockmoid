@@ -21,6 +21,7 @@ Item {
     required property int viewMode
     required property int detailLevel
     required property string searchText
+    required property var rowFilter
 
     signal openDetail(string recordId)
     signal openOutput(string title, string content, bool live, string recordId)
@@ -58,6 +59,7 @@ Item {
             backend: root.backend
             dialogs: root.dialogs
             searchText: root.searchText
+            rowFilter: root.rowFilter
             detailLevel: root.detailLevel
             onOpenDetail: function (recordId) { root.openDetail(recordId) }
             onOpenOutput: function (title, content, live, recordId) {

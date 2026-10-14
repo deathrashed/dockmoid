@@ -2,11 +2,11 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls as QQC2
 
 import org.kde.kirigami as Kirigami
-import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 import org.kde.plasma.components as PlasmaComponents
+
+import "../components" as Components
 
 /*
  * OutputPage — full-height viewer for command output: container logs, inspect
@@ -50,11 +50,12 @@ Item {
     Connections {
         target: root.backend
         function onOutputReady(title, text) {
-            // Only adopt payloads meant for this page: the detail page is also
-            // listening for the same signal for its own embedded log view.
-            if (root.live && title === root.backend.logsTitle(root.backend.findRecord(root.recordId))) {
-                root.content = text
-            }
+            // A page adopts text carrying its own title, which covers pulls and
+            // compose runs that finish after the page opened, and — for logs —
+            // the title format the log fetch uses (the detail page is listening
+            // for the same signal for its embedded log tab).
+            var isLogs = root.live && title === root.backend.logsTitle(root.backend.findRecord(root.recordId))
+            if (isLogs || title === root.pageTitle) root.content = text
         }
     }
 
@@ -100,16 +101,6 @@ Item {
             }
 
             PlasmaComponents.ToolButton {
-                id: wrapToggle
-                display: PlasmaComponents.AbstractButton.IconOnly
-                icon.name: "text-wrap"
-                text: i18n("Wrap lines")
-                checkable: true
-                checked: true
-                PlasmaComponents.ToolTip { text: wrapToggle.text }
-            }
-
-            PlasmaComponents.ToolButton {
                 id: refreshButton
                 display: PlasmaComponents.AbstractButton.IconOnly
                 visible: root.live
@@ -117,15 +108,6 @@ Item {
                 text: i18n("Refresh now")
                 onClicked: root.refresh()
                 PlasmaComponents.ToolTip { text: refreshButton.text }
-            }
-
-            PlasmaComponents.ToolButton {
-                id: copyButton
-                display: PlasmaComponents.AbstractButton.IconOnly
-                icon.name: "edit-copy"
-                text: i18n("Copy")
-                onClicked: clipboard.content = output.text
-                PlasmaComponents.ToolTip { text: copyButton.text }
             }
 
             PlasmaComponents.ToolButton {
@@ -148,31 +130,11 @@ Item {
             color: Qt.alpha(Kirigami.Theme.textColor, 0.2)
         }
 
-        QQC2.ScrollView {
+        Components.LogViewer {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            background: null
-
-            /*
-             * The TextArea is a direct child, not an assigned `contentItem`.
-             * ScrollView supplies (and requires) a Flickable there; handing it a
-             * TextArea instead logs "ScrollView only supports Flickable types as
-             * its contentItem" and leaves the log view with no scrollable content.
-             */
-            QQC2.TextArea {
-                id: output
-                readOnly: true
-                selectByMouse: true
-                wrapMode: wrapToggle.checked ? TextEdit.WrapAnywhere : TextEdit.NoWrap
-                font.family: "monospace"
-                font.pointSize: 9
-                text: root.content
-                background: null
-            }
+            text: root.content
+            logMode: root.live
         }
-    }
-
-    KQuickControlsAddons.Clipboard {
-        id: clipboard
     }
 }

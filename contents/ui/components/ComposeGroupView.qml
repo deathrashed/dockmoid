@@ -31,6 +31,9 @@ Item {
     required property var backend
     required property var dialogs
     required property string searchText
+    /* The same row filter the other views use, so search and "problems only"
+       behave identically here. */
+    required property var rowFilter
 
     property int detailLevel: 1
 
@@ -39,13 +42,26 @@ Item {
 
     readonly property var cfg: plasmoid.configuration
 
+    /* Project-wide compose actions, run from the group header's menu. */
+    function runCompose(groupKey, verb) {
+        var rec = root.backend.findGroupRecord(groupKey)
+        if (!rec) return
+        var go = function () {
+            root.openOutput(i18n("Compose %1 — %2", verb, rec.project), i18n("Starting…"), false, rec.id)
+            root.backend.composeRun(rec, verb, rec.project)
+        }
+        if (verb === "down") {
+            root.dialogs.confirm(i18n("Take down %1?", rec.project),
+                i18n("Every container in this Compose project is stopped and removed, and its networks too. Volumes are kept."), go)
+        } else {
+            go()
+        }
+    }
+
     KItemModels.KSortFilterProxyModel {
         id: groupProxy
         sourceModel: root.backend.containerModel
-        filterRoleName: "searchKey"
-        filterRegularExpression: root.searchText.length > 0
-            ? RegExp(root.searchText, "i")
-            : RegExp("")
+        filterRowCallback: root.rowFilter
         filterCaseSensitivity: Qt.CaseInsensitive
         sortCaseSensitivity: Qt.CaseInsensitive
         recursiveFilteringEnabled: true
@@ -82,6 +98,7 @@ Item {
                 required property string section
                 groupKey: section
                 filtering: root.searchText.length > 0
+                onComposeRequested: function (verb) { root.runCompose(section, verb) }
             }
 
             delegate: ContainerRow {
@@ -103,7 +120,7 @@ Item {
                     ? i18n("Docker is not running")
                     : (root.backend.total === 0
                        ? i18n("No containers yet.")
-                       : i18n("No container matches your search."))
+                       : i18n("No container matches."))
             }
         }
     }

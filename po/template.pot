@@ -1,0 +1,2267 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Dockmoid package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Dockmoid\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-14 11:29+1100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: contents/config/config.qml:12
+msgctxt "@title"
+msgid "General"
+msgstr ""
+
+#: contents/config/config.qml:17
+msgctxt "@title"
+msgid "Display"
+msgstr ""
+
+#: contents/config/config.qml:22
+msgctxt "@title"
+msgid "Monitoring"
+msgstr ""
+
+#: contents/config/config.qml:27
+msgctxt "@title"
+msgid "Notifications"
+msgstr ""
+
+#: contents/config/config.qml:32
+msgctxt "@title"
+msgid "Network"
+msgstr ""
+
+#: contents/config/config.qml:37
+msgctxt "@title"
+msgid "Integration"
+msgstr ""
+
+#: contents/config/config.qml:42
+msgctxt "@title"
+msgid "Icons"
+msgstr ""
+
+#: contents/config/config.qml:47
+msgctxt "@title"
+msgid "Engine and commands"
+msgstr ""
+
+#: contents/ui/Backend/CommandRunner.qml:120
+msgid "Command timed out"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:427
+msgid "Restart policy set to %1"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:430
+msgid "Could not change the restart policy"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:441
+msgid "Manual start"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:442
+msgid "Restart on failure"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:443
+#: contents/ui/components/ContainerActions.qml:151
+msgid "Start automatically"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:444
+msgid "Always restart"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:482
+msgid "%1 exited with code %2"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:483
+msgid "%1 is restarting"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:484
+msgid "%1 became unhealthy"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:485
+msgid "%1 is healthy again"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:486
+msgid "%1 started"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:487
+#: contents/ui/components/StatusBar.qml:46
+msgid "%1 stopped"
+msgid_plural "%1 stopped"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/Backend/DockerBackend.qml:492
+#: contents/ui/Backend/DockerBackend.qml:925
+#: contents/ui/Backend/DockerBackend.qml:1163
+#: contents/ui/Backend/DockerBackend.qml:1174
+#: contents/ui/Backend/DockerBackend.qml:1268
+#: contents/ui/Backend/DockerBackend.qml:1326
+#: contents/ui/Backend/DockerBackend.qml:1403
+#: contents/ui/Backend/DockerBackend.qml:1473
+#: contents/ui/Backend/DockerBackend.qml:1499 contents/ui/main.qml:53
+msgid "Docker"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:492
+msgid "Docker: %1 change"
+msgid_plural "Docker: %1 changes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/Backend/DockerBackend.qml:493
+msgid "…and %1 more"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:851
+#: contents/ui/Backend/DockerBackend.qml:1146
+msgid "Command failed"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:857
+msgid "Container started"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:861
+msgid "Container stopped"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:865
+msgid "Container restarted"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:869
+msgid "Container killed"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:873
+msgid "Container paused"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:877
+msgid "Container unpaused"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:881
+msgid "Container removed"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:892
+msgid "Renamed to %1"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:893
+msgid "Could not rename container"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:903
+#: contents/ui/Backend/DockerBackend.qml:906
+#: contents/ui/components/ContainerActions.qml:277
+msgid "Pulling %1"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:903
+#: contents/ui/Backend/DockerBackend.qml:1448
+#: contents/ui/components/ComposeGroupView.qml:50
+#: contents/ui/components/ContainerActions.qml:194
+#: contents/ui/components/ContainerActions.qml:224
+#: contents/ui/components/ContainerActions.qml:277
+msgid "Starting…"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:906
+#: contents/ui/Backend/DockerBackend.qml:924
+#: contents/ui/Backend/DockerBackend.qml:1195
+#: contents/ui/Backend/DockerBackend.qml:1451
+msgid "(no output)"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:907
+msgid "Image pulled"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:907
+msgid "Pull failed"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:924
+msgid "Prune"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:925
+msgid "Prune finished"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:925
+msgid "Prune failed"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1048
+msgid "Could not open %1"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1052
+msgid "This container has no compose project folder"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1056
+msgid "Start the container before opening a shell"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1059
+msgid "This container has no supported shell"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1074
+msgid "Could not open terminal"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1083
+msgid "This container has no compose file"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1139
+msgid "Unsupported project name"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1151
+msgid "Group started"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1152
+msgid "Group stopped"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1153
+msgid "Group restarted"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1163
+msgid "Could not start Docker"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1174
+msgid "Docker stopped"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1202
+msgid "Logs — %1"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1210
+#: contents/ui/components/ContainerActions.qml:291
+#: contents/ui/Views/DetailPage.qml:222
+msgid "Inspect"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1210
+msgid "Could not inspect container"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1213
+#: contents/ui/components/ContainerActions.qml:293
+msgid "Inspect — %1"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1265
+msgid "%1 has used %2% CPU for a while"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1266
+msgid "%1 is using %2% of its memory"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1323
+msgid "%1 stopped answering at %2"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1324
+msgid "%1 answers again"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1403
+msgid "A newer image is available: %2"
+msgid_plural "Newer images are available: %2"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/Backend/DockerBackend.qml:1428
+msgid "This container is not part of a Compose project"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1445
+#: contents/ui/components/ComposeGroupView.qml:50
+#: contents/ui/components/ContainerActions.qml:194
+msgid "Compose %1 — %2"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1452
+msgid "Done"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1452
+msgid "Failed — see the output"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1473
+msgid "Could not read %1"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1489
+msgid "Removed"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1489
+msgid "Could not remove"
+msgstr ""
+
+#: contents/ui/Backend/DockerBackend.qml:1499
+msgid "Nothing is unhealthy"
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:41
+msgid "Remove container"
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:59
+#: contents/ui/Views/ResourcesPage.qml:221
+msgid "Remove %1?"
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:66
+msgid ""
+"The container is deleted, not just stopped. Its writable layer is destroyed. "
+"Named volumes and bind mounts are left alone."
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:121
+msgid "Rename container"
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:157
+msgid ""
+"Names must start with a letter or digit and may contain letters, digits, "
+"dots, dashes and underscores."
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:182
+msgid "Clean up Docker"
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:199
+msgid "Remove unused Docker data?"
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:205
+msgid ""
+"Always removed: stopped containers, unused networks, dangling images and "
+"build cache. Running containers are never touched."
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:211
+msgid "Also remove every unused image (%1 reclaimable)"
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:212
+msgid "Also remove every unused image"
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:218
+msgid "Also remove unused volumes (%1 reclaimable)"
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:219
+msgid "Also remove unused volumes"
+msgstr ""
+
+#: contents/ui/components/ActionDialogs.qml:228
+msgid ""
+"A volume is \"unused\" when no container exists that mounts it. Stopped "
+"stacks you plan to start again keep their data in volumes, and this deletes "
+"it for good."
+msgstr ""
+
+#: contents/ui/components/ComposeGroupView.qml:54
+#: contents/ui/components/ContainerActions.qml:198
+msgid "Take down %1?"
+msgstr ""
+
+#: contents/ui/components/ComposeGroupView.qml:55
+#: contents/ui/components/ContainerActions.qml:199
+msgid ""
+"Every container in this Compose project is stopped and removed, and its "
+"networks too. Volumes are kept."
+msgstr ""
+
+#: contents/ui/components/ComposeGroupView.qml:120
+#: contents/ui/components/ContainerList.qml:59
+#: contents/ui/components/ContainerTable.qml:328
+#: contents/ui/components/EnginePlaceholder.qml:28 contents/ui/main.qml:50
+#: contents/ui/main.qml:54 contents/ui/Tooltip.qml:33
+#: contents/ui/Views/DetachedPlaceholder.qml:46
+#: contents/ui/Views/PopupView.qml:188
+msgid "Docker is not running"
+msgstr ""
+
+#: contents/ui/components/ComposeGroupView.qml:122
+#: contents/ui/components/ContainerTable.qml:330
+msgid "No containers yet."
+msgstr ""
+
+#: contents/ui/components/ComposeGroupView.qml:123
+msgid "No container matches."
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:116
+msgid "No published web addresses"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:126
+msgid "Open %1"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:132
+msgid "Copy URL %1"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:171
+msgid "Compose project “%1”"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:174
+#: contents/ui/components/GroupHeader.qml:124
+msgid "Up (create and start)"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:175
+#: contents/ui/components/GroupHeader.qml:125
+msgid "Pull images"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:176
+#: contents/ui/components/GroupHeader.qml:126
+msgid "Pull and recreate"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:177
+#: contents/ui/components/GroupHeader.qml:127
+msgid "Force recreate"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:178
+#: contents/ui/components/GroupHeader.qml:129
+msgid "Down (remove containers)"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:220
+msgid "Details"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:223
+msgid "Update image and recreate"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:224
+msgid "Compose update — %1"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:231
+#: contents/ui/components/ContainerRow.qml:361
+#: contents/ui/Views/DetailPage.qml:136
+msgid "Start"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:234
+#: contents/ui/components/ContainerRow.qml:361
+#: contents/ui/Views/DetailPage.qml:136
+msgid "Stop"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:237
+msgid "Restart"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:246
+msgid "Pause"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:249
+msgid "Unpause"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:252
+msgid "Kill"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:260
+msgid "Open in"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:267
+msgid "Follow Logs in Terminal"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:268
+msgid "View Logs"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:270
+#: contents/ui/components/ContainerActions.qml:293
+#: contents/ui/Views/DetailPage.qml:570
+msgid "Loading…"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:275
+msgid "Pull Image"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:279
+msgid "Rename"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:280
+msgid "Unpin"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:280
+msgid "Pin to top"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:283
+msgid "Move up in pinned"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:284
+msgid "Move down in pinned"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:289
+msgid "Edit Compose File"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:298
+#: contents/ui/components/ContainerRow.qml:376
+#: contents/ui/components/ContainerTable.qml:267
+#: contents/ui/Views/DetailPage.qml:152
+msgid "Web links"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:306
+msgid "Copy Name"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:307
+msgid "Copy ID"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:308
+msgid "Copy Image"
+msgstr ""
+
+#: contents/ui/components/ContainerActions.qml:309
+#: contents/ui/Views/ResourcesPage.qml:218
+msgid "Remove"
+msgstr ""
+
+#: contents/ui/components/ContainerList.qml:60
+msgid "Looking for containers…"
+msgstr ""
+
+#: contents/ui/components/ContainerList.qml:62
+msgid ""
+"No containers yet.\n"
+"Start one with a tool such as Portainer, or from a terminal."
+msgstr ""
+
+#: contents/ui/components/ContainerList.qml:64
+#: contents/ui/components/ContainerTable.qml:331
+msgid "No container matches your search."
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:174
+msgid "update"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:180
+msgid "A newer image is available. Use the menu to update."
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:196
+msgid "Web page answers (%1 ms)"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:197
+msgid "Web page does not answer"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:218
+msgid "unhealthy"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:225
+msgid "starting"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:294
+msgid "Open: %1"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:306
+msgid "ID: %1"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:317
+msgid " · %1"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:315
+#, javascript-format
+msgid "Project: %1%2"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:327
+msgid "Networks: %1 · Volumes: %2"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:336
+msgid "Net I/O: %1 · Block I/O: %2 · PIDs: %3"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:346
+msgid "Uptime: %1 · Size: %2 · Platform: %3"
+msgstr ""
+
+#: contents/ui/components/ContainerRow.qml:394
+#: contents/ui/Views/DetailPage.qml:170 contents/ui/Views/PopupView.qml:320
+msgid "More"
+msgstr ""
+
+#: contents/ui/components/ContainerTable.qml:45
+#: contents/ui/Views/PopupView.qml:383
+msgid "Name"
+msgstr ""
+
+#: contents/ui/components/ContainerTable.qml:46
+msgid "State"
+msgstr ""
+
+#: contents/ui/components/ContainerTable.qml:47 contents/ui/Tooltip.qml:92
+#: contents/ui/Views/DetailPage.qml:406 contents/ui/Views/PopupView.qml:384
+msgid "CPU"
+msgstr ""
+
+#: contents/ui/components/ContainerTable.qml:48
+msgid "MEM"
+msgstr ""
+
+#: contents/ui/components/ContainerTable.qml:49
+#: contents/ui/Views/DetailPage.qml:359 contents/ui/Views/DetailPage.qml:391
+msgid "Image"
+msgstr ""
+
+#: contents/ui/components/ContainerTable.qml:50
+#: contents/ui/Views/DetailPage.qml:447
+msgid "Ports"
+msgstr ""
+
+#: contents/ui/components/ContainerTable.qml:51
+#: contents/ui/Views/DetailPage.qml:426 contents/ui/Views/PopupView.qml:386
+msgid "Project"
+msgstr ""
+
+#: contents/ui/components/ContainerTable.qml:144
+msgid "Sort by %1"
+msgstr ""
+
+#: contents/ui/components/EnginePlaceholder.qml:26
+msgid "The container command was not found"
+msgstr ""
+
+#: contents/ui/components/EnginePlaceholder.qml:27
+msgid "You are not allowed to use Docker"
+msgstr ""
+
+#: contents/ui/components/EnginePlaceholder.qml:30
+msgid ""
+"%1 is not installed, or is not on the PATH Plasma sees. Install it, or set "
+"the engine command under Configure → Engine and commands."
+msgstr ""
+
+#: contents/ui/components/EnginePlaceholder.qml:32
+msgid ""
+"Your user cannot talk to the Docker socket. Add yourself to the docker "
+"group, then log out and back in:"
+msgstr ""
+
+#: contents/ui/components/EnginePlaceholder.qml:33
+msgid ""
+"The daemon did not answer. Start it, or switch to another host from the ⋯ "
+"menu."
+msgstr ""
+
+#: contents/ui/components/EnginePlaceholder.qml:38
+msgid "Open the install guide"
+msgstr ""
+
+#: contents/ui/components/EnginePlaceholder.qml:39
+msgid "Copy the command"
+msgstr ""
+
+#: contents/ui/components/EnginePlaceholder.qml:39 contents/ui/main.qml:328
+msgid "Start Docker"
+msgstr ""
+
+#: contents/ui/components/FieldRow.qml:64
+msgid "Copy"
+msgstr ""
+
+#: contents/ui/components/FieldRow.qml:66
+msgid "Copy %1"
+msgstr ""
+
+#: contents/ui/components/GroupHeader.qml:76
+msgid "%1/%2 up"
+msgid_plural "%1/%2 up"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/components/GroupHeader.qml:84
+msgid "group"
+msgstr ""
+
+#: contents/ui/components/GroupHeader.qml:96
+msgid "Start all in this group"
+msgstr ""
+
+#: contents/ui/components/GroupHeader.qml:106
+msgid "Restart all in this group"
+msgstr ""
+
+#: contents/ui/components/GroupHeader.qml:117
+msgid "More Compose actions"
+msgstr ""
+
+#: contents/ui/components/GroupHeader.qml:137
+msgid "Stop all in this group"
+msgstr ""
+
+#: contents/ui/components/LogViewer.qml:21
+msgid "No output yet."
+msgstr ""
+
+#: contents/ui/components/LogViewer.qml:67
+msgid "Filter lines"
+msgstr ""
+
+#: contents/ui/components/LogViewer.qml:74
+msgid "%1 of %2"
+msgstr ""
+
+#: contents/ui/components/LogViewer.qml:86
+msgid "Only errors and warnings"
+msgstr ""
+
+#: contents/ui/components/LogViewer.qml:98
+msgid "Keep scrolled to the newest line"
+msgstr ""
+
+#: contents/ui/components/LogViewer.qml:109
+msgid "Wrap lines"
+msgstr ""
+
+#: contents/ui/components/LogViewer.qml:120
+msgid "Copy what is shown"
+msgstr ""
+
+#: contents/ui/components/StatusBar.qml:39
+msgid "%1 running"
+msgid_plural "%1 running"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/components/StatusBar.qml:54
+msgid "%1 paused"
+msgid_plural "%1 paused"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/components/StatusBar.qml:62 contents/ui/Views/PopupView.qml:202
+msgid "%1 unhealthy"
+msgid_plural "%1 unhealthy"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/components/StatusBar.qml:72
+#, javascript-format
+msgid "CPU %1%"
+msgstr ""
+
+#: contents/ui/components/StatusBar.qml:79
+#, javascript-format
+msgid "MEM %1%"
+msgstr ""
+
+#: contents/ui/components/StatusBar.qml:86
+msgid "Images: %1"
+msgstr ""
+
+#: contents/ui/components/StatusBar.qml:93
+msgid "Engine %1"
+msgstr ""
+
+#: contents/ui/components/StatusBar.qml:112
+msgid "%1 %2"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:93
+msgid "Container engine"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:98
+msgid "Set everything up for: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:101
+msgid "Choose…"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:102
+msgid "Docker (systemd service)"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:105
+msgid "Docker, rootless"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:108
+msgid "Podman (experimental)"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:112
+msgid "Colima"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:130
+msgid "Engine command: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:139
+msgid ""
+"Every default command below starts with {engine}, which is replaced by the "
+"engine command. Use docker, podman, nerdctl, a full path, or something like "
+"“sudo docker”. Picking a preset also fills in how the service is started and "
+"stopped; the usual setup for your distribution is the first entry. Podman "
+"support is experimental."
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:145
+msgid ""
+"Commands may contain placeholders that are substituted before the command "
+"runs: {engine} the engine command, {id} short container id, {name} container "
+"name (quoted), {image} image reference (quoted), {shell} shell binary, "
+"{tail} number of log lines, {project} compose project name, {file} compose "
+"file path. Subshells such as $(...) work too."
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:153
+msgid "Reading"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:160
+msgid ""
+"Docker is considered running when the check command exits with status 0. The "
+"default asks the daemon directly, so it also works for rootless Docker, "
+"remote contexts and podman. A command that prints 'inactive' or 'failed' is "
+"treated as down even on a zero exit."
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:167
+msgid "Is Docker running: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:171
+msgid "List containers: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:175
+msgid "Container usage: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:179
+msgid "Engine summary: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:183
+msgid "Disk usage: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:187
+msgid "Look for changes: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:191
+msgid "Read autostart settings: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:195
+msgid "Set autostart policy: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:202
+msgid ""
+"The list and usage commands must emit JSON, one object per line (Docker 23 "
+"and newer) or a single array (Podman). “Look for changes” gets {since} and "
+"{until} as unix times and must print a line for each relevant event; if it "
+"fails, plain interval polling is used instead. The engine summary must emit "
+"pipe separated values in the order shown in the field, or nothing at all to "
+"skip it."
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:210
+msgid "Container actions"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:218
+msgid "Start: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:222
+msgid "Stop: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:226
+msgid "Restart: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:230
+msgid "Kill: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:234
+msgid "Pause: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:238
+msgid "Unpause: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:242
+msgid "Remove: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:246
+msgid "Rename: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:250
+msgid "Pull image: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:259
+msgid "Logs, shell and inspection"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:267
+msgid "Read logs: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:271
+msgid "Follow logs: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:275
+msgid "Inspect: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:284
+msgid "Compose project actions"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:292
+msgid "Start a project: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:296
+msgid "Stop a project: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:300
+msgid "Restart a project: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:307
+msgid ""
+"These act on every container carrying a compose project label, using the "
+"docker CLI rather than the compose plugin, so they work even where the "
+"plugin is not installed. They are disabled while a search is filtering the "
+"list, to avoid acting on containers you cannot see."
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:315
+msgid "Images, volumes, networks, Compose"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:317
+msgid "List images: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:318
+msgid "List volumes: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:319
+msgid "List networks: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:320
+msgid "Remove an image: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:321
+msgid "Remove a volume: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:322
+msgid "Remove a network: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:323
+msgid "Compose command: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:324
+msgid "Check an image for updates: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:325
+msgid "List hosts (contexts): "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:331
+msgid ""
+"Use “docker-compose” as the Compose command if you only have the old "
+"standalone tool. The update check must print “local digests|remote digest”; "
+"the default needs docker buildx. Hosts are Docker contexts (docker context "
+"create …), which is how you point Dockmoid at another machine over SSH."
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:339
+msgid "Docker service"
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:346
+msgid ""
+"Docker started by systemd needs elevated privileges, so the default goes "
+"through pkexec and asks for your password. Rootless Docker, Podman and "
+"Colima need none; pick them from the presets above."
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:353
+msgid "Start the service: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:357
+msgid "Stop the service: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:361
+msgid "Stop the socket: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:365
+msgid "Prune: "
+msgstr ""
+
+#: contents/ui/config/configCommand.qml:372
+msgid ""
+"The clean-up dialog adds -a (all unused images) and --volumes to this when "
+"you tick them. It always asks first."
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:45
+msgid "Popup"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:50
+msgid "Open with:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:51 contents/ui/Views/PopupView.qml:224
+msgid "List"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:51 contents/ui/Views/PopupView.qml:225
+msgid "Table"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:51 contents/ui/Views/PopupView.qml:226
+msgid "Grouped by Compose project"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:56
+msgid "List detail:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:57 contents/ui/Views/PopupView.qml:36
+msgid "Minimal"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:57 contents/ui/Views/PopupView.qml:36
+msgid "Normal"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:57 contents/ui/Views/PopupView.qml:36
+msgid "Detailed"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:57 contents/ui/Views/PopupView.qml:36
+msgid "Everything"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:59
+msgid ""
+"From just a name up to ids, networks, I/O and uptime. The eye button in the "
+"toolbar changes it on the fly."
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:63
+msgid "Show:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:64
+msgid "toolbar"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:68
+msgid "status bar"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:72
+msgid "loading bar on first start"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:77
+msgid "Containers"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:82
+msgid "Mark:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:83
+msgid "unhealthy containers"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:87
+msgid "containers Docker starts automatically"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:91
+msgid "CPU and memory with bars"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:93
+msgid ""
+"Health comes from the container's own healthcheck. Containers without one "
+"are left unmarked, so a green dot always means something."
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:97
+msgid "Icon size:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:99
+#: contents/ui/config/configIntegration.qml:34
+#: contents/ui/config/configIntegration.qml:53
+#: contents/ui/config/configNetwork.qml:47
+#: contents/ui/config/configNetwork.qml:59
+#: contents/ui/config/configServices.qml:72
+msgid "automatic"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:99
+msgid "%1 px"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:105
+msgid "Panel icon"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:110
+msgid "Hide:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:111
+msgid "when Docker is not running"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:116
+msgid "Middle click:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:117
+#: contents/ui/Views/OutputPage.qml:108
+msgid "Refresh now"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:117
+msgid "Open the separate window"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:118
+msgid "Restart unhealthy containers"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:118
+msgid "Do nothing"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:123
+msgid "Show state with:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:124
+msgid "A gauge around the logo"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:124
+msgid "The ring colour"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:125
+msgid "The whole logo's colour"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:125
+msgid "Nothing"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:127
+msgid ""
+"The gauge fills as more containers run. Green means all well, red means "
+"something is unhealthy, crashed or restarting, amber means one is paused, "
+"and the logo dims when Docker is down or nothing is running."
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:130
+msgid "State colours:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:134
+msgid "custom"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:139
+msgid "All well"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:144
+msgid "Something paused"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:149
+msgid "Something wrong"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:152
+msgid ""
+"Left to right: all well, paused, wrong. Off uses your theme's positive, "
+"neutral and negative colours."
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:155
+msgid "Logo colour:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:158
+msgid "use"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:165
+msgid ""
+"The logo and the gauge track are white by default, which suits dark panels. "
+"Pick another colour for a light panel."
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:169
+msgid "Panel label"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:174
+msgid "Badge:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:175
+msgid "show running and total, like 3~12"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:180
+msgid "Separator:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:187
+msgid "a dot instead of a number"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:192
+msgid "Dot:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:196
+msgid "custom colour"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:204
+msgid "Top right"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:204
+msgid "Top left"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:204
+msgid "Bottom right"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:204
+msgid "Bottom left"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:209
+msgid "The dot only shows while at least one container is running."
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:214
+msgid "Badge text:"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:215
+msgid "wrap"
+msgstr ""
+
+#: contents/ui/config/configDisplay.qml:220
+msgid "grow to fit"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:31
+#: contents/ui/config/configMonitoring.qml:52
+#: contents/ui/config/configMonitoring.qml:91
+#: contents/ui/config/configNotifications.qml:93
+#: contents/ui/Views/PopupView.qml:125
+msgid "%1 second"
+msgid_plural "%1 seconds"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/config/configGeneral.qml:36
+msgid "Start up"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:41
+msgid "Check Docker:"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:42
+msgid "when the widget loads"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:47
+msgid "every time the popup is opened"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:52
+msgid "Staying up to date"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:57
+msgid "Look for changes every:"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:62
+msgid ""
+"While the popup or window is open. Each look is one tiny query that prints "
+"nothing when nothing happened."
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:66
+msgid "…and while it is closed:"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:74
+msgid "Re-read everything at least every:"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:79
+msgid ""
+"A safety net in case a change notification was missed, and the only schedule "
+"used if your engine does not support them."
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:83
+msgid "Re-read autostart settings every:"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:91
+msgid "CPU and memory"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:96
+msgid "Sample usage every:"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:104
+msgid "Keep sampling:"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:105
+msgid "while the popup is closed"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:107
+msgid ""
+"Usage is sampled over a second or two, so by default it only runs while you "
+"are looking at it."
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:111
+msgid "Disk usage:"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:112
+msgid "show it in the status bar"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:114
+msgid "Runs a slower command, and only while the popup is open."
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:118
+msgid "Safety"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:123
+msgid "Ask before:"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:124
+msgid "removing a container"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:126
+msgid ""
+"Stopping the Docker service and cleaning up unused data always ask, whatever "
+"this is set to."
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:130
+msgid "Troubleshooting"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:135
+msgid "Log commands:"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:136
+msgid "print every command to the system log"
+msgstr ""
+
+#: contents/ui/config/configGeneral.qml:138
+msgid "Read it with: journalctl --user -f | grep runner"
+msgstr ""
+
+#: contents/ui/config/configIntegration.qml:28
+msgid "Terminal"
+msgstr ""
+
+#: contents/ui/config/configIntegration.qml:33
+#: contents/ui/config/configIntegration.qml:52
+msgid "Command:"
+msgstr ""
+
+#: contents/ui/config/configIntegration.qml:37
+msgid ""
+"Leave empty to use the first terminal found (Konsole, GNOME Terminal, Kitty, "
+"Alacritty, Foot, WezTerm, Ghostty, XFCE Terminal, xterm). {command} is "
+"replaced with the docker command; without it the command is simply appended. "
+"Example: kitty -e {command}"
+msgstr ""
+
+#: contents/ui/config/configIntegration.qml:41
+msgid "Log lines to load:"
+msgstr ""
+
+#: contents/ui/config/configIntegration.qml:47
+msgid "Editor"
+msgstr ""
+
+#: contents/ui/config/configIntegration.qml:56
+msgid ""
+"Used by “Edit Compose File”. Leave empty to use Kate, gedit, VS Code or the "
+"system default, whichever exists. {file} is the compose file and {dir} its "
+"folder."
+msgstr ""
+
+#: contents/ui/config/configIntegration.qml:60
+msgid "“Open in” menu"
+msgstr ""
+
+#: contents/ui/config/configIntegration.qml:64
+msgid "Launchers:"
+msgstr ""
+
+#: contents/ui/config/configIntegration.qml:77
+msgid ""
+"One per line:  Label | icon name | scope | command.  Scope “container” needs "
+"a running container and fills in {id} and {shell}; scope “project” needs a "
+"Compose project folder and fills in {dir}. Launchers whose program is not "
+"installed are hidden automatically. Lines starting with # are ignored."
+msgstr ""
+
+#: contents/ui/config/configIntegration.qml:80
+msgid "Restore the default launchers"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:26
+msgid "off"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:26 contents/ui/Tooltip.qml:97
+#: contents/ui/Tooltip.qml:108
+#, javascript-format
+msgid "%1%"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:31
+msgid "Resource use"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:36
+msgid "Warn above CPU:"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:43
+msgid "Warn above memory:"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:50
+msgid "…if it lasts:"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:55
+msgid ""
+"A spike never notifies; the use has to stay above the limit for this long, "
+"and you hear about each episode once. Needs notifications turned on, and a "
+"popup open or “keep sampling” enabled so usage is being measured."
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:59
+msgid "Graph history:"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:61
+msgid "%1 samples"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:64
+msgid "How many readings the CPU and memory graphs in a container's page keep."
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:68
+msgid "Web pages"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:72
+msgid "Check these:"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:85
+msgid ""
+"One per line: container-name=address. A container turns red in the list when "
+"its page stops answering, even while the container itself is still running. "
+"You can also put a label on a container instead: dockmoid.probe=http://"
+"localhost:8096/"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:89
+#: contents/ui/config/configMonitoring.qml:114
+msgid "Check every:"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:96
+msgid "notify when a page stops or starts answering"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:101
+msgid "Image updates"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:106
+msgid "Look for newer images:"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:107
+msgid "ask the registries"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:109
+msgid ""
+"Off by default because it contacts Docker Hub, GHCR and the like. It "
+"compares the digest of each image you have with the registry's, one image at "
+"a time, nothing is downloaded. Containers show an “update” tag and can be "
+"updated from their menu."
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:116
+msgid "%1 hour"
+msgid_plural "%1 hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/config/configMonitoring.qml:122
+msgid "notify when a new update shows up"
+msgstr ""
+
+#: contents/ui/config/configMonitoring.qml:124
+msgid ""
+"Needs docker buildx (included with current Docker). Images built locally, or "
+"shown only as an id, are skipped."
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:25 contents/ui/Views/DetailPage.qml:480
+msgid "Open in browser"
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:30
+msgid "Links:"
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:31
+msgid "offer them for published ports"
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:33
+msgid "Only TCP ports are offered; a UDP port cannot be opened in a browser."
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:38
+msgid "Addresses:"
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:39
+msgid "find them automatically"
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:41
+msgid ""
+"Fills in whichever fields below are left empty: the LAN address from your "
+"default route, and the Tailscale address if tailscale is installed and "
+"connected."
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:46
+msgid "LAN address:"
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:52
+#: contents/ui/config/configNetwork.qml:64
+msgid "offer it"
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:58
+msgid "Tailscale address:"
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:66
+msgid ""
+"A name works as well as an address, for example nas.local or a MagicDNS name."
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:71
+msgid "Open with https:"
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:74
+msgid "Comma separated host ports that speak https."
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:78
+msgid "Which address a port gets"
+msgstr ""
+
+#: contents/ui/config/configNetwork.qml:82
+msgid ""
+"A port published on every interface gets the LAN and Tailscale links. A port "
+"bound to 127.0.0.1 only gets a localhost link, since a LAN link to it would "
+"just fail. A port bound to one specific address uses that address."
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:26
+msgid "Notifications:"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:27
+msgid "enabled"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:29
+msgid ""
+"Nothing below does anything until this is on. Launching the widget never "
+"notifies about containers that were already in some state."
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:33
+msgid "Tell me when"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:39
+msgid "a container crashes"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:41
+msgid ""
+"It exits with an error code. Exits from docker stop, Ctrl+C or SIGTERM are "
+"not crashes."
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:46
+msgid "a container starts restarting"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:52
+msgid "a container becomes unhealthy"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:58
+msgid "an unhealthy container recovers"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:64
+msgid "any container starts or stops"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:66
+msgid "Chatty if you restart things often."
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:69
+msgid "Also from Monitoring:"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:70
+msgid ""
+"high CPU or memory, web pages that stop answering, and new image updates are "
+"tuned on the Monitoring page."
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:80
+msgid "Docker itself starts or stops"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:85
+msgid "Quiet after my own actions"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:91
+msgid "Stay silent for:"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:96
+msgid ""
+"Pressing Stop or Restart here does not raise a notification about the "
+"result. The result of an action itself is still shown by the action's own "
+"message."
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:99
+msgid "Sounds and popups:"
+msgstr ""
+
+#: contents/ui/config/configNotifications.qml:100
+msgid ""
+"Crash and unhealthy alerts are separate events in System Settings → "
+"Notifications → Dockmoid, so each can get its own sound, popup style or be "
+"silenced there."
+msgstr ""
+
+#: contents/ui/config/configServices.qml:38
+msgid "%1 icon is ready."
+msgid_plural "%1 icons are ready."
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/config/configServices.qml:42
+msgid "is git installed and are you online?"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:42
+msgid "The download failed: %1"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:54
+msgid "Downloading…"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:66
+msgid "Provider icon library"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:71
+msgid "Folder:"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:75
+msgid ""
+"Leave empty to use the downloaded set (~/.local/share/dockmoid/icons/svg), "
+"then ~/Pictures/selfhst, then the small set that ships with the widget. Any "
+"folder of SVG, WebP or PNG files named after services works: plex.svg, pi-"
+"hole.svg … Variants named name-light and name-dark are understood."
+msgstr ""
+
+#: contents/ui/config/configServices.qml:78
+msgid "Get the icons:"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:80
+msgid "Download or update selfh.st icons"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:96
+msgid ""
+"The widget ships about 120 common services. This fetches the full selfh.st/"
+"icons collection (about 3,000 icons, CC BY 4.0) from GitHub with git, only "
+"when you press it. Afterwards press Apply."
+msgstr ""
+
+#: contents/ui/config/configServices.qml:100
+msgid "Draw:"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:101
+msgid "icons in full colour (off draws them in the theme colour)"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:106
+msgid "Variant:"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:107
+msgid "Standard artwork"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:107
+msgid "Match the theme (light or dark)"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:109
+msgid ""
+"Many logos come in a white and a dark version. “Match the theme” picks the "
+"one that reads against your current colours, when the library has it."
+msgstr ""
+
+#: contents/ui/config/configServices.qml:113
+msgid "How a container finds its icon"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:115
+msgid ""
+"The container's own name, its Compose service name and its image are tried "
+"in that order, with common spellings and suffixes handled (portainer-ce → "
+"portainer, pihole → pi-hole). Containers started from an image id still "
+"match by name. A container with no match just shows its status dot."
+msgstr ""
+
+#: contents/ui/config/configServices.qml:119
+msgid "Your own rules"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:123
+msgid "Rules:"
+msgstr ""
+
+#: contents/ui/config/configServices.qml:136
+msgid ""
+"One rule per line: text=icon-name. A container whose name, image or service "
+"contains the text gets that icon from the library (for example: myapp=plex). "
+"A line with no “=” gives matching containers no icon. Rules are tried before "
+"the automatic match. Lines starting with # are ignored."
+msgstr ""
+
+#: contents/ui/main.qml:49 contents/ui/main.qml:54 contents/ui/Tooltip.qml:34
+msgid "Docker is running"
+msgstr ""
+
+#: contents/ui/main.qml:129 contents/ui/Tooltip.qml:32
+msgid "Checking Docker…"
+msgstr ""
+
+#: contents/ui/main.qml:282 contents/ui/Views/DetachedWindow.qml:19
+msgid "Dockmoid"
+msgstr ""
+
+#: contents/ui/main.qml:314 contents/ui/Views/DetachedPlaceholder.qml:58
+#: contents/ui/Views/PopupView.qml:122 contents/ui/Views/PopupView.qml:291
+#: contents/ui/Views/ResourcesPage.qml:121
+msgid "Refresh"
+msgstr ""
+
+#: contents/ui/main.qml:323
+msgid "Reattach View"
+msgstr ""
+
+#: contents/ui/main.qml:323
+msgid "Detach View"
+msgstr ""
+
+#: contents/ui/main.qml:334
+msgid "Stop Docker"
+msgstr ""
+
+#: contents/ui/Tooltip.qml:49
+msgid "Running"
+msgstr ""
+
+#: contents/ui/Tooltip.qml:58
+msgid "Stopped"
+msgstr ""
+
+#: contents/ui/Tooltip.qml:67
+msgid "Unhealthy"
+msgstr ""
+
+#: contents/ui/Tooltip.qml:81 contents/ui/Views/ResourcesPage.qml:91
+msgid "Images"
+msgstr ""
+
+#: contents/ui/Tooltip.qml:103 contents/ui/Views/DetailPage.qml:410
+#: contents/ui/Views/PopupView.qml:385
+msgid "Memory"
+msgstr ""
+
+#: contents/ui/Tooltip.qml:114
+msgid "Engine"
+msgstr ""
+
+#: contents/ui/Views/DetachedPlaceholder.qml:34
+msgid "The view is open in its own window"
+msgstr ""
+
+#: contents/ui/Views/DetachedPlaceholder.qml:44
+msgid "%1 of %2 containers running"
+msgid_plural "%1 of %2 containers running"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/Views/DetachedPlaceholder.qml:64
+msgid "Reattach"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:49
+msgid "exit code %1"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:111 contents/ui/Views/OutputPage.qml:84
+#: contents/ui/Views/ResourcesPage.qml:85
+msgid "Back"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:124
+msgid "Container is gone"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:192
+msgid "This container no longer exists. Go back to see the current list."
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:206
+msgid "Overview"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:214
+msgid "Logs"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:230 contents/ui/Views/DetailPage.qml:540
+msgid "Run"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:244
+msgid "Refresh logs"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:254 contents/ui/Views/OutputPage.qml:118
+msgid "Follow in terminal"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:264
+msgid "Refresh inspect output"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:302
+msgid "Status"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:306
+msgid "Health"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:322
+msgid "CPU %1"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:338
+msgid "Memory %1"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:352
+msgid "Web page"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:355
+msgid "answers (%1 ms)"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:356
+msgid "does not answer"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:360
+msgid "a newer version is available"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:373
+msgid "Autostart"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:396
+msgid "ID"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:401
+msgid "Command"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:414
+msgid "Net I/O"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:418
+msgid "Block I/O"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:422
+msgid "PIDs"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:430
+msgid "Service"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:434 contents/ui/Views/ResourcesPage.qml:91
+msgid "Networks"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:438 contents/ui/Views/ResourcesPage.qml:91
+msgid "Volumes"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:442
+msgid "Mounts"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:452
+msgid "Compose file"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:457
+msgid "Created"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:461
+msgid "Size"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:465
+msgid "Platform"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:494
+msgid "%1 — :%2"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:515
+msgid "No log output yet."
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:533
+msgid "A command to run inside the container, e.g. ls /app"
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:550
+msgid ""
+"Not interactive: it runs once with sh -c and shows the output. For a real "
+"shell use Open in → Konsole."
+msgstr ""
+
+#: contents/ui/Views/DetailPage.qml:561
+msgid "Nothing run yet."
+msgstr ""
+
+#: contents/ui/Views/OutputPage.qml:98
+msgid "following"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:124
+msgid "Refresh — just updated"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:126
+msgid "%1 minute"
+msgid_plural "%1 minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/Views/PopupView.qml:125
+msgid "Refresh — updated %1 ago"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:189
+msgid "%1 running · %2 total"
+msgid_plural "%1 running · %2 total"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/Views/PopupView.qml:214
+msgid "Search containers"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:246
+msgid "Row detail: %1"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:279
+msgid "Only containers that need attention"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:301
+msgid "Open in a separate window"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:310
+msgid "Start the Docker service"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:332
+msgid "Images, volumes and networks…"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:338 contents/ui/Views/ResourcesPage.qml:130
+msgid "Clean up unused data…"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:344
+msgid "Check for image updates now"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:353
+msgid "Host"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:357
+msgid "Default"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:378
+msgid "Sort by"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:382
+msgid "Pinned, then running"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:407
+msgid "Stop the Docker service…"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:413
+msgid "Configure Dockmoid…"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:498
+msgid "Stop Docker?"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:509
+msgid "Stop the Docker service?"
+msgstr ""
+
+#: contents/ui/Views/PopupView.qml:515
+msgid ""
+"Every running container will be stopped. Services you depend on may go down."
+msgstr ""
+
+#: contents/ui/Views/ResourcesPage.qml:44
+msgid "untagged image"
+msgstr ""
+
+#: contents/ui/Views/ResourcesPage.qml:53
+#: contents/ui/Views/ResourcesPage.qml:57
+msgid "project %1"
+msgstr ""
+
+#: contents/ui/Views/ResourcesPage.qml:54
+#: contents/ui/Views/ResourcesPage.qml:185
+msgid "%1 container"
+msgid_plural "%1 containers"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/Views/ResourcesPage.qml:106
+msgid "Unused only"
+msgstr ""
+
+#: contents/ui/Views/ResourcesPage.qml:178
+msgid "unused"
+msgstr ""
+
+#: contents/ui/Views/ResourcesPage.qml:192
+msgid "built in"
+msgstr ""
+
+#: contents/ui/Views/ResourcesPage.qml:223
+msgid "The volume and everything stored in it is deleted for good."
+msgstr ""
+
+#: contents/ui/Views/ResourcesPage.qml:224
+msgid "This cannot be undone."
+msgstr ""
+
+#: contents/ui/Views/ResourcesPage.qml:235
+msgid "Nothing unused"
+msgstr ""
+
+#: contents/ui/Views/ResourcesPage.qml:235
+msgid "Nothing here"
+msgstr ""

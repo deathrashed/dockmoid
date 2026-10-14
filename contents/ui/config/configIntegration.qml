@@ -3,82 +3,83 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
+import org.kde.kcmutils as KCM
 
 /*
- * Integration: the terminal emulator, the editor and the log tail size.
+ * Integration: the programs Dockmoid hands work to.
  */
-Kirigami.ScrollablePage {
+KCM.SimpleKCM {
     id: page
 
     property alias cfg_terminalCommand: terminalCommand.text
     property alias cfg_editorCommand: editorCommand.text
+    property alias cfg_launchers: launchers.text
     property alias cfg_logTailLines: logTailLines.value
 
-    ColumnLayout {
-        anchors {
-            left: parent.left
-            right: parent.right
-            top: parent.top
-        }
-        spacing: Kirigami.Units.smallSpacing
+    // Plasma supplies cfg_<name>Default alongside every cfg_<name>.
+    property string cfg_launchersDefault
+    property string cfg_terminalCommandDefault
+    property string cfg_editorCommandDefault
+    property int cfg_logTailLinesDefault
 
-        Kirigami.FormLayout {
-            wideMode: false
-            Kirigami.Separator {
-                Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: i18n("Terminal")
+    Kirigami.FormLayout {
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Terminal")
+        }
+
+        Controls.TextField {
+            id: terminalCommand
+            Kirigami.FormData.label: i18n("Command:")
+            placeholderText: i18n("automatic")
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+        }
+        Hint { text: i18n("Leave empty to use the first terminal found (Konsole, GNOME Terminal, Kitty, Alacritty, Foot, WezTerm, Ghostty, XFCE Terminal, xterm). {command} is replaced with the docker command; without it the command is simply appended. Example: kitty -e {command}") }
+
+        Controls.SpinBox {
+            id: logTailLines
+            Kirigami.FormData.label: i18n("Log lines to load:")
+            from: 50; to: 10000; stepSize: 50; editable: true
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Editor")
+        }
+
+        Controls.TextField {
+            id: editorCommand
+            Kirigami.FormData.label: i18n("Command:")
+            placeholderText: i18n("automatic")
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+        }
+        Hint { text: i18n("Used by “Edit Compose File”. Leave empty to use Kate, gedit, VS Code or the system default, whichever exists. {file} is the compose file and {dir} its folder.") }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("“Open in” menu")
+        }
+
+        Controls.ScrollView {
+            Kirigami.FormData.label: i18n("Launchers:")
+            Kirigami.FormData.labelAlignment: Qt.AlignTop
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 30
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 9
+
+            Controls.TextArea {
+                id: launchers
+                wrapMode: TextEdit.NoWrap
+                font.family: "monospace"
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                selectByMouse: true
             }
         }
+        Hint { text: i18n("One per line:  Label | icon name | scope | command.  Scope “container” needs a running container and fills in {id} and {shell}; scope “project” needs a Compose project folder and fills in {dir}. Launchers whose program is not installed are hidden automatically. Lines starting with # are ignored.") }
 
-        Kirigami.FormLayout {
-            Controls.TextField {
-                id: terminalCommand
-                Kirigami.FormData.label: i18n("Terminal command: ")
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 14
-            }
-        }
-
-        Kirigami.InlineMessage {
-            Layout.fillWidth: true
-            type: Kirigami.MessageType.Information
-            text: i18n("{command} is replaced with the finished docker command. Konsole, xfce4-terminal, gnome-terminal, kitty and alacritty all work with the default form. The window is launched in the background, so it survives the popup being closed and the plasmoid being reloaded.")
-        }
-
-        Kirigami.FormLayout {
-            Controls.SpinBox {
-                id: logTailLines
-                Kirigami.FormData.label: i18n("Log lines to show: ")
-                from: 50
-                to: 10000
-                stepSize: 50
-                editable: true
-            }
-        }
-
-        Kirigami.FormLayout {
-            wideMode: false
-            Kirigami.Separator {
-                Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: i18n("Editor")
-            }
-        }
-
-        Kirigami.FormLayout {
-            Controls.TextField {
-                id: editorCommand
-                Kirigami.FormData.label: i18n("Editor command: ")
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 14
-            }
-        }
-
-        Kirigami.InlineMessage {
-            Layout.fillWidth: true
-            type: Kirigami.MessageType.Information
-            text: i18n("Used by 'Edit Compose File' to open the file a container was defined in, read from the compose labels Docker records at creation. {file} is the path and {dir} is the project's working directory.")
-        }
-
-        Item {
-            Layout.fillHeight: true
+        Controls.Button {
+            text: i18n("Restore the default launchers")
+            icon.name: "edit-undo"
+            onClicked: launchers.text = page.cfg_launchersDefault
         }
     }
 }

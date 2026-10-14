@@ -31,6 +31,10 @@ Item {
         return n
     }
 
+    /* Compose-wide actions are carried out by the view that owns the dialogs
+       and the output page; the header only says which one was asked for. */
+    signal composeRequested(string verb)
+
     implicitHeight: layout.implicitHeight + Kirigami.Units.smallSpacing * 2
 
     Rectangle {
@@ -103,6 +107,27 @@ Item {
             enabled: !root.filtering
             onClicked: root.backend.restartGroup(root.groupKey)
             PlasmaComponents.ToolTip { text: groupRestart.text }
+        }
+
+        PlasmaComponents.ToolButton {
+            id: groupMore
+            visible: root.isProject
+            display: PlasmaComponents.AbstractButton.IconOnly
+            icon.name: "overflow-menu"
+            text: i18n("More Compose actions")
+            enabled: !root.filtering
+            onClicked: groupMenu.popup(groupMore, 0, groupMore.height)
+            PlasmaComponents.ToolTip { text: groupMore.text }
+
+            PlasmaComponents.Menu {
+                id: groupMenu
+                PlasmaComponents.MenuItem { icon.name: "media-playback-start"; text: i18n("Up (create and start)"); onTriggered: root.composeRequested("up") }
+                PlasmaComponents.MenuItem { icon.name: "system-download"; text: i18n("Pull images"); onTriggered: root.composeRequested("pull") }
+                PlasmaComponents.MenuItem { icon.name: "package-upgrade"; text: i18n("Pull and recreate"); onTriggered: root.composeRequested("update") }
+                PlasmaComponents.MenuItem { icon.name: "view-refresh"; text: i18n("Force recreate"); onTriggered: root.composeRequested("recreate") }
+                PlasmaComponents.MenuSeparator {}
+                PlasmaComponents.MenuItem { icon.name: "edit-delete"; text: i18n("Down (remove containers)"); onTriggered: root.composeRequested("down") }
+            }
         }
 
         PlasmaComponents.ToolButton {

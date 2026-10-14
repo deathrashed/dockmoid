@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Shapes
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.core as PlasmaCore
@@ -40,27 +41,68 @@ Item {
      */
     readonly property bool showDot: root.cfg.mainDot && root.backend.running > 0
 
+    /*
+     * The mark is two layers — the ring and the whale with its stack of
+     * containers — so state can be shown inside the logo itself. Two choices:
+     *
+     *   How the ring behaves (panelIndicator)
+     *     gauge  the ring fills clockwise with running/total (default)
+     *     solid  the whole ring is one colour
+     *     plain  the ring never changes
+     *   What takes the state colour (indicatorTarget)
+     *     ring, whale, or both
+     *
+     * State colours: brand blue while things run normally, amber when something
+     * is paused, red when something is wrong (unhealthy, crashed, restarting,
+     * not answering). A paused or unhealthy stack fills the whole ring, because
+     * "how many are running" stops being the point when something needs
+     * attention. Nothing running, or Docker down, dims the mark.
+     *
+     * The logo is never swapped for a spinner while refreshing: that strobed on
+     * every poll and read as the applet reloading.
+     */
+    readonly property int ringMode: Math.min(2, root.cfg.panelIndicator)   // 0 gauge, 1 solid, 2 plain
+    readonly property int target: root.cfg.indicatorTarget                 // 0 ring, 1 whale, 2 both
+    readonly property bool colourRing: root.target !== 1
+    readonly property bool colourWhale: root.target !== 0
+
+    readonly property string stateName: {
+        if (!root.backend.engineKnown || !root.backend.engineActive) return "down"
+        if (root.backend.unhealthy > 0 || root.backend.problemCount > 0) return "bad"
+        if (root.backend.pausedCount > 0) return "paused"
+        if (root.backend.running > 0) return "ok"
+        return "idle"
+    }
+
+    readonly property color brandBlue: "#2560ff"
+
+    readonly property color stateColor: {
+        var custom = root.cfg.customStateColors
+        switch (root.stateName) {
+        case "bad": return custom ? root.cfg.stateBadColor : Kirigami.Theme.negativeTextColor
+        case "paused": return custom ? root.cfg.statePausedColor : Kirigami.Theme.neutralTextColor
+        case "ok": return custom ? root.cfg.stateOkColor : root.brandBlue
+        default: return root.baseColor
+        }
+    }
+
+    readonly property color baseColor: root.cfg.iconUseCustomColor ? root.cfg.iconColor : "white"
+    readonly property bool coloured: root.stateName === "ok"
+        || root.stateName === "bad" || root.stateName === "paused"
+
+    /* How far round the gauge goes. Attention states fill the ring. */
+    readonly property real fraction: {
+        if (root.stateName === "bad" || root.stateName === "paused") return 1
+        return root.backend.total > 0 ? Math.min(1, root.backend.running / root.backend.total) : 0
+    }
+
+    /* The arc is in the state colour only when the ring is what is coloured. */
+    readonly property real gaugeFraction: root.colourRing ? root.fraction
+        : (root.backend.total > 0 ? Math.min(1, root.backend.running / root.backend.total) : 0)
+
     readonly property color dotColor: root.cfg.mainDotUseCustomColor
         ? root.cfg.mainDotColor
-        : Kirigami.Theme.textColor
-
-    /*
-     * Swaps the mark for the spinner while a refresh is in flight. Kept as a
-     * binding rather than assigned from a change handler, because a handler on
-     * a `var` property only fires when the reference is replaced, never when a
-     * property of the referenced object changes.
-     */
-    /*
-     * The panel logo must never be swapped for the spinner.
-     *
-     * `refreshing` is true for the whole of every poll cycle, and with the
-     * default intervals that is a few seconds every 30 — so the mark visibly
-     * strobed between the Docker logo and a spinner forever, which read as the
-     * applet reloading. Refresh state belongs in the popup, where there is room
-     * to show it; on the panel the mark is stable and the state dot carries the
-     * status instead.
-     */
-    readonly property string iconSource: "logo-docker.svg"
+        : (root.coloured ? root.stateColor : Kirigami.Theme.textColor)
 
     // ------------------------------------------------------- container ----
 
@@ -70,13 +112,57 @@ Item {
         width: height
         anchors.centerIn: parent
 
+        // Ring: a track for the gauge, or the whole state colour.
+        Components.PlasmoidIcon {
+            id: ringLayer
+            height: container.height
+            width: height
+            source: "logo-dockmoid-ring.svg"
+            hasTint: true
+            tint: root.ringMode === 1 && root.colourRing && root.coloured
+                ? root.stateColor : root.baseColor
+            opacity: root.stateName === "down" ? 0.4 : (root.ringMode === 0 ? 0.3 : 1)
+            Behavior on opacity { NumberAnimation { duration: Kirigami.Units.longDuration } }
+        }
+
+        // Whale and containers.
         Components.PlasmoidIcon {
             id: icon
             height: container.height
             width: height
-            source: root.iconSource
+            source: "logo-dockmoid-whale.svg"
             hasTint: true
-            tint: root.cfg.iconUseCustomColor ? root.cfg.iconColor : "white"
+            tint: root.colourWhale && root.coloured ? root.stateColor : root.baseColor
+            opacity: root.stateName === "down" ? 0.4 : 1
+            Behavior on opacity { NumberAnimation { duration: Kirigami.Units.longDuration } }
+        }
+
+        // Gauge: an arc over the ring, from twelve o'clock clockwise.
+        Shape {
+            id: gauge
+            anchors.fill: parent
+            visible: root.ringMode === 0 && root.gaugeFraction > 0 && root.stateName !== "down"
+            preferredRendererType: Shape.CurveRenderer
+
+            // The ring in the artwork is a 270.93-unit square drawing.
+            readonly property real unit: container.height / 270.93331
+
+            ShapePath {
+                strokeColor: root.colourRing && root.coloured ? root.stateColor : root.baseColor
+                strokeWidth: 15 * gauge.unit
+                fillColor: "transparent"
+                capStyle: ShapePath.FlatCap
+
+                PathAngleArc {
+                    centerX: 135.46666 * gauge.unit
+                    centerY: 135.46666 * gauge.unit
+                    radiusX: 114.5 * gauge.unit
+                    radiusY: 114.5 * gauge.unit
+                    startAngle: -90
+                    sweepAngle: Math.min(359.9, 360 * root.gaugeFraction)
+                    Behavior on sweepAngle { NumberAnimation { duration: Kirigami.Units.longDuration } }
+                }
+            }
         }
 
         // The dot can sit in any corner; four tiny rectangles are cheaper and
@@ -138,7 +224,12 @@ Item {
                 if (mouse.button === Qt.LeftButton) {
                     root.applet.toggleView()
                 } else if (mouse.button === Qt.MiddleButton) {
-                    root.backend.refresh({ "force": true, "withStats": true })
+                    switch (root.cfg.middleClickAction) {
+                    case 1: root.applet.toggleDetached(); break
+                    case 2: root.backend.restartUnhealthy(); break
+                    case 3: break
+                    default: root.backend.refresh({ "force": true, "withStats": true })
+                    }
                 }
             }
         }

@@ -3,6 +3,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
+import org.kde.kcmutils as KCM
 
 /*
  * Every command the plasmoid can run.
@@ -12,14 +13,29 @@ import org.kde.kirigami as Kirigami
  * also why they are editable: the defaults suit a systemd install, but a
  * rootless, remote or podman setup needs different ones.
  */
-Kirigami.ScrollablePage {
+KCM.SimpleKCM {
     id: page
 
+    property alias cfg_engineCommand: engineCommand.text
+    property alias cfg_eventsCommand: eventsCommand.text
+    property alias cfg_restartPolicyCommand: policyRead.text
+    property alias cfg_setRestartPolicyCommand: policySet.text
     property alias cfg_checkActiveCommand: checkActive.text
     property alias cfg_listCommand: list.text
     property alias cfg_usageCommand: usage.text
     property alias cfg_infoCommand: info.text
     property alias cfg_systemDfCommand: systemDf.text
+    property alias cfg_imagesCommand: imagesCmd.text
+    property alias cfg_volumesCommand: volumesCmd.text
+    property alias cfg_networksCommand: networksCmd.text
+    property alias cfg_removeImageCommand: rmImage.text
+    property alias cfg_removeVolumeCommand: rmVolume.text
+    property alias cfg_removeNetworkCommand: rmNetwork.text
+    property alias cfg_composeCommand: composeCmd.text
+    property alias cfg_updateCheckCommand: updateCmd.text
+    property alias cfg_contextListCommand: contextCmd.text
+    property string cfg_checkActiveCommandDefault
+    property string cfg_infoCommandDefault
 
     property alias cfg_startOneCommand: startOne.text
     property alias cfg_stopOneCommand: stopOne.text
@@ -33,7 +49,6 @@ Kirigami.ScrollablePage {
 
     property alias cfg_logsCommand: logs.text
     property alias cfg_logsFollowCommand: logsFollow.text
-    property alias cfg_shellCommand: shell.text
     property alias cfg_inspectCommand: inspect.text
 
     property alias cfg_groupStartCommand: groupStart.text
@@ -53,7 +68,7 @@ Kirigami.ScrollablePage {
         removeOne, renameOne, pullImage
     ]
     readonly property var diagnosticFields: [
-        logs, logsFollow, shell, inspect
+        logs, logsFollow, inspect
     ]
     readonly property var groupFields: [
         groupStart, groupStop, groupRestart
@@ -70,10 +85,64 @@ Kirigami.ScrollablePage {
         }
         spacing: Kirigami.Units.smallSpacing
 
+        // ---------------------------------------- engine presets ---------
+        Kirigami.FormLayout {
+            wideMode: false
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: i18n("Container engine")
+            }
+
+            Controls.ComboBox {
+                id: preset
+                Kirigami.FormData.label: i18n("Set everything up for: ")
+                textRole: "label"
+                model: [
+                    { "label": i18n("Choose…") },
+                    { "label": i18n("Docker (systemd service)"), "engine": "docker",
+                      "start": "pkexec systemctl start docker", "stop": "pkexec systemctl stop docker",
+                      "socket": "pkexec systemctl stop docker.socket" },
+                    { "label": i18n("Docker, rootless"), "engine": "docker",
+                      "start": "systemctl --user start docker", "stop": "systemctl --user stop docker",
+                      "socket": "true" },
+                    { "label": i18n("Podman (experimental)"), "engine": "podman",
+                      "start": "systemctl --user start podman.socket", "stop": "systemctl --user stop podman.socket",
+                      "socket": "true",
+                      "check": "{engine} info --format {{.Version.Version}}", "info": "" },
+                    { "label": i18n("Colima"), "engine": "docker",
+                      "start": "colima start", "stop": "colima stop", "socket": "true" }
+                ]
+                onActivated: function (index) {
+                    var p = model[index]
+                    if (!p.engine) return
+                    engineCommand.text = p.engine
+                    startService.text = p.start
+                    stopService.text = p.stop
+                    stopSocket.text = p.socket
+                    checkActive.text = p.check !== undefined ? p.check : page.cfg_checkActiveCommandDefault
+                    info.text = p.info !== undefined ? p.info : page.cfg_infoCommandDefault
+                    currentIndex = 0
+                }
+            }
+
+            Controls.TextField {
+                id: engineCommand
+                Kirigami.FormData.label: i18n("Engine command: ")
+                placeholderText: "docker"
+            }
+        }
+
+        Kirigami.InlineMessage {
+            Layout.fillWidth: true
+            visible: true
+            type: Kirigami.MessageType.Information
+            text: i18n("Every default command below starts with {engine}, which is replaced by the engine command. Use docker, podman, nerdctl, a full path, or something like “sudo docker”. Picking a preset also fills in how the service is started and stopped; the usual setup for your distribution is the first entry. Podman support is experimental.")
+        }
+
         Kirigami.InlineMessage {
             Layout.fillWidth: true
             type: Kirigami.MessageType.Information
-            text: i18n("Commands may contain placeholders that are substituted before the command runs: {id} short container id, {name} new name, {image} image reference, {shell} shell binary, {tail} number of log lines, {project} compose project name, {file} compose file path. Subshells such as $(...) work too.")
+            text: i18n("Commands may contain placeholders that are substituted before the command runs: {engine} the engine command, {id} short container id, {name} container name (quoted), {image} image reference (quoted), {shell} shell binary, {tail} number of log lines, {project} compose project name, {file} compose file path. Subshells such as $(...) work too.")
         }
 
         // ------------------------------------------ reads --------------
@@ -113,12 +182,24 @@ Kirigami.ScrollablePage {
                 id: systemDf
                 Kirigami.FormData.label: i18n("Disk usage: ")
             }
+            Controls.TextField {
+                id: eventsCommand
+                Kirigami.FormData.label: i18n("Look for changes: ")
+            }
+            Controls.TextField {
+                id: policyRead
+                Kirigami.FormData.label: i18n("Read autostart settings: ")
+            }
+            Controls.TextField {
+                id: policySet
+                Kirigami.FormData.label: i18n("Set autostart policy: ")
+            }
         }
 
         Kirigami.InlineMessage {
             Layout.fillWidth: true
             type: Kirigami.MessageType.Information
-            text: i18n("The list and usage commands must emit one JSON object per line; that is what Docker 23 and newer produce with --format json. The engine summary must emit pipe separated values in the order shown in the field.")
+            text: i18n("The list and usage commands must emit JSON, one object per line (Docker 23 and newer) or a single array (Podman). “Look for changes” gets {since} and {until} as unix times and must print a line for each relevant event; if it fails, plain interval polling is used instead. The engine summary must emit pipe separated values in the order shown in the field, or nothing at all to skip it.")
         }
 
         // --------------------------------------- container ------------
@@ -189,11 +270,7 @@ Kirigami.ScrollablePage {
                 id: logsFollow
                 Kirigami.FormData.label: i18n("Follow logs: ")
             }
-            Controls.TextField {
-                id: shell
-                Kirigami.FormData.label: i18n("Open a shell: ")
-            }
-            Controls.TextField {
+                        Controls.TextField {
                 id: inspect
                 Kirigami.FormData.label: i18n("Inspect: ")
             }
@@ -230,6 +307,30 @@ Kirigami.ScrollablePage {
             text: i18n("These act on every container carrying a compose project label, using the docker CLI rather than the compose plugin, so they work even where the plugin is not installed. They are disabled while a search is filtering the list, to avoid acting on containers you cannot see.")
         }
 
+        // ---------------------------------------- resources & more -------
+        Kirigami.FormLayout {
+            wideMode: false
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: i18n("Images, volumes, networks, Compose")
+            }
+            Controls.TextField { id: imagesCmd; Kirigami.FormData.label: i18n("List images: ") }
+            Controls.TextField { id: volumesCmd; Kirigami.FormData.label: i18n("List volumes: ") }
+            Controls.TextField { id: networksCmd; Kirigami.FormData.label: i18n("List networks: ") }
+            Controls.TextField { id: rmImage; Kirigami.FormData.label: i18n("Remove an image: ") }
+            Controls.TextField { id: rmVolume; Kirigami.FormData.label: i18n("Remove a volume: ") }
+            Controls.TextField { id: rmNetwork; Kirigami.FormData.label: i18n("Remove a network: ") }
+            Controls.TextField { id: composeCmd; Kirigami.FormData.label: i18n("Compose command: ") }
+            Controls.TextField { id: updateCmd; Kirigami.FormData.label: i18n("Check an image for updates: ") }
+            Controls.TextField { id: contextCmd; Kirigami.FormData.label: i18n("List hosts (contexts): ") }
+        }
+
+        Kirigami.InlineMessage {
+            Layout.fillWidth: true
+            type: Kirigami.MessageType.Information
+            text: i18n("Use “docker-compose” as the Compose command if you only have the old standalone tool. The update check must print “local digests|remote digest”; the default needs docker buildx. Hosts are Docker contexts (docker context create …), which is how you point Dockmoid at another machine over SSH.")
+        }
+
         // ------------------------------------------- engine -------------
         Kirigami.FormLayout {
             wideMode: false
@@ -242,7 +343,7 @@ Kirigami.ScrollablePage {
         Kirigami.InlineMessage {
             Layout.fillWidth: true
             type: Kirigami.MessageType.Warning
-            text: i18n("These need elevated privileges, so the defaults go through pkexec and will prompt for your password. If your setup does not use systemd, replace them with whatever starts and stops your engine — or point them at a rootless engine, where no privilege is needed at all.")
+            text: i18n("Docker started by systemd needs elevated privileges, so the default goes through pkexec and asks for your password. Rootless Docker, Podman and Colima need none; pick them from the presets above.")
         }
 
         Kirigami.FormLayout {
@@ -268,7 +369,7 @@ Kirigami.ScrollablePage {
         Kirigami.InlineMessage {
             Layout.fillWidth: true
             type: Kirigami.MessageType.Warning
-            text: i18n("Prune deletes stopped containers, unused images, build cache and unused volumes. It is destructive and cannot be undone, so it always asks first.")
+            text: i18n("The clean-up dialog adds -a (all unused images) and --volumes to this when you tick them. It always asks first.")
         }
 
         Item {

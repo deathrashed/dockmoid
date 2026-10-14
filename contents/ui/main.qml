@@ -36,13 +36,13 @@ PlasmoidItem {
     // ========================================================= backend ====
 
     Backend.CommandRunner {
-        id: runner
+        id: commandRunner
         debug: main.cfg.debugCommands
     }
 
     Backend.DockerBackend {
         id: dockerBackend
-        runner: runner
+        runner: commandRunner
 
         onEngineStateChanged: function (active) {
             main.lastStatusMessage = active
@@ -61,11 +61,14 @@ PlasmoidItem {
 
     Timer {
         id: pollTimer
-        interval: Math.max(2, main.cfg.updateInterval) * 1000
+        // A quick look for changes while the view is open, a relaxed one while
+        // it is collapsed; either way it is a single cheap query.
+        interval: Math.max(1, main.viewOpen ? main.cfg.changeCheckInterval
+                                            : main.cfg.idleCheckInterval) * 1000
         repeat: true
         running: true
         triggeredOnStart: false
-        onTriggered: dockerBackend.poll()
+        onTriggered: dockerBackend.tick()
     }
 
     /*
@@ -125,6 +128,7 @@ PlasmoidItem {
     Component.onCompleted: {
         main.lastStatusMessage = i18n("Checking Docker…")
         main.installNotificationSupport()
+        main.installThemeIcon()
         if (main.cfg.fetchOnStartup) startupTimer.start()
     }
 
@@ -140,31 +144,84 @@ PlasmoidItem {
 
     /*
      * KDE needs a .notifyrc on disk before Notification can show anything, and
-     * that file is not installed with the package, so it is written once into
-     * the user's notification directory. Every line is emitted inside single
-     * quotes and none of them contains a quote, so this stays shell safe.
+     * that file is not installed with the package, so it is written into the
+     * user's notification directory. The version marker means it is rewritten
+     * only when its content changes, not on every startup. Every line is
+     * emitted inside single quotes and none of them contains a quote, so this
+     * stays shell safe.
+     *
+     * One event per kind lets each be given its own sound or popup behaviour
+     * under System Settings -> Notifications -> Dockmoid.
      */
+    readonly property int notifyrcVersion: 3
+
     function installNotificationSupport() {
         if (main.notificationSupportInstalled) return
         main.notificationSupportInstalled = true
         var content = [
+            "# dockmoid-notifyrc-v" + main.notifyrcVersion,
             "[Global]",
             "Name=Dockmoid",
             "Comment=Container and engine events",
+            "IconName=docker",
             "",
             "[Event/event]",
             "Name=Container action",
             "Comment=Result of a container or engine action",
+            "Action=Popup",
+            "",
+            "[Event/crash]",
+            "Name=Container crashed",
+            "Comment=A container exited unexpectedly or is restarting in a loop",
             "Action=Popup|Sound",
-            "Sound=message-new-instant.oga"
+            "Sound=dialog-warning-instant.oga",
+            "",
+            "[Event/unhealthy]",
+            "Name=Container unhealthy",
+            "Comment=A container failed its health check",
+            "Action=Popup|Sound",
+            "Sound=dialog-warning-instant.oga",
+            "",
+            "[Event/resource]",
+            "Name=High resource use",
+            "Comment=A container kept using a lot of CPU or memory",
+            "Action=Popup",
+            "",
+            "[Event/probe]",
+            "Name=Web page not answering",
+            "Comment=A container stopped answering HTTP requests",
+            "Action=Popup|Sound",
+            "Sound=dialog-warning-instant.oga",
+            "",
+            "[Event/update]",
+            "Name=Image update available",
+            "Comment=A newer image exists in the registry",
+            "Action=Popup"
         ]
-        var dir = "~/.local/share/knnotifications6"
-        var file = dir + "/dockercompanion.notifyrc"
-        var cmd = "mkdir -p " + dir + " && rm -f " + file
+        var dir = "~/.local/share/knotifications6"
+        var file = dir + "/dockmoid.notifyrc"
+        var cmd = "mkdir -p " + dir + " && { grep -qs 'dockmoid-notifyrc-v" + main.notifyrcVersion
+            + "' " + file + " || { rm -f " + file
         for (var i = 0; i < content.length; i++) {
             cmd += " && echo '" + content[i] + "' >> " + file
         }
-        runner.spawn(cmd)
+        cmd += "; }; }"
+        commandRunner.spawn(cmd)
+    }
+
+    /*
+     * The Add Widgets dialog only shows an icon that lives in an icon theme, so
+     * the package icon is copied into the user's hicolor theme the first time
+     * the widget runs (install.sh does the same at install time).
+     */
+    function installThemeIcon() {
+        var src = String(Qt.resolvedUrl("../../docs/assets/icon.png")).replace(/^file:\/\//, "")
+        if (!/^[\/A-Za-z0-9._~ -]+$/.test(src)) return
+        var theme = "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor"
+        var dir = theme + "/512x512/apps"
+        commandRunner.spawn("mkdir -p \"" + dir + "\" && cp '" + src + "' \"" + dir
+            + "/dockmoid.png\" && rm -f \"" + theme + "/scalable/apps/dockmoid.svg\" && { if command -v gtk-update-icon-cache >/dev/null 2>&1; then "
+            + "gtk-update-icon-cache -f -t \"" + theme + "\"; fi; }")
     }
 
     // ================================================== representations ====
@@ -220,6 +277,10 @@ PlasmoidItem {
         backend: dockerBackend
         applet: main
     }
+
+    // On the desktop there is no panel to collapse into, so show the full view.
+    preferredRepresentation: Plasmoid.formFactor === PlasmaCore.Types.Planar
+        ? fullRepresentation : compactRepresentation
 
     toolTipMainText: i18n("Dockmoid")
     toolTipSubText: main.lastStatusMessage

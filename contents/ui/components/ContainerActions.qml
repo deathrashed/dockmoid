@@ -41,8 +41,6 @@ PlasmaComponents.Menu {
 
     readonly property var links: root.backend.linksFor(root.record)
 
-    readonly property string papirusApps: "file:///home/rd/.local/share/icons/Papirus/24x24/apps/"
-
     // ============================================================= items ====
 
     /*
@@ -139,13 +137,69 @@ PlasmaComponents.Menu {
         }
     }
 
-    function addOpenInEntry(menu, label, app, rec, artwork) {
+    function addLauncherEntry(menu, launcher, rec) {
         var item = menuItemTemplate.createObject(menu)
-        item.label = label
-        item.glyph = "document-open"
-        item.artwork = artwork || ""
-        item.run = function () { root.backend.openIn(rec, app) }
+        item.label = launcher.label
+        item.glyph = launcher.icon !== "" ? launcher.icon : "document-open"
+        item.run = function () { root.backend.launch(rec, launcher) }
         menu.addItem(item)
+    }
+
+    /* What Docker does with this container when the daemon (re)starts. */
+    function addRestartPolicyMenu(rec) {
+        var menu = submenuTemplate.createObject(root)
+        menu.title = i18n("Start automatically")
+        menu.glyph = "media-playlist-repeat"
+        var policies = ["no", "on-failure", "unless-stopped", "always"]
+        for (var i = 0; i < policies.length; i++) {
+            let policy = policies[i]
+            var item = menuItemTemplate.createObject(menu)
+            var current = rec.restartPolicy === policy
+            item.label = (current ? "● " : "    ") + root.backend.policyLabel(policy)
+            item.glyph = ""
+            item.enabled = !current
+            item.run = function () { root.backend.setRestartPolicy(rec, policy) }
+            menu.addItem(item)
+        }
+        root.addMenu(menu)
+        root.entries.push(menu)
+    }
+
+    /* Everything a Compose project can do as a whole. */
+    function addComposeMenu(rec) {
+        var menu = submenuTemplate.createObject(root)
+        menu.title = i18n("Compose project “%1”", rec.project)
+        menu.glyph = "folder"
+        var verbs = [
+            ["up", i18n("Up (create and start)"), "media-playback-start", false],
+            ["pull", i18n("Pull images"), "system-download", false],
+            ["update", i18n("Pull and recreate"), "package-upgrade", false],
+            ["recreate", i18n("Force recreate"), "view-refresh", false],
+            ["down", i18n("Down (remove containers)"), "edit-delete", true]
+        ]
+        for (var i = 0; i < verbs.length; i++) {
+            let v = verbs[i]
+            var item = menuItemTemplate.createObject(menu)
+            item.label = v[1]
+            item.glyph = v[2]
+            item.run = function () { root.runCompose(rec, v[0], v[3]) }
+            menu.addItem(item)
+        }
+        root.addMenu(menu)
+        root.entries.push(menu)
+    }
+
+    function runCompose(rec, verb, destructive) {
+        var go = function () {
+            root.openOutput(i18n("Compose %1 — %2", verb, rec.project), i18n("Starting…"), false, rec.id)
+            root.backend.composeRun(rec, verb, rec.project)
+        }
+        if (destructive) {
+            root.dialogs.confirm(i18n("Take down %1?", rec.project),
+                i18n("Every container in this Compose project is stopped and removed, and its networks too. Volumes are kept."), go)
+        } else {
+            go()
+        }
     }
 
     // ============================================================= build ====
@@ -164,6 +218,14 @@ PlasmaComponents.Menu {
         var running = rec.isRunning === true
 
         addEntry(i18n("Details"), "document-view", function () { root.openDetail(rec.id) })
+
+        if (rec.updateAvailable) {
+            addEntry(i18n("Update image and recreate"), "package-upgrade", function () {
+                if (rec.project !== "") root.openOutput(i18n("Compose update — %1", rec.project), i18n("Starting…"), false, rec.id)
+                root.backend.updateContainer(rec)
+            })
+            addSeparator()
+        }
 
         if (Parsers.canStart(state)) {
             addEntry(i18n("Start"), "media-playback-start", function () { root.backend.startContainer(rec) })
@@ -192,29 +254,15 @@ PlasmaComponents.Menu {
 
         addSeparator()
 
-        var openInMenu = submenuTemplate.createObject(root)
-        openInMenu.title = i18n("Open in")
-        openInMenu.glyph = "document-open"
-        if (running) {
-            addOpenInEntry(openInMenu, i18n("Konsole"), "konsole", rec,
-                           papirusApps + "konsole.svg")
-            addOpenInEntry(openInMenu, i18n("Ghostty"), "ghostty", rec,
-                           papirusApps + "com.mitchellh.ghostty.svg")
-            addOpenInEntry(openInMenu, i18n("Yakuake"), "yakuake", rec,
-                           papirusApps + "yakuake.svg")
-        }
-        if (rec.composeWorkDir) {
-            addOpenInEntry(openInMenu, i18n("VS Code"), "vscode", rec,
-                           papirusApps + "code.svg")
-            addOpenInEntry(openInMenu, i18n("ChatGPT"), "chatgpt", rec,
-                           "file:///usr/share/pixmaps/chatgpt.png")
-            addOpenInEntry(openInMenu, i18n("Claude"), "claude", rec,
-                           "file:///usr/share/icons/hicolor/32x32/apps/claude-desktop.png")
-        }
-        if (running || rec.composeWorkDir) {
+        var apps = root.backend.launchersFor(rec)
+        if (apps.length > 0) {
+            var openInMenu = submenuTemplate.createObject(root)
+            openInMenu.title = i18n("Open in")
+            openInMenu.glyph = "document-open"
+            for (var n = 0; n < apps.length; n++) addLauncherEntry(openInMenu, apps[n], rec)
             root.addMenu(openInMenu)
             root.entries.push(openInMenu)
-        } else openInMenu.destroy()
+        }
 
         addEntry(i18n("Follow Logs in Terminal"), "text-x-log", function () { root.backend.followLogs(rec) })
         addEntry(i18n("View Logs"), "text-x-generic", function () {
@@ -229,6 +277,14 @@ PlasmaComponents.Menu {
             root.openOutput(i18n("Pulling %1", rec.image), i18n("Starting…"), false, rec.id)
         })
         addEntry(i18n("Rename"), "edit-rename", function () { root.dialogs.promptRename(rec) })
+        addEntry(rec.pinned ? i18n("Unpin") : i18n("Pin to top"), rec.pinned ? "window-unpin" : "window-pin",
+                 function () { root.backend.togglePin(rec) })
+        if (rec.pinned) {
+            addEntry(i18n("Move up in pinned"), "go-up", function () { root.backend.movePin(rec, -1) })
+            addEntry(i18n("Move down in pinned"), "go-down", function () { root.backend.movePin(rec, 1) })
+        }
+        if (rec.project !== "") addComposeMenu(rec)
+        if (rec.restartPolicy !== undefined && rec.restartPolicy !== "") addRestartPolicyMenu(rec)
         if (rec.composeFiles !== "") {
             addEntry(i18n("Edit Compose File"), "document-edit", function () { root.backend.editCompose(rec) })
         }

@@ -1,4 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="black">
-  <path d="M 2 12 m 10 0 a 10 10 0 1 0 -20 0 a 10 10 0 1 0 -20 0 Z M 7 12 m 5 0 a 5 5 0 1 1 10 0 a 5 5 0 1 1 -10 0 Z" fill-rule="evenodd"/>
-  <circle cx="12" cy="12" r="2.6"/>
-</svg>

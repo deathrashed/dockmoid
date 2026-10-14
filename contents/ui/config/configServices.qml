@@ -3,106 +3,136 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
+import org.kde.kcmutils as KCM
+import org.kde.plasma.plasma5support as Plasma5Support
 
 /*
- * Service icons: which container images get a recognisable glyph, and how to
- * extend that list without touching code.
+ * Icons: the artwork shown beside each container.
+ *
+ * Every icon comes from one library folder of per-service images. A small set
+ * of the most common services ships with the widget; downloading the selfh.st
+ * collection, or pointing at your own folder, adds the rest.
  */
-Kirigami.ScrollablePage {
+KCM.SimpleKCM {
     id: page
 
-    property alias cfg_customIcons: customIcons.text
     property alias cfg_serviceIconDirectory: iconDir.text
     property alias cfg_coloredServiceIcons: colorIcons.checked
+    property alias cfg_iconVariant: variant.currentIndex
+    property alias cfg_customIcons: customIcons.text
 
-    ColumnLayout {
-        anchors {
-            left: parent.left
-            right: parent.right
-            top: parent.top
-        }
-        spacing: Kirigami.Units.smallSpacing
+    readonly property string defaultFolder: "~/.local/share/dockmoid/icons/svg"
 
-        Kirigami.FormLayout {
-            wideMode: false
-            Kirigami.Separator {
-                Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: i18n("Your own provider icons")
+    property bool busy: false
+    property string status: ""
+
+    Plasma5Support.DataSource {
+        id: shell
+        engine: "executable"
+        connectedSources: []
+        onNewData: function (source, data) {
+            disconnectSource(source)
+            page.busy = false
+            var out = String(data["stdout"] || "").trim()
+            if (data["exit code"] === 0 && /^[0-9]+$/.test(out)) {
+                page.status = i18np("%1 icon is ready.", "%1 icons are ready.", parseInt(out))
+                iconDir.text = page.defaultFolder
+            } else {
+                let err = String(data["stderr"] || "").trim().split("\n").pop()
+                page.status = i18n("The download failed: %1", err || i18n("is git installed and are you online?"))
             }
         }
+    }
 
-        Kirigami.InlineMessage {
-            Layout.fillWidth: true
-            type: Kirigami.MessageType.Information
-            text: i18n("Point this at a folder of provider icons, for example ~/pictures/selfhst. Any container whose image name matches a file there is drawn with that artwork in full colour, which takes priority over the bundled glyphs below. The images stay in that folder; only their names are indexed.")
+    /*
+     * A sparse, blobless clone fetches only the svg folder (a few MB), and a
+     * later run is a fast-forward pull, so "Update" is cheap. Everything goes
+     * under the user's own data directory.
+     */
+    function download() {
+        page.busy = true
+        page.status = i18n("Downloading…")
+        var cmd = 'd="$HOME/.local/share/dockmoid/icons"; mkdir -p "$(dirname "$d")" && '
+            + 'if [ -d "$d/.git" ]; then git -C "$d" pull --ff-only -q; '
+            + 'else rm -rf "$d.tmp" && git clone --depth 1 --filter=blob:none --sparse -q https://github.com/selfhst/icons.git "$d.tmp" '
+            + '&& git -C "$d.tmp" sparse-checkout set svg && rm -rf "$d" && mv "$d.tmp" "$d"; fi '
+            + '&& ls "$d/svg" | grep -vc -- "-\\(light\\|dark\\)\\.svg$"'
+        shell.connectSource(cmd)
+    }
+
+    Kirigami.FormLayout {
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Provider icon library")
         }
 
-        Kirigami.FormLayout {
-            wideMode: false
-            Controls.Label {
-                Kirigami.FormData.label: i18n("Icon folder: ")
-                Layout.fillWidth: true
+        Controls.TextField {
+            id: iconDir
+            Kirigami.FormData.label: i18n("Folder:")
+            placeholderText: i18n("automatic")
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 22
+        }
+        Hint { text: i18n("Leave empty to use the downloaded set (~/.local/share/dockmoid/icons/svg), then ~/Pictures/selfhst, then the small set that ships with the widget. Any folder of SVG, WebP or PNG files named after services works: plex.svg, pi-hole.svg … Variants named name-light and name-dark are understood.") }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Get the icons:")
+            Controls.Button {
+                text: i18n("Download or update selfh.st icons")
+                icon.name: "download"
+                enabled: !page.busy
+                onClicked: page.download()
             }
-            Controls.TextField {
-                id: iconDir
-                Layout.fillWidth: true
-                placeholderText: "~/pictures/selfhst"
-                text: plasmoid.configuration.serviceIconDirectory
+            Controls.BusyIndicator {
+                running: page.busy
+                visible: page.busy
+                implicitHeight: Kirigami.Units.iconSizes.smallMedium
+                implicitWidth: implicitHeight
             }
         }
+        Hint {
+            visible: page.status !== ""
+            text: page.status
+        }
+        Hint { text: i18n("The widget ships about 120 common services. This fetches the full selfh.st/icons collection (about 3,000 icons, CC BY 4.0) from GitHub with git, only when you press it. Afterwards press Apply.") }
 
-        Kirigami.FormLayout {
-            wideMode: false
-            Controls.CheckBox {
-                id: colorIcons
-                text: i18n("Draw them in colour")
-                checked: plasmoid.configuration.coloredServiceIcons
-            }
+        Controls.CheckBox {
+            id: colorIcons
+            Kirigami.FormData.label: i18n("Draw:")
+            text: i18n("icons in full colour (off draws them in the theme colour)")
         }
 
-        Kirigami.FormLayout {
-            wideMode: false
-            Kirigami.Separator {
-                Kirigami.FormData.isSection: true
-                Kirigami.FormData.label: i18n("Bundled glyphs")
-            }
+        Controls.ComboBox {
+            id: variant
+            Kirigami.FormData.label: i18n("Variant:")
+            model: [i18n("Standard artwork"), i18n("Match the theme (light or dark)")]
         }
+        Hint { text: i18n("Many logos come in a white and a dark version. “Match the theme” picks the one that reads against your current colours, when the library has it.") }
 
-        Kirigami.InlineMessage {
-            Layout.fillWidth: true
-            type: Kirigami.MessageType.Information
-            text: i18n("Containers get a glyph when their image name contains a known service, so lscr.io/linuxserver/qbittorrent:latest is recognised the same as qbittorrent. Anything unmatched falls back to a state dot, so this is purely cosmetic.")
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("How a container finds its icon")
         }
+        Hint { text: i18n("The container's own name, its Compose service name and its image are tried in that order, with common spellings and suffixes handled (portainer-ce → portainer, pihole → pi-hole). Containers started from an image id still match by name. A container with no match just shows its status dot.") }
 
-        Kirigami.FormLayout {
-            wideMode: false
-            Controls.Label {
-                Kirigami.FormData.label: i18n("Extra or replacement rules: ")
-                Layout.fillWidth: true
-            }
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Your own rules")
         }
 
         Controls.ScrollView {
-            Layout.fillWidth: true
+            Kirigami.FormData.label: i18n("Rules:")
+            Kirigami.FormData.labelAlignment: Qt.AlignTop
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 26
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
 
             Controls.TextArea {
                 id: customIcons
-                Layout.fillWidth: true
                 wrapMode: TextEdit.NoWrap
                 font.family: "monospace"
                 placeholderText: "myregistry/myservice=portainer"
+                selectByMouse: true
             }
         }
-
-        Kirigami.InlineMessage {
-            Layout.fillWidth: true
-            type: Kirigami.MessageType.Information
-            text: i18n("One rule per line, as image-substring=glyph. Rules here are matched before the bundled ones, so a rule wins over the default for that service. A line with no '=' masks that substring, which is how you stop a container from picking up a glyph that does not suit it. Lines starting with # are ignored.")
-        }
-
-        Item {
-            Layout.fillHeight: true
-        }
+        Hint { text: i18n("One rule per line: text=icon-name. A container whose name, image or service contains the text gets that icon from the library (for example: myapp=plex). A line with no “=” gives matching containers no icon. Rules are tried before the automatic match. Lines starting with # are ignored.") }
     }
 }

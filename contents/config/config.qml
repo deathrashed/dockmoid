@@ -19,6 +19,16 @@ ConfigModel {
         source: "config/configDisplay.qml"
     }
     ConfigCategory {
+        name: i18nc("@title", "Monitoring")
+        icon: "view-statistics"
+        source: "config/configMonitoring.qml"
+    }
+    ConfigCategory {
+        name: i18nc("@title", "Notifications")
+        icon: "preferences-desktop-notification"
+        source: "config/configNotifications.qml"
+    }
+    ConfigCategory {
         name: i18nc("@title", "Network")
         icon: "network-wired-activated"
         source: "config/configNetwork.qml"
@@ -29,12 +39,12 @@ ConfigModel {
         source: "config/configIntegration.qml"
     }
     ConfigCategory {
-        name: i18nc("@title", "Services")
-        icon: "view-list-tree"
+        name: i18nc("@title", "Icons")
+        icon: "preferences-desktop-icons"
         source: "config/configServices.qml"
     }
     ConfigCategory {
-        name: i18nc("@title", "Commands")
+        name: i18nc("@title", "Engine and commands")
         icon: "applications-development"
         source: "config/configCommand.qml"
     }

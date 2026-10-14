@@ -46,34 +46,65 @@ function percent(value) {
     return num(value);
 }
 
-/* docker ps --format json -> normalized container records */
-function parseContainers(stdout) {
+/*
+ * Docker prints one JSON object per line; Podman prints a single JSON array.
+ * Both come out as a plain array of objects, and a garbled line is skipped
+ * rather than allowed to kill the whole refresh.
+ */
+function jsonRecords(stdout) {
+    var text = String(stdout || "").trim();
+    if (text === "") return [];
+    if (text.charAt(0) === "[") {
+        try {
+            var arr = JSON.parse(text);
+            return Array.isArray(arr) ? arr : [];
+        } catch (e) {
+            return [];
+        }
+    }
     var out = [];
-    if (!stdout) return out;
-    var lines = String(stdout).split("\n");
+    var lines = text.split("\n");
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i].trim();
         if (line === "") continue;
-        var d;
         try {
-            d = JSON.parse(line);
+            out.push(JSON.parse(line));
         } catch (e) {
-            continue; // a truncated/garbled line must not kill the whole refresh
+            continue;
         }
-        out.push(normalizeContainer(d));
     }
     return out;
+}
+
+/* Podman reports ports as objects; flatten them to Docker's "ip:host->ctr/proto". */
+function portsToString(ports) {
+    if (!ports) return "";
+    if (!Array.isArray(ports)) return String(ports);
+    return ports.map(function (p) {
+        if (typeof p === "string") return p;
+        var host = p.host_ip !== undefined ? p.host_ip : (p.HostIP || "");
+        var hostPort = p.host_port !== undefined ? p.host_port : p.HostPort;
+        var ctrPort = p.container_port !== undefined ? p.container_port : p.ContainerPort;
+        var proto = p.protocol || p.Protocol || "tcp";
+        if (!hostPort) return ctrPort + "/" + proto;
+        return (host || "0.0.0.0") + ":" + hostPort + "->" + ctrPort + "/" + proto;
+    }).join(", ");
+}
+
+/* docker ps --format json -> normalized container records */
+function parseContainers(stdout) {
+    return jsonRecords(stdout).map(normalizeContainer);
 }
 
 function normalizeContainer(d) {
     var labels = labelMap(d.Labels);
     var state = d.State || "unknown";
     return {
-        "id": d.ID || "",
+        "id": d.ID || d.Id || "",
         "name": firstName(d.Names) || d.ID || "unknown",
         "image": d.Image || "",
         "command": d.Command || "",
-        "createdAt": d.CreatedAt || "",
+        "createdAt": d.CreatedAt || d.CreatedAtHuman || "",
         "runningFor": d.RunningFor || "",
         "state": state,
         "status": d.Status || "",
@@ -82,7 +113,7 @@ function normalizeContainer(d) {
         "localVolumes": String(d.LocalVolumes === undefined ? 0 : d.LocalVolumes),
         "networks": d.Networks || "",
         "mounts": d.Mounts || "",
-        "ports": d.Ports || "",
+        "ports": portsToString(d.Ports),
         "size": d.Size || "",
         "platform": d.Platform ? (d.Platform.os + "/" + d.Platform.architecture) : "",
         "project": labels["com.docker.compose.project"] || "",
@@ -90,6 +121,9 @@ function normalizeContainer(d) {
         "composeFiles": labels["com.docker.compose.project.config_files"] || "",
         "composeWorkDir": labels["com.docker.compose.project.working_dir"] || "",
         "composeProfile": labels["com.docker.compose.profile"] || "",
+        // Optional web address to probe, set with the label dockmoid.probe.
+        "probeUrl": labels["dockmoid.probe"] || "",
+        "restartPolicy": "",
         // live stats, filled in by applyStats()
         "cpu": "",
         "mem": "",
@@ -106,28 +140,21 @@ function normalizeContainer(d) {
    short id (as printed in the ID field) and the full 64 char id. */
 function parseStats(stdout) {
     var map = {};
-    if (!stdout) return map;
-    var lines = String(stdout).split("\n");
-    for (var i = 0; i < lines.length; i++) {
-        var line = lines[i].trim();
-        if (line === "") continue;
-        var d;
-        try {
-            d = JSON.parse(line);
-        } catch (e) {
-            continue;
-        }
+    var rows = jsonRecords(stdout);
+    for (var i = 0; i < rows.length; i++) {
+        var d = rows[i];
         var rec = {
-            "cpu": d.CPUPerc || "",
-            "mem": d.MemPerc || "",
-            "memU": d.MemUsage || "",
-            "blockio": d.BlockIO || "",
-            "netio": d.NetIO || "",
-            "pids": d.PIDs || "",
-            "cpuPct": percent(d.CPUPerc),
-            "memPct": percent(d.MemPerc)
+            "cpu": d.CPUPerc || d.cpu_percent || "",
+            "mem": d.MemPerc || d.mem_percent || "",
+            "memU": d.MemUsage || d.mem_usage || "",
+            "blockio": d.BlockIO || d.block_io || "",
+            "netio": d.NetIO || d.net_io || "",
+            "pids": d.PIDs || d.pids || "",
+            "cpuPct": percent(d.CPUPerc || d.cpu_percent),
+            "memPct": percent(d.MemPerc || d.mem_percent)
         };
         if (d.ID) map[d.ID] = rec;
+        if (d.Id) map[shortId(d.Id)] = rec;
         if (d.Container) map[d.Container] = rec;
     }
     return map;
@@ -207,27 +234,15 @@ function parseInfo(stdout) {
 
 /* docker system df --format json -> array of { type, total, active, size, reclaimable } */
 function parseSystemDf(stdout) {
-    var out = [];
-    if (!stdout) return out;
-    var lines = String(stdout).split("\n");
-    for (var i = 0; i < lines.length; i++) {
-        var line = lines[i].trim();
-        if (line === "") continue;
-        var d;
-        try {
-            d = JSON.parse(line);
-        } catch (e) {
-            continue;
-        }
-        out.push({
+    return jsonRecords(stdout).map(function (d) {
+        return {
             "type": d.Type || "",
             "total": num(d.TotalCount),
             "active": num(d.Active),
             "size": d.Size || "",
             "reclaimable": d.Reclaimable || ""
-        });
-    }
-    return out;
+        };
+    });
 }
 
 /* Aggregate per-container stats into engine-wide CPU / memory figures. */
@@ -242,7 +257,9 @@ function aggregate(containers) {
             pids += num(c.pids);
         }
         if (c.state === "paused") paused++;
-        if (c.health === "unhealthy") unhealthy++;
+        // A stopped container keeps the health it had when it died; counting
+        // that would leave "unhealthy" lit for things nobody is running.
+        if (c.isRunning && c.health === "unhealthy") unhealthy++;
     }
     return {
         "running": running,
@@ -297,7 +314,8 @@ function buildLinks(portsStr, opts) {
     var allowTailscale = opts.allowTailscale !== false;
     var schemeForPort = opts.httpsPorts || [443, 8443, 9443];
 
-    var ports = parsePorts(portsStr);
+    // UDP ports (discovery, DNS, game traffic) cannot be opened in a browser.
+    var ports = parsePorts(portsStr).filter(function (p) { return p.proto === "tcp"; });
     var seen = {};
     var links = [];
     for (var i = 0; i < ports.length; i++) {
@@ -313,7 +331,7 @@ function buildLinks(portsStr, opts) {
         }
         for (var j = 0; j < entries.length; j++) {
             var e = entries[j];
-            var key = e.host + ":" + p.hostPort + "/" + p.proto;
+            var key = e.host + ":" + p.hostPort;
             if (seen[key]) continue;
             seen[key] = true;
             links.push({
@@ -371,4 +389,326 @@ function firstFile(paths) {
 function shortId(id) {
     if (!id) return "";
     return String(id).slice(0, 12);
+}
+
+
+/* ----------------------------------------------------------- hardening --- */
+
+/* Escape user text so it can be dropped into a RegExp as a literal. */
+function escapeRegExp(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/* Compose project names are lowercase alphanumerics, '-' and '_' (dots are
+   tolerated for podman). Anything else is refused before it reaches a shell. */
+function isSafeToken(value) {
+    return /^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(String(value || ""));
+}
+
+/* ---------------------------------------------------------- restart policy -- */
+
+var RESTART_POLICIES = ["no", "on-failure", "unless-stopped", "always"];
+
+/*
+ * Output of
+ *   docker inspect --format '{{.Id}} {{.HostConfig.RestartPolicy.Name}} {{.HostConfig.RestartPolicy.MaximumRetryCount}}'
+ * -> { <12 char id>: "unless-stopped" }. An empty policy name means "no".
+ */
+function parseRestartPolicies(stdout) {
+    var map = {};
+    if (!stdout) return map;
+    var lines = String(stdout).split("\n");
+    for (var i = 0; i < lines.length; i++) {
+        var f = lines[i].trim().split(/\s+/);
+        if (f.length < 1 || f[0] === "") continue;
+        // An empty policy name collapses in the split, leaving the retry count
+        // (a number) in its place.
+        var policy = f.length > 1 && /^[a-z-]+$/.test(f[1]) ? f[1] : "no";
+        map[shortId(f[0])] = policy;
+    }
+    return map;
+}
+
+function applyRestartPolicies(containers, policies) {
+    for (var i = 0; i < containers.length; i++) {
+        containers[i].restartPolicy = policies[shortId(containers[i].id)] || "";
+    }
+    return containers;
+}
+
+/* True when Docker itself will bring the container back after a reboot. */
+function startsAutomatically(policy) {
+    return policy === "always" || policy === "unless-stopped";
+}
+
+/* -------------------------------------------------------- state changes ---- */
+
+/* "Exited (137) 3 minutes ago" -> 137. null when there is no exit code. */
+function exitCodeFromStatus(status) {
+    var m = /Exited \((-?\d+)\)/.exec(String(status || ""));
+    return m ? parseInt(m[1], 10) : null;
+}
+
+/* Exit codes a clean `docker stop`, ^C or SIGTERM produce. They are not crashes. */
+function isDeliberateExit(code) {
+    return code === 0 || code === 130 || code === 137 || code === 143;
+}
+
+/* Reduce container records to what diffStates() needs. */
+function snapshotStates(containers) {
+    var snap = {};
+    for (var i = 0; i < containers.length; i++) {
+        var c = containers[i];
+        snap[c.id] = {
+            "name": c.name,
+            "state": c.state,
+            "health": c.health,
+            "exitCode": exitCodeFromStatus(c.status)
+        };
+    }
+    return snap;
+}
+
+/*
+ * Compare two snapshots and describe what happened in between.
+ *
+ * kinds: crashed | restarting | unhealthy | recovered | started | stopped
+ * A container that did not exist in `prev` produces no event, and neither does
+ * the very first poll (prev === null), so launching the widget is silent.
+ */
+function diffStates(prev, next) {
+    var events = [];
+    if (!prev) return events;
+    for (var id in next) {
+        var a = prev[id];
+        var b = next[id];
+        if (!a) continue;
+        var wasUp = a.state === "running" || a.state === "restarting";
+        if (b.state === "restarting" && a.state !== "restarting") {
+            events.push({ "kind": "restarting", "id": id, "name": b.name });
+        } else if (wasUp && (b.state === "exited" || b.state === "dead")) {
+            if (b.exitCode !== null && !isDeliberateExit(b.exitCode)) {
+                events.push({ "kind": "crashed", "id": id, "name": b.name, "code": b.exitCode });
+            } else {
+                events.push({ "kind": "stopped", "id": id, "name": b.name });
+            }
+        } else if (a.state !== "running" && b.state === "running") {
+            events.push({ "kind": "started", "id": id, "name": b.name });
+        }
+        if (b.state === "running" && b.health === "unhealthy" && a.health !== "unhealthy") {
+            events.push({ "kind": "unhealthy", "id": id, "name": b.name });
+        } else if (a.health === "unhealthy" && b.health === "healthy") {
+            events.push({ "kind": "recovered", "id": id, "name": b.name });
+        }
+    }
+    return events;
+}
+
+/* ------------------------------------------------------------- launchers --- */
+
+/*
+ * One launcher per line:  Label | icon | scope | command
+ *   scope "container": needs a running container; {id} and {shell} are filled in
+ *   scope "project":   needs a compose working directory; {dir} is filled in
+ * {dir} is shell-quoted by the caller; {id} and {shell} are always safe tokens.
+ * Lines starting with # and blank lines are ignored.
+ */
+function parseLaunchers(text) {
+    var out = [];
+    var lines = String(text || "").split("\n");
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (line === "" || line.charAt(0) === "#") continue;
+        var f = line.split("|");
+        if (f.length < 4) continue;
+        var scope = f[2].trim().toLowerCase();
+        if (scope !== "container" && scope !== "project") continue;
+        var command = f.slice(3).join("|").trim();
+        if (command === "") continue;
+        out.push({
+            "label": f[0].trim(),
+            "icon": f[1].trim(),
+            "scope": scope,
+            "command": command,
+            "binary": command.split(/\s+/)[0]
+        });
+    }
+    return out;
+}
+
+
+/* ============================================================ resources ==== */
+
+/* docker images --format json -> images with how many containers use each. */
+function parseImages(stdout) {
+    return jsonRecords(stdout).map(function (d) {
+        var repo = d.Repository || "";
+        var tag = d.Tag || "";
+        var dangling = repo === "<none>" || repo === "";
+        return {
+            "id": d.ID || d.Id || "",
+            "repository": repo,
+            "tag": tag,
+            "ref": dangling ? "" : (tag && tag !== "<none>" ? repo + ":" + tag : repo),
+            "size": d.Size || "",
+            "created": d.CreatedSince || d.CreatedAt || "",
+            "containers": parseInt(d.Containers, 10) || 0,
+            "dangling": dangling
+        };
+    });
+}
+
+/* docker system df -v --format json -> volumes with size and how many containers mount each. */
+function parseVolumes(stdout) {
+    var rows = jsonRecords(stdout);
+    var list = [];
+    for (var i = 0; i < rows.length; i++) {
+        var vols = rows[i].Volumes;
+        if (!Array.isArray(vols)) continue;
+        for (var j = 0; j < vols.length; j++) {
+            var v = vols[j];
+            var links = parseInt(v.Links, 10);
+            list.push({
+                "name": v.Name || "",
+                "driver": v.Driver || "",
+                "size": v.Size && v.Size !== "N/A" ? v.Size : "",
+                "links": isNaN(links) ? -1 : links,
+                "project": labelMap(v.Labels)["com.docker.compose.project"] || ""
+            });
+        }
+    }
+    return list;
+}
+
+function parseNetworks(stdout) {
+    return jsonRecords(stdout).map(function (d) {
+        var name = d.Name || "";
+        return {
+            "id": d.ID || d.Id || "",
+            "name": name,
+            "driver": d.Driver || "",
+            "scope": d.Scope || "",
+            "builtin": name === "bridge" || name === "host" || name === "none",
+            "project": labelMap(d.Labels)["com.docker.compose.project"] || ""
+        };
+    });
+}
+
+/* ========================================================= image updates === */
+
+/*
+ * The update-check command prints "<local repo digests>|<remote digest>". An
+ * image is current when the remote digest is one of the local ones; if either
+ * side is missing nothing can be said, and "unknown" is the honest answer.
+ */
+function compareDigests(output) {
+    var line = String(output || "").trim().split("\n").pop();
+    var cut = line.lastIndexOf("|");
+    if (cut < 0) return "unknown";
+    var local = line.slice(0, cut).trim();
+    var remote = line.slice(cut + 1).trim();
+    if (!/^sha256:[0-9a-f]{64}$/.test(remote) || local === "") return "unknown";
+    return local.indexOf(remote) >= 0 ? "current" : "update";
+}
+
+/* A reference worth asking a registry about: not an id, not a local build. */
+function isCheckableImage(ref) {
+    var s = String(ref || "");
+    if (s === "" || /^[0-9a-f]{12,64}$/.test(s) || s.indexOf("sha256:") === 0) return false;
+    return true;
+}
+
+/* ============================================================== alerts ===== */
+
+/*
+ * Sustained resource use. `state` is { <id>: { since, alerted } } and is carried
+ * between samples by the caller. A container must stay above the threshold for
+ * `seconds` before it counts, so a brief spike never notifies, and it notifies
+ * once per episode.
+ */
+function trackThresholds(state, containers, nowMs, opts) {
+    var events = [];
+    var seen = {};
+    for (var i = 0; i < containers.length; i++) {
+        var c = containers[i];
+        if (!c.isRunning) continue;
+        seen[c.id] = true;
+        var over = (opts.cpu > 0 && c.cpuPct >= opts.cpu) ? "cpu"
+                 : (opts.mem > 0 && c.memPct >= opts.mem) ? "memory" : "";
+        var st = state[c.id];
+        if (over === "") {
+            if (st) delete state[c.id];
+            continue;
+        }
+        if (!st || st.what !== over) {
+            state[c.id] = { "since": nowMs, "what": over, "alerted": false };
+            continue;
+        }
+        if (!st.alerted && nowMs - st.since >= opts.seconds * 1000) {
+            st.alerted = true;
+            events.push({
+                "kind": "resource", "id": c.id, "name": c.name, "what": over,
+                "value": over === "cpu" ? c.cpuPct : c.memPct
+            });
+        }
+    }
+    for (var id in state) if (!seen[id]) delete state[id];
+    return events;
+}
+
+/* ============================================================== probes ===== */
+
+/*
+ * "name=url" lines, where name is matched against the container name. A
+ * container's own dockmoid.probe label wins over a line in the settings.
+ */
+function parseProbeRules(text) {
+    var out = [];
+    String(text || "").split("\n").forEach(function (line) {
+        line = line.trim();
+        if (line === "" || line.charAt(0) === "#") return;
+        var at = line.indexOf("=");
+        if (at <= 0) return;
+        var url = line.slice(at + 1).trim();
+        if (/^https?:\/\/[^\s'"`$\\]+$/.test(url)) out.push({ "name": line.slice(0, at).trim().toLowerCase(), "url": url });
+    });
+    return out;
+}
+
+function probeUrlFor(rec, rules) {
+    var label = String(rec.probeUrl || "");
+    if (/^https?:\/\/[^\s'"`$\\]+$/.test(label)) return label;
+    for (var i = 0; i < rules.length; i++) {
+        if (rules[i].name === String(rec.name).toLowerCase()) return rules[i].url;
+    }
+    return "";
+}
+
+/* "<url> <http code> <milliseconds>" per line -> { url: {up, code, ms} } */
+function parseProbeResults(stdout) {
+    var map = {};
+    String(stdout || "").split("\n").forEach(function (line) {
+        var f = line.trim().split(/\s+/);
+        if (f.length < 3) return;
+        var code = parseInt(f[1], 10);
+        map[f[0]] = { "up": code >= 200 && code < 500, "code": code, "ms": Math.round((parseFloat(f[2]) || 0) * 1000) };
+    });
+    return map;
+}
+
+/* ============================================================ compose ====== */
+
+/* "-f 'a.yml' -f 'b.yml'" from the comma separated config_files label. */
+function composeFileArgs(configFiles, quote) {
+    return String(configFiles || "").split(",").map(function (f) { return f.trim(); })
+        .filter(function (f) { return f !== ""; })
+        .map(function (f) { return "-f " + quote(f); }).join(" ");
+}
+
+/* ============================================================== history ==== */
+
+/* Append to a fixed-length ring of samples. */
+function pushSample(list, value, max) {
+    var out = (list || []).concat([value]);
+    return out.length > max ? out.slice(out.length - max) : out;
 }

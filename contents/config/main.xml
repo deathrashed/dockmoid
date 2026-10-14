@@ -8,14 +8,17 @@
 
   Command entries may contain {placeholders}, which are substituted before the
   command is handed to /bin/sh:
-      {id}      short container id
-      {name}    new container name (rename only)
-      {image}   image reference (pull only)
+      {id}      short container id (a plain hex token)
+      {name}    container name, already shell-quoted (rename: the new name)
+      {image}   image reference, already shell-quoted (pull only)
+      {policy}  restart policy: no, on-failure, unless-stopped or always
       {shell}   shell binary (shell only)
       {tail}    number of log lines (logs only)
-      {project} compose project name (group commands only)
+      {project} compose project name (group commands only; validated first)
       {file}    compose file path (editor only)
-  Subshells ($()) are supported, so a group command can filter by label.
+  Values that can contain arbitrary text ({name}, {image}, {file}, {dir}) are
+  quoted for the shell before substitution, so do not wrap them in quotes.
+  Pipes and subshells are supported, so a command can filter by label.
 -->
 <kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -24,9 +27,29 @@
 <kcfgfile name=""/>
 
 <group name="commandConfigPage">
+  <!-- The command every default below starts with: docker, podman, nerdctl, or
+       a full path / "sudo docker". {engine} in a command is replaced by it. -->
+  <entry name="engineCommand" type="String">
+    <default>docker</default>
+  </entry>
+  <!-- Prints one line per container change in the window since..until (unix
+       seconds). Anything printed means "re-read the list"; the heartbeat below
+       still refreshes now and then in case an event was missed. -->
+  <entry name="eventsCommand" type="String">
+    <default>{engine} events --since {since} --until {until} --filter type=container --filter event=create --filter event=start --filter event=die --filter event=stop --filter event=kill --filter event=destroy --filter event=pause --filter event=unpause --filter event=restart --filter event=rename --filter event=update --filter event=oom --filter event=health_status --format '{{.Action}}'</default>
+  </entry>
   <!-- Polling -->
+  <!-- Seconds between full refreshes even when no change event arrived. -->
   <entry name="updateInterval" type="Int">
-    <default>30</default>
+    <default>60</default>
+  </entry>
+  <!-- Seconds between cheap "did anything change?" checks while the view is
+       open / while it is closed. -->
+  <entry name="changeCheckInterval" type="Int">
+    <default>3</default>
+  </entry>
+  <entry name="idleCheckInterval" type="Int">
+    <default>15</default>
   </entry>
   <entry name="usageInterval" type="Int">
     <default>5</default>
@@ -38,73 +61,73 @@
   <!-- Reads. The active check only looks at the exit status, so it works for
        `docker info` as well as for `systemctl is-active docker`. -->
   <entry name="checkActiveCommand" type="String">
-    <default>docker info --format {{.ServerVersion}}</default>
+    <default>{engine} info --format {{.ServerVersion}}</default>
   </entry>
   <entry name="listCommand" type="String">
-    <default>docker ps --format json -a</default>
+    <default>{engine} ps --format json -a</default>
   </entry>
   <entry name="usageCommand" type="String">
-    <default>docker stats --no-stream --format json</default>
+    <default>{engine} stats --no-stream --format json</default>
   </entry>
   <entry name="infoCommand" type="String">
-    <default>docker info --format '{{.ServerVersion}}|{{.NCPU}}|{{.MemTotal}}|{{.Images}}|{{.Containers}}|{{.ContainersRunning}}|{{.ContainersPaused}}|{{.ContainersStopped}}|{{.Name}}|{{.OSType}}|{{.Architecture}}'</default>
+    <default>{engine} info --format '{{.ServerVersion}}|{{.NCPU}}|{{.MemTotal}}|{{.Images}}|{{.Containers}}|{{.ContainersRunning}}|{{.ContainersPaused}}|{{.ContainersStopped}}|{{.Name}}|{{.OSType}}|{{.Architecture}}'</default>
   </entry>
   <entry name="systemDfCommand" type="String">
-    <default>docker system df --format json</default>
+    <default>{engine} system df --format json</default>
   </entry>
 
   <!-- Per container control -->
   <entry name="startOneCommand" type="String">
-    <default>docker start {id}</default>
+    <default>{engine} start {id}</default>
   </entry>
   <entry name="stopOneCommand" type="String">
-    <default>docker stop {id}</default>
+    <default>{engine} stop {id}</default>
   </entry>
   <entry name="restartOneCommand" type="String">
-    <default>docker restart {id}</default>
+    <default>{engine} restart {id}</default>
   </entry>
   <entry name="killOneCommand" type="String">
-    <default>docker kill {id}</default>
+    <default>{engine} kill {id}</default>
   </entry>
   <entry name="pauseOneCommand" type="String">
-    <default>docker pause {id}</default>
+    <default>{engine} pause {id}</default>
   </entry>
   <entry name="unpauseOneCommand" type="String">
-    <default>docker unpause {id}</default>
+    <default>{engine} unpause {id}</default>
   </entry>
   <entry name="removeOneCommand" type="String">
-    <default>docker rm -f {id}</default>
+    <default>{engine} rm -f {id}</default>
   </entry>
   <entry name="renameOneCommand" type="String">
-    <default>docker rename {id} {name}</default>
+    <default>{engine} rename {id} {name}</default>
   </entry>
   <entry name="pullImageCommand" type="String">
-    <default>docker pull {image}</default>
+    <default>{engine} pull {image}</default>
   </entry>
 
   <!-- Diagnostics -->
   <entry name="logsCommand" type="String">
-    <default>docker logs --timestamps --tail {tail} {id}</default>
+    <default>{engine} logs --timestamps --tail {tail} {id}</default>
   </entry>
   <entry name="logsFollowCommand" type="String">
-    <default>docker logs -f --timestamps {id}</default>
+    <default>{engine} logs -f --timestamps {id}</default>
   </entry>
   <entry name="shellCommand" type="String">
-    <default>docker exec -it {id} {shell}</default>
+    <default>{engine} exec -it {id} {shell}</default>
   </entry>
   <entry name="inspectCommand" type="String">
-    <default>docker inspect {id}</default>
+    <default>{engine} inspect {id}</default>
   </entry>
 
   <!-- Compose project control -->
   <entry name="groupStartCommand" type="String">
-    <default>docker start $(docker ps -aq --filter "label=com.docker.compose.project={project}")</default>
+    <default>{engine} ps -aq --filter "label=com.docker.compose.project={project}" | xargs -r {engine} start</default>
   </entry>
   <entry name="groupStopCommand" type="String">
-    <default>docker stop $(docker ps -aq --filter "label=com.docker.compose.project={project}")</default>
+    <default>{engine} ps -aq --filter "label=com.docker.compose.project={project}" | xargs -r {engine} stop</default>
   </entry>
   <entry name="groupRestartCommand" type="String">
-    <default>docker restart $(docker ps -aq --filter "label=com.docker.compose.project={project}")</default>
+    <default>{engine} ps -aq --filter "label=com.docker.compose.project={project}" | xargs -r {engine} restart</default>
   </entry>
 
   <!-- Engine control -->
@@ -117,8 +140,47 @@
   <entry name="stopSocketCommand" type="String">
     <default>pkexec systemctl stop docker.socket</default>
   </entry>
+  <!-- Images, volumes and networks (the Resources page). -->
+  <entry name="imagesCommand" type="String">
+    <default>{engine} images --format json</default>
+  </entry>
+  <entry name="volumesCommand" type="String">
+    <default>{engine} system df -v --format json</default>
+  </entry>
+  <entry name="networksCommand" type="String">
+    <default>{engine} network ls --format json</default>
+  </entry>
+  <entry name="removeImageCommand" type="String">
+    <default>{engine} rmi {id}</default>
+  </entry>
+  <entry name="removeVolumeCommand" type="String">
+    <default>{engine} volume rm {name}</default>
+  </entry>
+  <entry name="removeNetworkCommand" type="String">
+    <default>{engine} network rm {id}</default>
+  </entry>
+  <!-- The compose CLI; "docker-compose" for the old standalone tool. -->
+  <entry name="composeCommand" type="String">
+    <default>{engine} compose</default>
+  </entry>
+  <!-- Prints "local repo digests|remote digest" for {image}. -->
+  <entry name="updateCheckCommand" type="String">
+    <default>l=$({engine} image inspect {image} --format '{{join .RepoDigests " "}}' 2>/dev/null); r=$({engine} buildx imagetools inspect {image} --format '{{.Manifest.Digest}}' 2>/dev/null); echo "$l|$r"</default>
+  </entry>
+  <entry name="contextListCommand" type="String">
+    <default>{engine} context ls --format '{{.Name}}'</default>
+  </entry>
+  <!-- Restart policy of every container, one "<id> <policy> <retries>" per line. -->
+  <entry name="restartPolicyCommand" type="String">
+    <default>{engine} ps -aq | xargs -r {engine} inspect --format '{{.Id}} {{.HostConfig.RestartPolicy.Name}} {{.HostConfig.RestartPolicy.MaximumRetryCount}}'</default>
+  </entry>
+  <entry name="setRestartPolicyCommand" type="String">
+    <default>{engine} update --restart={policy} {id}</default>
+  </entry>
+  <!-- The prune dialog appends the all-images flag (-a) and the volumes flag
+       when their boxes are ticked. -->
   <entry name="pruneCommand" type="String">
-    <default>docker system prune -a -f --volumes</default>
+    <default>{engine} system prune -f</default>
   </entry>
 </group>
 
@@ -149,15 +211,110 @@
   <entry name="debugCommands" type="Bool">
     <default>false</default>
   </entry>
+
+  <!-- Container events worth a notification. All of them need
+       useNotifications; the first poll after startup never notifies. -->
+  <entry name="notifyOnCrash" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="notifyOnRestartLoop" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="notifyOnUnhealthy" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="notifyOnRecovered" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="notifyOnStartStop" type="Bool">
+    <default>false</default>
+  </entry>
+  <!-- Seconds a container is muted after an action started from the widget. -->
+  <entry name="notifyMuteAfterAction" type="Int">
+    <default>20</default>
+  </entry>
+  <entry name="restartPolicyInterval" type="Int">
+    <default>60</default>
+  </entry>
+
+  <!-- Resource alerts: percent of CPU / memory that, held for this many
+       seconds, raises a notification. 0 turns that one off. -->
+  <entry name="alertCpu" type="Int">
+    <default>90</default>
+  </entry>
+  <entry name="alertMem" type="Int">
+    <default>90</default>
+  </entry>
+  <entry name="alertSeconds" type="Int">
+    <default>120</default>
+  </entry>
+
+  <!-- Image updates: compare local digests with the registry. Off by default
+       because it talks to registries. -->
+  <entry name="checkImageUpdates" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="updateCheckHours" type="Int">
+    <default>6</default>
+  </entry>
+  <entry name="notifyOnUpdate" type="Bool">
+    <default>true</default>
+  </entry>
+  <!-- JSON cache of the last check so a restart does not re-ask every registry. -->
+  <entry name="updateCache" type="String">
+    <default></default>
+  </entry>
+
+  <!-- Web health probes: "container-name=http://host:port/path", one per line.
+       A container can also carry a dockmoid.probe label. -->
+  <entry name="probes" type="String">
+    <default></default>
+  </entry>
+  <entry name="probeInterval" type="Int">
+    <default>60</default>
+  </entry>
+  <entry name="notifyOnProbe" type="Bool">
+    <default>true</default>
+  </entry>
+
+  <!-- Which Docker context (or Podman connection) to talk to; empty = current. -->
+  <entry name="activeContext" type="String">
+    <default></default>
+  </entry>
+  <!-- Container names kept at the top, comma separated. -->
+  <entry name="pinned" type="String">
+    <default></default>
+  </entry>
+  <!-- Samples kept for the CPU/memory graphs. -->
+  <entry name="historySamples" type="Int">
+    <default>40</default>
+  </entry>
+  <!-- 0 refresh, 1 open the window, 2 restart unhealthy containers, 3 nothing -->
+  <entry name="middleClickAction" type="Int">
+    <default>0</default>
+  </entry>
 </group>
 
 <group name="integrationConfigPage">
-  <!-- {command} is the fully expanded docker command to run. -->
+  <!-- {command} is the fully expanded docker command to run. Empty means
+       automatic: the first terminal found on this system. -->
   <entry name="terminalCommand" type="String">
-    <default>konsole -e {command}</default>
+    <default></default>
   </entry>
   <entry name="editorCommand" type="String">
-    <default>kate {file}</default>
+    <default></default>
+  </entry>
+  <!-- "Open in" menu, one launcher per line:  Label | icon | scope | command
+       scope container: needs a running container ({id}, {shell} are filled in)
+       scope project:   needs a compose project folder ({dir} is filled in)
+       Entries whose program is not installed are hidden automatically. -->
+  <entry name="launchers" type="String">
+    <default><![CDATA[Konsole|konsole|container|konsole -e {engine} exec -it {id} {shell}
+Ghostty|com.mitchellh.ghostty|container|ghostty -e {engine} exec -it {id} {shell}
+Yakuake|yakuake|container|sh -c 'qdbus6 org.kde.yakuake /yakuake/sessions org.kde.yakuake.addSession && qdbus6 org.kde.yakuake /yakuake/sessions org.kde.yakuake.runCommand "{engine} exec -it {id} {shell}"'
+VS Code|code|project|code {dir}
+Dolphin|system-file-manager|project|dolphin {dir}
+Terminal here|utilities-terminal|project|konsole --workdir {dir}]]></default>
   </entry>
   <!-- Kept for compatibility with existing settings; Open in probes shells. -->
   <entry name="shellList" type="String">
@@ -167,10 +324,14 @@
 
 <group name="networkConfigPage">
   <entry name="lanHost" type="String">
-    <default>192.168.1.77</default>
+    <default></default>
   </entry>
   <entry name="tailscaleHost" type="String">
-    <default>100.90.68.14</default>
+    <default></default>
+  </entry>
+  <!-- Fill lanHost / tailscaleHost automatically when they are left empty. -->
+  <entry name="autoDetectHosts" type="Bool">
+    <default>true</default>
   </entry>
   <entry name="enableBrowserLinks" type="Bool">
     <default>true</default>
@@ -262,21 +423,53 @@
   <entry name="hideWhenInactive" type="Bool">
     <default>false</default>
   </entry>
+  <!-- How the ring behaves: 0 gauge (fills with running/total), 1 solid
+       colour, 2 never changes. -->
+  <entry name="panelIndicator" type="Int">
+    <default>0</default>
+  </entry>
+  <!-- What takes the state colour: 0 the ring, 1 the whale, 2 both. -->
+  <entry name="indicatorTarget" type="Int">
+    <default>0</default>
+  </entry>
+  <!-- Replace the theme's green / red / amber with your own. -->
+  <entry name="customStateColors" type="Bool">
+    <default>false</default>
+  </entry>
+  <entry name="stateOkColor" type="String">
+    <default>#2560ff</default>
+  </entry>
+  <entry name="stateBadColor" type="String">
+    <default>#da4453</default>
+  </entry>
+  <entry name="statePausedColor" type="String">
+    <default>#f67400</default>
+  </entry>
+  <entry name="showRestartPolicy" type="Bool">
+    <default>true</default>
+  </entry>
 </group>
 
 <group name="servicesConfigPage">
-  <!-- One "image-substring=glyph" pair per line. Listed before the bundled
-       rules, so an entry here wins. A bare substring with no "=" masks it. -->
+  <!-- One "text=icon-name" rule per line: a container whose name, image or
+       service contains the text gets that library icon. A bare text with no "="
+       gives matching containers no icon. Tried before the automatic match. -->
   <entry name="customIcons" type="String">
     <default></default>
   </entry>
 
-  <!-- Directory of coloured provider/service icons, e.g. ~/pictures/selfhst.
-       When set, a container whose image name matches a file there is drawn
-       with that artwork in full colour instead of the bundled monochrome
-       glyph. "~" is expanded. Leave empty to use only the bundled glyphs. -->
+  <!-- Directory of coloured provider/service icons (selfh.st layout). When a
+       container matches a file there it is drawn with that artwork instead of
+       the bundled monochrome glyph. "~" is expanded. Empty means automatic:
+       the folder the Services page downloads to, then ~/Pictures/selfhst. -->
   <entry name="serviceIconDirectory" type="String">
-    <default>/home/rd/pictures/selfhst</default>
+    <default></default>
+  </entry>
+
+  <!-- 0 = the standard artwork, 1 = the -light / -dark variant that suits the
+       current theme when the library has one. -->
+  <entry name="iconVariant" type="Int">
+    <default>0</default>
   </entry>
 
   <!-- Colour the provider icons. Off means every icon is drawn as a themed

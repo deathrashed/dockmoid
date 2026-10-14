@@ -33,7 +33,10 @@ PlasmaExtras.Representation {
 
     property int viewMode: cfg.defaultViewMode
     property int detailLevel: cfg.defaultDetailLevel
+    readonly property var detailNames: [i18n("Minimal"), i18n("Normal"), i18n("Detailed"), i18n("Everything")]
     property string searchText: ""
+    /* Show only what needs attention: unhealthy, restarting, crashed or paused. */
+    property bool problemsOnly: false
 
     implicitWidth: Kirigami.Units.gridUnit * 36
     implicitHeight: Kirigami.Units.gridUnit * 24
@@ -49,22 +52,79 @@ PlasmaExtras.Representation {
      * The proxy is the single owner of the sort order: the config seeds it,
      * and clicking a table header mutates it in place.
      */
+    /*
+     * Search is a plain substring test on the pre-joined searchKey, so typing
+     * "(" or "[" can never be an invalid pattern. The callback is rebuilt
+     * whenever its inputs change; assigning a new function is what makes the
+     * proxy re-run the filter.
+     */
+    readonly property var rowFilter: {
+        var needle = root.searchText.toLowerCase()
+        var problems = root.problemsOnly
+        var source = root.backend.containerModel
+        return function (sourceRow) {
+            var row = source.get(sourceRow)
+            if (!row) return false
+            if (problems && !root.backend.isProblem(row)) return false
+            return needle === "" || row.searchKey.indexOf(needle) !== -1
+        }
+    }
+
     KItemModels.KSortFilterProxyModel {
         id: proxy
         sourceModel: root.backend.containerModel
-        filterRoleName: "searchKey"
-        filterRegularExpression: root.searchText.length > 0
-            ? RegExp(root.searchText, "i")
-            : RegExp("")
         filterCaseSensitivity: Qt.CaseInsensitive
         sortCaseSensitivity: Qt.CaseInsensitive
         recursiveFilteringEnabled: true
+        filterRowCallback: root.rowFilter
         dynamicSortFilter: true
         sortRoleName: root.cfg.sortRole
         sortOrder: root.cfg.sortAscending ? Qt.AscendingOrder : Qt.DescendingOrder
     }
 
     // ======================================================== actions ====
+
+    function refreshNow() {
+        root.backend.refresh({
+            "force": true,
+            "withStats": true,
+            "withDisk": root.cfg.showDiskUsage
+        })
+    }
+
+    function showResources() {
+        stack.push(Qt.resolvedUrl("ResourcesPage.qml"), {
+            "backend": root.backend,
+            "dialogs": dialogs,
+            "navigator": stack
+        })
+    }
+
+    // ----------------------------------------------------- keyboard ----
+    Shortcut { sequences: ["Ctrl+F"]; onActivated: searchField.forceActiveFocus() }
+    Shortcut { sequences: ["Ctrl+R", "F5"]; onActivated: root.refreshNow() }
+    Shortcut { sequences: ["Ctrl+1"]; onActivated: root.viewMode = 0 }
+    Shortcut { sequences: ["Ctrl+2"]; onActivated: root.viewMode = 1 }
+    Shortcut { sequences: ["Ctrl+3"]; onActivated: root.viewMode = 2 }
+    Shortcut { sequences: ["Ctrl+Shift+A"]; onActivated: root.problemsOnly = !root.problemsOnly }
+    Shortcut {
+        // Escape peels one layer: clear the search, then go back a page.
+        sequences: ["Escape"]
+        onActivated: {
+            if (searchField.text !== "") searchField.clear()
+            else if (stack.depth > 1) stack.pop()
+        }
+    }
+
+    /* "Updated 12 seconds ago" for the refresh button's tooltip. */
+    function updatedText() {
+        var ms = root.backend.lastUpdatedMs
+        if (ms <= 0) return i18n("Refresh")
+        var secs = Math.max(0, Math.round((Date.now() - ms) / 1000))
+        return secs < 2 ? i18n("Refresh — just updated")
+                        : i18n("Refresh — updated %1 ago", secs < 90 ? i18np("%1 second", "%1 seconds", secs)
+                                                                     : i18np("%1 minute", "%1 minutes", Math.round(secs / 60)))
+    }
 
     function showDetail(recordId) {
         var page = stack.push(Qt.resolvedUrl("DetailPage.qml"), {
@@ -155,41 +215,54 @@ PlasmaExtras.Representation {
                 onTextChanged: root.searchText = text
             }
 
-            PlasmaComponents.ToolButton {
-                icon.name: "view-list-tree"
-                display: PlasmaComponents.AbstractButton.IconOnly
-                checkable: true
-                checked: root.viewMode === 0
-                onClicked: root.viewMode = 0
-                PlasmaComponents.ToolTip { text: i18n("Rows") }
+            // ---- how the list is laid out: one choice of three ----------
+            Row {
+                spacing: 0
+
+                Repeater {
+                    model: [
+                        { "mode": 0, "icon": "view-list-text",    "tip": i18n("List") },
+                        { "mode": 1, "icon": "view-list-details", "tip": i18n("Table") },
+                        { "mode": 2, "icon": "view-list-tree",    "tip": i18n("Grouped by Compose project") }
+                    ]
+                    delegate: PlasmaComponents.ToolButton {
+                        required property var modelData
+                        icon.name: modelData.icon
+                        text: modelData.tip
+                        display: PlasmaComponents.AbstractButton.IconOnly
+                        checkable: true
+                        checked: root.viewMode === modelData.mode
+                        onClicked: root.viewMode = modelData.mode
+                        PlasmaComponents.ToolTip { text: modelData.tip }
+                    }
+                }
             }
 
+            // ---- how much each row says (only the list has levels) ------
             PlasmaComponents.ToolButton {
-                icon.name: "view-list-details"
+                id: detailButton
+                icon.name: "view-visible"
                 display: PlasmaComponents.AbstractButton.IconOnly
-                checkable: true
-                checked: root.viewMode === 1
-                onClicked: root.viewMode = 1
-                PlasmaComponents.ToolTip { text: i18n("Table") }
-            }
-
-            PlasmaComponents.ToolButton {
-                icon.name: "folder"
-                display: PlasmaComponents.AbstractButton.IconOnly
-                checkable: true
-                checked: root.viewMode === 2
-                onClicked: root.viewMode = 2
-                PlasmaComponents.ToolTip { text: i18n("Compose groups") }
-            }
-
-            PlasmaComponents.ToolButton {
-                icon.name: "preferences-desktop-display"
-                display: PlasmaComponents.AbstractButton.IconOnly
+                text: i18n("Row detail: %1", root.detailNames[root.detailLevel])
                 visible: root.viewMode === 0
-                onClicked: root.detailLevel = (root.detailLevel + 1) % 4
-                PlasmaComponents.ToolTip {
-                    text: i18n("Detail: %1",
-                               ["minimal", "normal", "detailed", "verbose"][root.detailLevel])
+                onClicked: detailMenu.popup(detailButton, 0, detailButton.height)
+                PlasmaComponents.ToolTip { text: detailButton.text }
+
+                PlasmaComponents.Menu {
+                    id: detailMenu
+                    Instantiator {
+                        model: root.detailNames
+                        delegate: PlasmaComponents.MenuItem {
+                            required property int index
+                            required property string modelData
+                            text: modelData
+                            checkable: true
+                            checked: root.detailLevel === index
+                            onTriggered: root.detailLevel = index
+                        }
+                        onObjectAdded: function (index, object) { detailMenu.insertItem(index, object) }
+                        onObjectRemoved: function (index, object) { detailMenu.removeItem(object) }
+                    }
                 }
             }
 
@@ -200,38 +273,147 @@ PlasmaExtras.Representation {
             }
 
             PlasmaComponents.ToolButton {
+                id: attentionButton
+                icon.name: "dialog-warning"
+                display: PlasmaComponents.AbstractButton.IconOnly
+                text: i18n("Only containers that need attention")
+                checkable: true
+                checked: root.problemsOnly
+                visible: root.backend.problemCount > 0 || root.problemsOnly
+                onClicked: root.problemsOnly = !root.problemsOnly
+                PlasmaComponents.ToolTip { text: attentionButton.text }
+            }
+
+            PlasmaComponents.ToolButton {
+                id: refreshButton
                 icon.name: "view-refresh"
                 display: PlasmaComponents.AbstractButton.IconOnly
+                text: i18n("Refresh")
                 enabled: !root.backend.refreshing
-                onClicked: root.backend.refresh({
-                    "force": true,
-                    "withStats": true,
-                    "withDisk": root.cfg.showDiskUsage
-                })
-                PlasmaComponents.ToolTip { text: i18n("Refresh") }
+                onClicked: root.refreshNow()
+                PlasmaComponents.ToolTip { text: root.updatedText() }
             }
 
             PlasmaComponents.ToolButton {
-                icon.name: "window-pin"
+                id: detachButton
+                icon.name: "window-new"
                 display: PlasmaComponents.AbstractButton.IconOnly
+                text: i18n("Open in a separate window")
                 onClicked: root.applet.toggleDetached()
-                PlasmaComponents.ToolTip { text: i18n("Open in a separate window") }
+                PlasmaComponents.ToolTip { text: detachButton.text }
             }
 
             PlasmaComponents.ToolButton {
+                id: startButton
                 icon.name: "media-playback-start"
                 display: PlasmaComponents.AbstractButton.IconOnly
+                text: i18n("Start the Docker service")
                 visible: !root.backend.engineActive
                 onClicked: root.backend.startEngine()
-                PlasmaComponents.ToolTip { text: i18n("Start the Docker service") }
+                PlasmaComponents.ToolTip { text: startButton.text }
             }
 
             PlasmaComponents.ToolButton {
-                icon.name: "media-playback-stop"
+                id: toolsButton
+                icon.name: "overflow-menu"
                 display: PlasmaComponents.AbstractButton.IconOnly
-                visible: root.backend.engineActive
-                onClicked: confirmStopEngine.open()
-                PlasmaComponents.ToolTip { text: i18n("Stop the Docker service") }
+                text: i18n("More")
+                onClicked: {
+                    root.backend.fetchContexts()
+                    toolsMenu.popup(toolsButton, 0, toolsButton.height)
+                }
+                PlasmaComponents.ToolTip { text: toolsButton.text }
+
+                PlasmaComponents.Menu {
+                    id: toolsMenu
+
+                    PlasmaComponents.MenuItem {
+                        icon.name: "drive-harddisk"
+                        text: i18n("Images, volumes and networks…")
+                        enabled: root.backend.engineActive
+                        onTriggered: root.showResources()
+                    }
+                    PlasmaComponents.MenuItem {
+                        icon.name: "edit-clear-history"
+                        text: i18n("Clean up unused data…")
+                        enabled: root.backend.engineActive
+                        onTriggered: dialogs.confirmPrune()
+                    }
+                    PlasmaComponents.MenuItem {
+                        icon.name: "package-upgrade"
+                        text: i18n("Check for image updates now")
+                        enabled: root.backend.engineActive && root.cfg.checkImageUpdates
+                        onTriggered: { root.backend.updateState["__checked"] = 0; root.backend.startUpdateCheck() }
+                    }
+
+                    PlasmaComponents.MenuSeparator {}
+
+                    PlasmaComponents.Menu {
+                        id: hostMenu
+                        title: i18n("Host")
+                        icon.name: "network-server"
+
+                        PlasmaComponents.MenuItem {
+                            text: i18n("Default")
+                            checkable: true
+                            checked: root.backend.contextName === ""
+                            onTriggered: root.backend.setContext("")
+                        }
+                        Instantiator {
+                            model: root.backend.contexts.filter(function (c) { return c !== "default" })
+                            delegate: PlasmaComponents.MenuItem {
+                                required property string modelData
+                                text: modelData
+                                checkable: true
+                                checked: root.backend.contextName === modelData
+                                onTriggered: root.backend.setContext(modelData)
+                            }
+                            onObjectAdded: function (index, object) { hostMenu.insertItem(index + 1, object) }
+                            onObjectRemoved: function (index, object) { hostMenu.removeItem(object) }
+                        }
+                    }
+
+                    PlasmaComponents.Menu {
+                        id: sortMenu
+                        title: i18n("Sort by")
+                        icon.name: "view-sort-ascending"
+                        Instantiator {
+                            model: [
+                                { "role": "sortKey", "label": i18n("Pinned, then running") },
+                                { "role": "name",    "label": i18n("Name") },
+                                { "role": "cpuPct",  "label": i18n("CPU") },
+                                { "role": "memPct",  "label": i18n("Memory") },
+                                { "role": "project", "label": i18n("Project") }
+                            ]
+                            delegate: PlasmaComponents.MenuItem {
+                                required property var modelData
+                                text: modelData.label
+                                checkable: true
+                                checked: root.cfg.sortRole === modelData.role
+                                onTriggered: {
+                                    plasmoid.configuration.sortAscending = modelData.role !== "cpuPct" && modelData.role !== "memPct"
+                                    plasmoid.configuration.sortRole = modelData.role
+                                }
+                            }
+                            onObjectAdded: function (index, object) { sortMenu.insertItem(index, object) }
+                            onObjectRemoved: function (index, object) { sortMenu.removeItem(object) }
+                        }
+                    }
+
+                    PlasmaComponents.MenuSeparator {}
+
+                    PlasmaComponents.MenuItem {
+                        icon.name: "system-shutdown"
+                        text: i18n("Stop the Docker service…")
+                        enabled: root.backend.engineActive
+                        onTriggered: confirmStopEngine.open()
+                    }
+                    PlasmaComponents.MenuItem {
+                        icon.name: "configure"
+                        text: i18n("Configure Dockmoid…")
+                        onTriggered: plasmoid.internalAction("configure").trigger()
+                    }
+                }
             }
         }
 
@@ -265,6 +447,15 @@ PlasmaExtras.Representation {
             id: stack
             Layout.fillWidth: true
             Layout.fillHeight: true
+            // Docker unreachable: say why, over the (empty) list.
+            Components.EnginePlaceholder {
+                parent: stack
+                anchors.fill: parent
+                z: 5
+                visible: root.backend.engineKnown && !root.backend.engineActive && stack.depth === 1
+                backend: root.backend
+            }
+
             initialItem: HomePage {
                 backend: root.backend
                 proxy: proxy
@@ -272,6 +463,7 @@ PlasmaExtras.Representation {
                 viewMode: root.viewMode
                 detailLevel: root.detailLevel
                 searchText: root.searchText
+                rowFilter: root.rowFilter
                 onOpenDetail: function (recordId) { root.showDetail(recordId) }
                 onOpenOutput: function (title, text, isLive, recordId) {
                     root.showOutput(title, text, isLive, recordId)

@@ -75,7 +75,9 @@ Item {
             "callbacks": onDone ? [onDone] : [],
             "startedAt": 0
         })
-        pump()
+        // Configuration bindings can queue jobs before DataSource has finished
+        // construction. Start them after QML completes this turn.
+        Qt.callLater(pump)
     }
 
     /*

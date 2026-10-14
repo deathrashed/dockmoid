@@ -132,10 +132,13 @@ PlasmaComponents.ItemDelegate {
          */
         Kirigami.Icon {
             id: serviceIcon
-            readonly property bool hasIcon: root.backend.serviceIconUrl(root.record.image, root.record.name) !== ""
+            /* iconFor() reads the library state, so this binding re-resolves by
+               itself once the folder listing arrives or the folder changes. */
+            readonly property var art: root.backend.iconFor(root.record)
+            readonly property bool hasIcon: art.url !== ""
             visible: hasIcon
-            source: root.backend.serviceIconUrl(root.record.image, root.record.name)
-            isMask: !root.backend.serviceIconIsColored(root.record.image, root.record.name)
+            source: art.url
+            isMask: !art.colored
             implicitWidth: root.iconSize
             implicitHeight: implicitWidth
             color: Kirigami.Theme.colorSet
@@ -155,6 +158,59 @@ PlasmaComponents.ItemDelegate {
                     text: root.record.name
                     font.bold: true
                     elide: Text.ElideRight
+                }
+
+                Kirigami.Icon {
+                    visible: root.record.pinned
+                    source: "window-pin"
+                    implicitWidth: Kirigami.Units.iconSizes.small * 0.75
+                    implicitHeight: implicitWidth
+                    opacity: 0.55
+                }
+
+                // A newer image exists in the registry.
+                PlasmaComponents.Label {
+                    visible: root.record.updateAvailable
+                    text: i18n("update")
+                    color: Kirigami.Theme.highlightColor
+                    font: Kirigami.Theme.smallFont
+                    HoverHandler { id: updateHover }
+                    PlasmaComponents.ToolTip {
+                        visible: updateHover.hovered
+                        text: i18n("A newer image is available. Use the menu to update.")
+                    }
+                }
+
+                // Result of the web probe: does the service actually answer?
+                Rectangle {
+                    visible: root.record.probe !== ""
+                    implicitWidth: Kirigami.Units.smallSpacing * 1.5
+                    implicitHeight: implicitWidth
+                    radius: width / 2
+                    color: root.record.probe === "up" ? Kirigami.Theme.positiveTextColor
+                                                      : Kirigami.Theme.negativeTextColor
+                    HoverHandler { id: probeHover }
+                    PlasmaComponents.ToolTip {
+                        visible: probeHover.hovered
+                        text: root.record.probe === "up"
+                            ? i18n("Web page answers (%1 ms)", root.record.probeMs)
+                            : i18n("Web page does not answer")
+                    }
+                }
+
+                // Docker will bring this one back by itself after a reboot.
+                Kirigami.Icon {
+                    visible: root.cfg.showRestartPolicy
+                        && root.backend.startsAutomatically(root.record.restartPolicy)
+                    source: "media-playlist-repeat"
+                    implicitWidth: Kirigami.Units.iconSizes.small * 0.75
+                    implicitHeight: implicitWidth
+                    opacity: 0.55
+                    HoverHandler { id: policyHover }
+                    PlasmaComponents.ToolTip {
+                        visible: policyHover.hovered
+                        text: root.backend.policyLabel(root.record.restartPolicy)
+                    }
                 }
 
                 PlasmaComponents.Label {
@@ -316,7 +372,7 @@ PlasmaComponents.ItemDelegate {
         PlasmaComponents.ToolButton {
             id: webButton
             display: PlasmaComponents.AbstractButton.IconOnly
-            icon.source: "file:///home/rd/.local/share/icons/Papirus/24x24/actions/map-globe.svg"
+            icon.name: "internet-web-browser"
             text: i18n("Web links")
             visible: root.record.isRunning && root.backend.linksFor(root.record).length > 0
             onClicked: webActions.popup(webButton, 0, webButton.height)

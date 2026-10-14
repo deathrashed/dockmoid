@@ -2,10 +2,8 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls as QQC2
 
 import org.kde.kirigami as Kirigami
-import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 import org.kde.plasma.components as PlasmaComponents
 
 import "../components" as Components
@@ -39,7 +37,19 @@ Item {
     readonly property var links: backend.linksFor(record)
     readonly property bool hasRecord: record !== null
 
-    property int tab: 0        // 0 overview, 1 logs, 2 inspect
+    property int tab: 0        // 0 overview, 1 logs, 2 inspect, 3 run
+    property string runText: ""
+    property bool runBusy: false
+
+    function runCommand(command) {
+        if (!root.hasRecord || command.trim() === "") return
+        root.runBusy = true
+        root.runText = "$ " + command + "\n"
+        root.backend.execOnce(root.record, command, function (code, output) {
+            root.runText += output + (code !== 0 ? "\n[" + i18n("exit code %1", code) + "]" : "")
+            root.runBusy = false
+        })
+    }
     property string logsText: ""
     property string inspectText: ""
 
@@ -138,7 +148,7 @@ Item {
                 id: webButton
                 display: PlasmaComponents.AbstractButton.IconOnly
                 visible: root.hasRecord && root.record.isRunning && root.links.length > 0
-                icon.source: "file:///home/rd/.local/share/icons/Papirus/24x24/actions/map-globe.svg"
+                icon.name: "internet-web-browser"
                 text: i18n("Web links")
                 onClicked: webActions.popup(webButton, 0, webButton.height)
                 PlasmaComponents.ToolTip { text: webButton.text }
@@ -215,6 +225,15 @@ Item {
                 onClicked: root.tab = 2
             }
 
+            PlasmaComponents.ToolButton {
+                id: tabRun
+                text: i18n("Run")
+                visible: root.hasRecord && root.record.isRunning
+                checkable: true
+                checked: root.tab === 3
+                onClicked: root.tab = 3
+            }
+
             Item { Layout.fillWidth: true }
 
             PlasmaComponents.ToolButton {
@@ -262,7 +281,8 @@ Item {
             sourceComponent: !root.hasRecord
                 ? null
                 : (root.tab === 1 ? logsComponent
-                   : (root.tab === 2 ? inspectComponent : overviewComponent))
+                   : (root.tab === 2 ? inspectComponent
+                   : (root.tab === 3 ? runComponent : overviewComponent)))
         }
     }
 
@@ -285,6 +305,87 @@ Item {
                 Components.FieldRow {
                     label: i18n("Health")
                     value: root.record.health !== "none" ? root.record.health : ""
+                }
+                // CPU and memory over the last few minutes.
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    Layout.topMargin: Kirigami.Units.smallSpacing
+                    visible: root.record.isRunning
+                    spacing: Kirigami.Units.largeSpacing
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        PlasmaComponents.Label {
+                            text: i18n("CPU %1", root.record.cpu)
+                            font: Kirigami.Theme.smallFont
+                        }
+                        Components.Sparkline {
+                            Layout.fillWidth: true
+                            implicitHeight: Kirigami.Units.gridUnit * 2
+                            samples: root.backend.revision >= 0 ? root.backend.historyFor(root.record.id).cpu : []
+                            color: Kirigami.Theme.positiveTextColor
+                            floor: 10
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        PlasmaComponents.Label {
+                            text: i18n("Memory %1", root.record.mem)
+                            font: Kirigami.Theme.smallFont
+                        }
+                        Components.Sparkline {
+                            Layout.fillWidth: true
+                            implicitHeight: Kirigami.Units.gridUnit * 2
+                            samples: root.backend.revision >= 0 ? root.backend.historyFor(root.record.id).mem : []
+                            color: Kirigami.Theme.highlightColor
+                            floor: 10
+                        }
+                    }
+                }
+
+                Components.FieldRow {
+                    label: i18n("Web page")
+                    value: root.record.probe === "" ? ""
+                         : (root.record.probe === "up"
+                            ? i18n("answers (%1 ms)", root.record.probeMs)
+                            : i18n("does not answer"))
+                }
+                Components.FieldRow {
+                    label: i18n("Image")
+                    value: root.record.updateAvailable ? i18n("a newer version is available") : ""
+                }
+
+                // What Docker does with this container when the daemon starts.
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    visible: root.record.restartPolicy !== ""
+                    spacing: Kirigami.Units.smallSpacing
+
+                    PlasmaComponents.Label {
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 6
+                        text: i18n("Autostart")
+                        color: Kirigami.Theme.disabledTextColor
+                        font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                    }
+
+                    PlasmaComponents.ComboBox {
+                        id: policyBox
+                        Layout.fillWidth: true
+                        readonly property var policies: ["no", "on-failure", "unless-stopped", "always"]
+                        model: policies.map(function (p) { return root.backend.policyLabel(p) })
+                        currentIndex: Math.max(0, policies.indexOf(root.record.restartPolicy))
+                        onActivated: function (index) {
+                            if (policies[index] !== root.record.restartPolicy)
+                                root.backend.setRestartPolicy(root.record, policies[index])
+                        }
+                    }
                 }
                 Components.FieldRow {
                     label: i18n("Image")
@@ -408,49 +509,56 @@ Item {
     Component {
         id: logsComponent
 
-        Item {
-            QQC2.ScrollView {
-                id: logScroll
-                anchors.fill: parent
-                anchors.rightMargin: wrapToggle.visible ? Kirigami.Units.gridUnit * 2 : 0
-                background: null
+        Components.LogViewer {
+            text: root.logsText
+            logMode: true
+            emptyText: i18n("No log output yet.")
+        }
+    }
 
-                contentItem: QQC2.TextArea {
-                    id: logArea
-                    readOnly: true
-                    selectByMouse: true
-                    wrapMode: wrapToggle.checked ? TextEdit.WrapAnywhere : TextEdit.NoWrap
+    Component {
+        id: runComponent
+
+        ColumnLayout {
+            spacing: 0
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.margins: Kirigami.Units.smallSpacing
+                spacing: Kirigami.Units.smallSpacing
+
+                PlasmaComponents.TextField {
+                    id: commandField
+                    Layout.fillWidth: true
+                    placeholderText: i18n("A command to run inside the container, e.g. ls /app")
                     font.family: "monospace"
-                    font.pointSize: 9
-                    text: root.logsText !== "" ? root.logsText : i18n("No log output yet.")
-                    background: null
+                    enabled: !root.runBusy
+                    onAccepted: { root.runCommand(text); selectAll() }
+                }
+
+                PlasmaComponents.Button {
+                    text: i18n("Run")
+                    icon.name: "media-playback-start"
+                    enabled: !root.runBusy && commandField.text.trim() !== ""
+                    onClicked: root.runCommand(commandField.text)
                 }
             }
 
-            RowLayout {
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.margins: Kirigami.Units.smallSpacing
-                spacing: 2
+            PlasmaComponents.Label {
+                Layout.fillWidth: true
+                Layout.leftMargin: Kirigami.Units.largeSpacing
+                text: i18n("Not interactive: it runs once with sh -c and shows the output. For a real shell use Open in → Konsole.")
+                font: Kirigami.Theme.smallFont
+                opacity: 0.6
+                wrapMode: Text.WordWrap
+            }
 
-                PlasmaComponents.ToolButton {
-                    id: wrapToggle
-                    display: PlasmaComponents.AbstractButton.IconOnly
-                    icon.name: "text-wrap"
-                    text: i18n("Wrap lines")
-                    checkable: true
-                    checked: true
-                    PlasmaComponents.ToolTip { text: wrapToggle.text }
-                }
-
-                PlasmaComponents.ToolButton {
-                    id: copyLogs
-                    display: PlasmaComponents.AbstractButton.IconOnly
-                    icon.name: "edit-copy"
-                    text: i18n("Copy logs")
-                    onClicked: detailClipboard.content = logArea.text
-                    PlasmaComponents.ToolTip { text: copyLogs.text }
-                }
+            Components.LogViewer {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                text: root.runText
+                logMode: true
+                emptyText: i18n("Nothing run yet.")
             }
         }
     }
@@ -458,21 +566,9 @@ Item {
     Component {
         id: inspectComponent
 
-        QQC2.ScrollView {
-            background: null
-            contentItem: QQC2.TextArea {
-                readOnly: true
-                selectByMouse: true
-                wrapMode: TextEdit.NoWrap
-                font.family: "monospace"
-                font.pointSize: 9
-                text: root.inspectText !== "" ? root.inspectText : i18n("Loading…")
-                background: null
-            }
+        Components.LogViewer {
+            text: root.inspectText !== "" ? root.inspectText : i18n("Loading…")
+            wrap: false
         }
-    }
-
-    KQuickControlsAddons.Clipboard {
-        id: detailClipboard
     }
 }

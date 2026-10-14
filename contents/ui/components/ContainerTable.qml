@@ -263,7 +263,7 @@ Item {
                                     visible: cell.modelData.key === "name" && rowItem.isRunning
                                         && root.backend.linksFor(rowItem.record).length > 0
                                     display: PlasmaComponents.AbstractButton.IconOnly
-                                    icon.source: "file:///home/rd/.local/share/icons/Papirus/24x24/actions/map-globe.svg"
+                                    icon.name: "internet-web-browser"
                                     text: i18n("Web links")
                                     implicitHeight: rowItem.height
                                     onClicked: webActions.popup(this, 0, height)
