@@ -9,6 +9,8 @@ Item {
     required property var backend
     signal countFilter(string state)
     signal attentionFilterRequested()
+    /* The overview strip already shows the counts on the main page. */
+    property bool showCounts: true
     readonly property var cfg: plasmoid.configuration
     implicitHeight: Math.max(counts.implicitHeight, meters.implicitHeight) + Kirigami.Units.smallSpacing * 2
     Rectangle { anchors.fill: parent; color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1) }
@@ -46,6 +48,7 @@ Item {
         RowLayout {
         id: counts
         objectName: "footerCounts"
+        visible: root.showCounts
         spacing: root.compact ? 3 : Kirigami.Units.smallSpacing * 1.5
         Count { value: root.backend.running; glyph: "media-playback-start"; tint: Kirigami.Theme.positiveTextColor; description: i18n("%1 running containers · click to filter", String(value)); filterState: "running" }
         Count { value: root.backend.stopped; glyph: "media-playback-stop"; description: i18n("%1 stopped containers · click to filter", String(value)); filterState: "stopped" }

@@ -149,8 +149,8 @@ PlasmaComponents.Menu {
         root.entries = []
     }
 
-    function addEntry(label, glyph, action, artwork) {
-        if (root.isExcluded(label)) return
+    function addEntry(label, glyph, action, artwork, key) {
+        if (root.isExcluded(label, key)) return
         var item = menuItemTemplate.createObject(root.contentItem) as ActionMenuItem
         if (!item) return
         item.label = label
@@ -248,7 +248,9 @@ PlasmaComponents.Menu {
     function addCopyMenu(rec) {
         var menu = makeSubmenu(root, i18n("Copy"), "edit-copy", "copy")
         if (!menu) return
-        var values = [[i18n("Name"), rec.name, "copy-name"], [i18n("Container ID"), rec.id, "copy-id"], [i18n("Image"), rec.image, "copy-image"]]
+        var values = [[i18n("Name"), rec.name, "copy-name"], [i18n("Container ID"), rec.id, "copy-id"], [i18n("Image"), rec.image, "copy-image"],
+            [i18n("Shell command"), root.backend.engineBinary + " exec -it " + rec.name + " sh", "square-terminal"],
+            [i18n("Logs command"), root.backend.engineBinary + " logs -f --tail 200 " + rec.name, "scroll-text"]]
         if (rec.project) values.push([i18n("Project"), rec.project, "copy-project"])
         if (rec.service) values.push([i18n("Service"), rec.service, "copy-service"])
         if (rec.composeFiles) values.push([i18n("Compose file path"), rec.composeFiles, "copy-compose"])
@@ -265,7 +267,7 @@ PlasmaComponents.Menu {
 
     /* Everything a Compose project can do as a whole. */
     function addComposeMenu(rec) {
-        var menu = makeSubmenu(root, i18n("Compose"), "docker", "compose")
+        var menu = makeSubmenu(root, i18n("Compose project"), "layers", "compose")
         if (!menu) return
         var verbs = [
             ["ps", i18n("Status"), "view-list-details", false],
@@ -331,8 +333,8 @@ PlasmaComponents.Menu {
 
         if (rec.state === "not-created") {
             if (root.sectionOnly === "copy") { addCopyMenu(rec); return }
-            addEntry(i18n("Details"), "document-view", function() { root.openDetail(rec.id) })
-            if (!root.backend.readOnly) addEntry(i18n("Create and start"), "media-playback-start", function() { root.backend.startContainer(rec) })
+            addEntry(i18n("Open details"), "badge-info", function() { root.openDetail(rec.id) }, "", "details")
+            if (!root.backend.readOnly) addEntry(i18n("Create and start"), "rocket", function() { root.backend.startContainer(rec) })
             addEntry(i18n("Open project folder"), "folder-open", function() { root.backend.openContainerFolder(rec) })
             addEntry(i18n("Edit Compose file…"), "document-edit", function() { root.backend.editCompose(rec) })
             return
@@ -353,23 +355,26 @@ PlasmaComponents.Menu {
         var restarting = state.toLowerCase() === "restarting"
         if (fullMenu) {
             addHeading(i18n("Container"))
-            addEntry(i18n("Details"), "document-view", function () { root.openDetail(rec.id) })
-            addEntry(i18n("Logs"), "text-x-generic", function () { root.perform("logs") })
+            const web = running ? root.backend.linksFor(rec) : []
+            if (web.length > 0)
+                addEntry(i18n("Open web UI"), "globe", function () { root.backend.openLink(web[0]) }, "", "open web ui")
+            addEntry(i18n("Open details"), "badge-info", function () { root.openDetail(rec.id) }, "", "details")
+            addEntry(i18n("View logs"), "scroll-text", function () { root.perform("logs") }, "", "logs")
             if (!root.backend.readOnly && (running || state === "exited"))
-                addEntry(i18n("Restart"), "view-refresh", function () { root.perform("restart") })
+                addEntry(i18n("Restart"), "rotate-cw", function () { root.perform("restart") }, "", "restart")
             if (!root.backend.readOnly && Parsers.canStop(state))
-                addEntry(i18n("Stop"), "media-playback-stop", function () { root.perform("stop") })
+                addEntry(i18n("Stop"), "square", function () { root.perform("stop") }, "", "stop")
             else if (!root.backend.readOnly && Parsers.canStart(state))
-                addEntry(i18n("Start"), "media-playback-start", function () { root.perform("start") })
+                addEntry(i18n("Start"), "play", function () { root.perform("start") }, "", "start")
             addSeparator()
             addHeading(i18n("Management"))
         }
 
         if (wants("manage") && !root.backend.readOnly) {
-            const manage = makeSubmenu(root, i18n("Manage"), "configure", "manage")
+            const manage = makeSubmenu(root, i18n("Manage"), "settings-2", "manage")
             if (manage) {
                 addHeading(i18n("Lifecycle"), manage)
-                addToMenu(manage, composeService ? i18n("Pull and recreate…") : i18n("Pull image only…"), "package-upgrade", function () { root.dialogs.confirmUpdate(rec) })
+                addToMenu(manage, composeService ? i18n("Pull and recreate…") : i18n("Pull latest image…"), "cloud-download", function () { root.dialogs.confirmUpdate(rec) })
                 if (Parsers.canStart(state)) addToMenu(manage, i18n("Start"), "media-playback-start", function () { root.perform("start") })
                 if (Parsers.canStop(state)) addToMenu(manage, i18n("Stop"), "media-playback-stop", function () { root.perform("stop") })
                 if (Parsers.canPause(state)) addToMenu(manage, i18n("Pause"), "media-playback-pause", function () { root.backend.pauseContainer(rec) })
@@ -390,14 +395,14 @@ PlasmaComponents.Menu {
                 }
                 addSeparator(manage)
                 addHeading(i18n("Removal"), manage)
-                addToMenu(manage, i18n("Remove container…"), "edit-delete", function () { root.dialogs.confirmRemove(rec) })
+                addToMenu(manage, i18n("Delete container…"), "trash", function () { root.dialogs.confirmRemove(rec) })
             }
         }
 
         if (fullMenu) addSeparator()
 
         if (wants("customize")) {
-        const customize = makeSubmenu(root, i18n("Customize"), "preferences-desktop-icons", "customize")
+        const customize = makeSubmenu(root, i18n("Customize"), "palette", "customize")
         if (customize) {
             const icons = makeSubmenu(customize, i18n("Service icon"), "image")
             addToMenu(icons, i18n("Choose icon…"), "edit-find", function () { root.dialogs.chooseIcon(rec) })
@@ -431,7 +436,7 @@ PlasmaComponents.Menu {
         }
 
         if (wants("open") && (root.backend.allLinksFor(rec).length > 0)) {
-            const linksMenu = makeSubmenu(root, i18n("Web links"), "insert-link")
+            const linksMenu = makeSubmenu(root, i18n("Web links"), "globe")
             if (linksMenu) addBrowserEntries(linksMenu, rec)
         }
         if (fullMenu) addSeparator()
@@ -440,12 +445,12 @@ PlasmaComponents.Menu {
 
         if (fullMenu) addSeparator()
         if (wants("diagnostics")) {
-        const diagnostics = makeSubmenu(root, i18n("Diagnostics"), "utilities-system-monitor", "diagnostics")
+        const diagnostics = makeSubmenu(root, i18n("Diagnostics"), "stethoscope", "diagnostics")
         if (diagnostics) {
             addToMenu(diagnostics, i18n("Inspect JSON"), "document-properties", function () { root.showInspect(rec) })
-            if (running && !root.backend.readOnly) addToMenu(diagnostics, i18n("Run command…"), "utilities-terminal", function () { root.dialogs.openRun(rec) })
-            addToMenu(diagnostics, i18n("Refresh data"), "view-refresh", function () { root.backend.refresh({force:true,withStats:true}) })
-            addToMenu(diagnostics, i18n("Follow logs in terminal"), "text-x-log", function () { root.backend.followLogs(rec) })
+            if (running && !root.backend.readOnly) addToMenu(diagnostics, i18n("Run a command…"), "square-terminal", function () { root.dialogs.openRun(rec) })
+            addToMenu(diagnostics, i18n("Refresh now"), "refresh-cw", function () { root.backend.refresh({force:true,withStats:true}) })
+            addToMenu(diagnostics, i18n("Follow logs in a terminal"), "terminal", function () { root.backend.followLogs(rec) })
             if (!root.backend.readOnly && ((running && String(rec.health || "").toLowerCase() === "unhealthy") || restarting))
                 addToMenu(diagnostics, i18n("Restart container…"), "dialog-warning", function () { root.dialogs.confirm(i18n("Restart %1?", rec.name), i18n("This will restart the container. Dockmoid will not attempt automatic repair."), function () { root.backend.restartContainer(rec) }) })
         }

@@ -72,10 +72,12 @@ Item {
             ColumnLayout {
                 width:scroll.availableWidth
                 spacing:Kirigami.Units.smallSpacing*2
-                PlasmaComponents.Label {
-                    Layout.fillWidth:true;visible:root.tab===0
-                    text:i18n("%1 running · %2 stopped · %3 not created · %4 need attention",String(backend.running),String(backend.stopped),String(backend.notCreated),String(backend.problemCount))
-                    wrapMode:Text.Wrap;font.bold:true
+                Flow {
+                    Layout.fillWidth:true;visible:root.tab===0;spacing:Kirigami.Units.smallSpacing
+                    Components.StatTile {clickable:false;glyph:"circle-play";value:backend.running;label:i18n("Running");toneName:"ok"}
+                    Components.StatTile {clickable:false;glyph:"circle-pause";value:backend.stopped;label:i18n("Stopped");toneName:"slate"}
+                    Components.StatTile {clickable:false;glyph:"package-plus";value:backend.notCreated;label:i18n("Not created");toneName:"cyan"}
+                    Components.StatTile {clickable:false;glyph:"triangle-alert";value:backend.problemCount;label:i18n("Need attention");toneName:backend.problemCount>0?"bad":"slate"}
                 }
                 Controls.ComboBox {
                     Layout.fillWidth:true;visible:root.tab===1||root.tab===4

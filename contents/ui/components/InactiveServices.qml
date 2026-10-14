@@ -65,7 +65,7 @@ Item {
                         Pill {
                             visible: card.operation.label === ""
                             text: card.containerState === "not-created" ? i18n("Not created") : i18n("Stopped")
-                            tone: card.containerState === "not-created" ? "info" : "muted"
+                            tone: card.containerState === "not-created" ? "cyan" : "slate"
                             PlasmaComponents.ToolTip.text: card.status || card.containerState
                             PlasmaComponents.ToolTip.visible: hover.hovered
                         }

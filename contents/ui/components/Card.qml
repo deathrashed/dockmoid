@@ -16,6 +16,9 @@ Rectangle {
     id: root
 
     property string title: ""
+    property string titleGlyph: ""
+    /* Tone or hue name for the title icon; see Tones. */
+    property string titleTone: "muted"
     property color accent: "transparent"
     /* Alternative to `accent`: a tone name ("ok", "warn", "bad", "info"), "" for none. */
     property string tone: ""
@@ -58,16 +61,27 @@ Rectangle {
         anchors.leftMargin: root.padding + (root.hasAccent ? 3 : 0)
         spacing: Kirigami.Units.smallSpacing
 
-        PlasmaComponents.Label {
+        RowLayout {
             visible: root.title !== ""
             Layout.fillWidth: true
-            text: root.title
-            font.pointSize: Kirigami.Theme.smallFont.pointSize
-            font.bold: true
-            font.capitalization: Font.AllUppercase
-            font.letterSpacing: 0.6
-            color: Kirigami.Theme.disabledTextColor
-            elide: Text.ElideRight
+            spacing: Kirigami.Units.smallSpacing
+            ActionIcon {
+                visible: root.titleGlyph !== ""
+                glyph: root.titleGlyph
+                color: tones.color(root.titleTone)
+                implicitWidth: Kirigami.Units.iconSizes.small
+                implicitHeight: implicitWidth
+            }
+            PlasmaComponents.Label {
+                Layout.fillWidth: true
+                text: root.title
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                font.bold: true
+                font.capitalization: Font.AllUppercase
+                font.letterSpacing: 0.6
+                color: Kirigami.Theme.disabledTextColor
+                elide: Text.ElideRight
+            }
         }
         ColumnLayout {
             id: body

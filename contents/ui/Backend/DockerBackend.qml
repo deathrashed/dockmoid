@@ -143,6 +143,8 @@ Item {
     /* Bumped whenever the container data changes, so detail views can bind to
        it and re-resolve their record instead of holding a stale snapshot. */
     property int revision: 0
+    /* Recent changes, newest first: {time, kind, id, name, text}. Capped at 100. */
+    property var activity: []
 
     property int outputRequestCounter: 0
     property var outputRequestSequences: ({})
@@ -688,10 +690,32 @@ Item {
        container turning unhealthy or recovering. Things the user just did from
        this widget are muted, so pressing Stop never raises a notification about
        the stop. */
+    function activityText(ev) {
+        switch (ev.kind) {
+        case "crashed": return i18n("%1 exited with code %2", ev.name, ev.code)
+        case "restarting": return i18n("%1 is restarting", ev.name)
+        case "unhealthy": return i18n("%1 became unhealthy", ev.name)
+        case "recovered": return i18n("%1 is healthy again", ev.name)
+        case "started": return i18n("%1 started", ev.name)
+        case "stopped": return i18n("%1 stopped", ev.name)
+        default: return ""
+        }
+    }
+    function recordActivity(events) {
+        const now = Date.now()
+        const added = []
+        for (let i = 0; i < events.length; i++) {
+            const text = activityText(events[i])
+            if (text !== "") added.push({time: now, kind: events[i].kind, id: String(events[i].id || ""), name: events[i].name, text: text})
+        }
+        if (added.length > 0) activity = added.reverse().concat(activity).slice(0, 100)
+    }
+
     function announceChanges() {
         var snap = Parsers.snapshotStates(records)
         var events = Parsers.diffStates(lastSnapshot, snap)
         lastSnapshot = snap
+        if (events.length > 0) recordActivity(events)
         if (events.length === 0 || !cfg.useNotifications) return
 
         var now = Date.now()

@@ -24,6 +24,14 @@ test("every token is a usable opacity", () => {
   assert.ok(!context.isValid("0.1"));
 });
 
+test("accent hues are distinct hex colours", () => {
+  const hue = vm.runInContext("HUE", context);
+  const values = Object.values(hue);
+  assert.ok(values.length >= 7);
+  for (const value of values) assert.match(value, /^#[0-9a-f]{6}$/);
+  assert.equal(new Set(values).size, values.length);
+});
+
 test("fills get stronger from surface to hover", () => {
   const values = surfaces.map((name) => alpha[name]);
   assert.deepEqual(values, [...values].sort((a, b) => a - b));

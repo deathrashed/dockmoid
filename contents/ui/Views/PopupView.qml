@@ -218,6 +218,10 @@ PlasmaExtras.Representation {
             if (tab===1 && index>=0) page.selectedIndex=index
         }
     }
+    function showActivity() {
+        const page = stack.push(Qt.resolvedUrl("ActivityPage.qml"), {backend: root.backend})
+        if (page) page.openDetail.connect(function(id) { root.showDetail(id) })
+    }
     function checkUpdates() {
         root.backend.updateState["__checked"] = 0
         root.backend.startUpdateCheck(true)
@@ -688,7 +692,7 @@ PlasmaExtras.Representation {
                             presentation: root.toolbarStyle
                             label: i18n("New")
                             text: i18n("Images and new containers…")
-                            glyph: "list-add"
+                            glyph: "package-plus"
                             visible: root.directNew
                             enabled: root.backend.engineActive && !root.backend.readOnly
                             onClicked: root.showDeployment()
@@ -698,7 +702,7 @@ PlasmaExtras.Representation {
                             presentation: root.toolbarStyle
                             label: i18n("Resources")
                             text: i18n("Images, volumes and networks")
-                            glyph: "drive-harddisk"
+                            glyph: "boxes"
                             visible: root.directResources
                             enabled: root.backend.engineActive
                             onClicked: root.showResources()
@@ -708,7 +712,7 @@ PlasmaExtras.Representation {
                             presentation: root.toolbarStyle
                             label: i18n("Doctor")
                             text: i18n("Open Doctor")
-                            glyph: "utilities-system-monitor"
+                            glyph: "stethoscope"
                             visible: root.directDoctor
                             onClicked: root.showDoctor(0)
                         }
@@ -718,7 +722,7 @@ PlasmaExtras.Representation {
                             label: i18n("Maintain")
                             menuIndicator: true
                             text: i18n("Updates, diagnostics and cleanup")
-                            glyph: "configure"
+                            glyph: "wrench"
                             visible: root.directMaintain
                             menuOpen: maintainMenu.opened
                             onClicked: maintainMenu.popup(this,0,height)
@@ -742,7 +746,7 @@ PlasmaExtras.Representation {
                             presentation: root.toolbarStyle
                             label: root.applet.detached ? i18n("Attach") : i18n("Detach")
                             text: root.applet.detached ? i18n("Return to panel popup") : i18n("Open in a separate window")
-                            glyph: "window-new"
+                            glyph: "square-arrow-out-up-right"
                             visible: root.directDetach
                             onClicked: root.applet.toggleDetached()
                         }
@@ -820,6 +824,11 @@ PlasmaExtras.Representation {
                                 text: i18n("Images, volumes and networks…")
                                 enabled: root.backend.engineActive
                                 onTriggered: root.showResources()
+                            }
+                            Components.ActionMenuDelegate {
+                                text: i18n("Activity log")
+                                icon.source: Qt.resolvedUrl(ActionIcons.path("bell-ring"))
+                                onTriggered: root.showActivity()
                             }
                             Components.ActionMenuDelegate {
                                 visible: !root.directDoctor
@@ -988,6 +997,13 @@ PlasmaExtras.Representation {
 
             initialItem: HomePage {
                 backend: root.backend
+                stateFilter: root.stateFilter
+                problemsOnly: root.problemsOnly
+                onFilterRequested: function(state) { root.stateFilter = (state === "all" || root.stateFilter === state) ? "all" : state; root.problemsOnly = false }
+                onAttentionRequested: { root.problemsOnly = !root.problemsOnly; root.stateFilter = "all" }
+                onUpdatesRequested: reviewUpdates.open()
+                onViewRequested: function(mode) { root.selectView(mode) }
+                onActivityRequested: root.showActivity()
                 proxy: proxy
                 dialogs: dialogs
                 viewMode: root.viewMode
@@ -1009,6 +1025,7 @@ PlasmaExtras.Representation {
         Kirigami.Separator { Layout.fillWidth: true; visible: root.cfg.showStatusBar }
         Components.StatusBar {
             Layout.fillWidth: true
+            showCounts: stack.depth > 1
             visible: root.cfg.showStatusBar
             backend: root.backend
             onAttentionFilterRequested: {root.problemsOnly=!root.problemsOnly;root.stateFilter="all";root.searchText="";if(stack.depth>1)stack.pop(stack.get(0))}

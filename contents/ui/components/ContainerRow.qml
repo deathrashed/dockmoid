@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../../lib/parsers.js" as Parsers
 import "../../lib/status.js" as Status
+import "../../lib/style.js" as Style
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
@@ -149,7 +150,7 @@ PlasmaComponents.ItemDelegate {
                 PlasmaComponents.Label {
                     visible: root.record.updateAvailable === true
                     text: i18n("update")
-                    color: Kirigami.Theme.highlightColor
+                    color: Style.HUE.violet
                     font: Kirigami.Theme.smallFont
                     TapHandler { onTapped: root.dialogs.confirmUpdate(root.record) }
                     HoverHandler { id: updateHover; cursorShape: Qt.PointingHandCursor }
@@ -384,6 +385,7 @@ PlasmaComponents.ItemDelegate {
         }
         ActionToolButton {
             id: recoveryButton
+            opacity: root.hovered || root.highlighted || recoveryButton.activeFocus ? 1 : 0.55
             visible: root.width > 480 && root.detailLevel !== 0 && root.detailLevel !== 3 && !root.backend.readOnly && (root.record.updateAvailable === true
                 || (root.record.isRunning && (root.record.health === "unhealthy" || root.record.state === "restarting")))
             glyph: root.record.updateAvailable ? "package-upgrade" : "configure"
@@ -396,6 +398,7 @@ PlasmaComponents.ItemDelegate {
 
         ActionToolButton {
             id: toggleButton
+            opacity: root.hovered || root.highlighted || toggleButton.activeFocus ? 1 : 0.55
             visible: root.detailLevel !== 0 && root.detailLevel !== 3
             enabled: !root.backend.readOnly && !root.operation.busy
             glyph: root.record.isRunning ? "media-playback-stop" : "media-playback-start"
@@ -411,6 +414,7 @@ PlasmaComponents.ItemDelegate {
 
         ActionToolButton {
             id: webButton
+            opacity: root.hovered || root.highlighted || webButton.activeFocus ? 1 : 0.55
             glyph: "insert-link"
             text: i18n("Web links")
             visible: root.width > 440 && root.detailLevel !== 0 && root.detailLevel !== 3 && root.record.isRunning && root.backend.linksFor(root.record).length > 0
@@ -427,6 +431,7 @@ PlasmaComponents.ItemDelegate {
 
         ActionToolButton {
             id: overflowButton
+            opacity: root.hovered || root.highlighted || overflowButton.activeFocus ? 1 : 0.55
             Layout.alignment: root.detailLevel === 3 ? Qt.AlignTop : Qt.AlignVCenter
             glyph: "application-menu"
             text: i18n("More")

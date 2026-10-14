@@ -30,6 +30,22 @@ var ALPHA = {
     track: 0.12           // empty part of a usage bar
 };
 
+/*
+ * Accent hues beyond the theme's semantic colours. Mid-tones, so they stay
+ * readable on both light and dark panels. Use them to tell things apart (CPU
+ * vs memory, updates vs health), never to say "good" or "bad": that stays with
+ * the theme's positive, neutral and negative colours.
+ */
+var HUE = {
+    cyan: "#15aabf",
+    blue: "#339af0",
+    violet: "#845ef7",
+    pink: "#e64980",
+    amber: "#f59f00",
+    teal: "#12b886",
+    slate: "#868e96"
+};
+
 /* Every value must be a usable opacity. Used by the tests. */
 function isValid(value) {
     return typeof value === "number" && value > 0 && value <= 1;

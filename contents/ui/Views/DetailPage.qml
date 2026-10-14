@@ -132,8 +132,8 @@ Item {
         default: return i18n("Stopped")
         }
     }
-    readonly property string stateTone: root.attention === "not-created" ? "info"
-        : root.attention === "stopped" ? "muted"
+    readonly property string stateTone: root.attention === "not-created" ? "cyan"
+        : root.attention === "stopped" ? "slate"
         : Status.glyphTone(root.attention, root.hasRecord && root.record.isRunning === true)
 
     Components.Tones { id: tones }
@@ -164,7 +164,7 @@ Item {
                 Components.Pill {
                     visible: root.hasRecord && root.record.updateAvailable === true
                     text: i18n("Update available")
-                    tone: "info"
+                    tone: "violet"
                     glyph: "package-upgrade"
                 }
             ]
@@ -242,7 +242,7 @@ Item {
             backend: root.backend
             record: root.record
             dialogs: root.dialogs
-            excludedActions: ["details", "start", "stop", "create and start", "restart", "logs"]
+            excludedActions: ["details", "start", "stop", "create and start", "restart", "logs", "open web ui"]
             onOpenOutput: function (title, content, live, id) {
                 var request = root.backend.latestOutputRequest
                 root.outputRequested(title, content, live, id,
@@ -375,6 +375,7 @@ Item {
                     Layout.bottomMargin: 0
                     padding: Kirigami.Units.smallSpacing
                     title: i18n("Overview")
+                    titleGlyph: "badge-info"; titleTone: "blue"
                     Components.FieldRow { Layout.fillWidth: true; label: i18n("Status"); value: root.record.status }
                     Components.FieldRow { Layout.fillWidth: true; label: i18n("Health"); value: root.record.health !== "none" ? root.record.health : "" }
                     Components.FieldRow {
@@ -424,6 +425,7 @@ Item {
                     padding: Kirigami.Units.smallSpacing
                     visible: String(root.record.ports || "") !== "" || String(root.record.mounts || "") !== ""
                     title: i18n("Ports and storage")
+                    titleGlyph: "network"; titleTone: "teal"
                     Components.FieldRow {
                         Layout.fillWidth: true
                         label: i18n("Ports")
@@ -443,6 +445,7 @@ Item {
                         && ((root.record.cpu !== "" && root.record.cpu !== "unavailable")
                             || (root.record.mem !== "" && root.record.mem !== "unavailable"))
                     title: i18n("Usage")
+                    titleGlyph: "gauge"; titleTone: "violet"
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Kirigami.Units.largeSpacing

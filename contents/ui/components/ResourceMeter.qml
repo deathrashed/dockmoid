@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
+import "../../lib/style.js" as Style
 
 RowLayout {
     id: root
@@ -14,7 +15,7 @@ RowLayout {
     property real barWidth: compact ? 28 : 44
     property color barColor: root.warnAt > 0 && root.value >= root.warnAt * 2 ? Kirigami.Theme.negativeTextColor
         : root.warnAt > 0 && root.value >= root.warnAt ? Kirigami.Theme.neutralTextColor
-        : label === "CPU" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.highlightColor
+        : label === "CPU" ? Style.HUE.cyan : Style.HUE.violet
     property bool bold: false
     property string numberColumnText: "1000.00%"
     readonly property font metricFont: {

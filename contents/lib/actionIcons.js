@@ -21,7 +21,7 @@ function path(name) {
         "view-refresh": "rotate-cw", "media-playlist-repeat": "refresh-cw",
         "package-upgrade": "cloud-download", "system-download": "download",
         "dialog-warning": "circle-alert", "application-menu": "ellipsis-vertical",
-        "checkmark": "check", "edit-find": "search",
+        "checkmark": "check", "edit-find": "search", "document-save": "save",
         "drive-harddisk": "hard-drive", "edit-clear-history": "brush-cleaning",
         "network-server": "server", "view-sort-ascending": "arrow-down-wide-narrow",
         "view-list-text": "list", "view-list-details": "table", "view-list-tree": "network",
@@ -32,5 +32,7 @@ function path(name) {
         "view-filter": "list-filter", "list-add": "package-plus", "bell": "bell",
         "package": "package", "cpu": "cpu", "memory": "memory-stick", "circle-x": "circle-x", "bookmark": "bookmark", "system-shutdown": "power", "go-next": "chevron-right", "go-previous-arrow": "chevron-left"
     };
-    return "../../assets/lucide/" + (names[String(name).replace(/-symbolic$/, "")] || "external-link") + ".svg";
+    var key = String(name).replace(/-symbolic$/, "");
+    /* A name that is not a mapped theme name is taken to be a lucide icon name. */
+    return "../../assets/lucide/" + (names[key] || (/^[a-z0-9]+(-[a-z0-9]+)*$/.test(key) ? key : "external-link")) + ".svg";
 }

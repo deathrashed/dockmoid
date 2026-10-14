@@ -48,7 +48,7 @@ Rectangle {
  function toolbar(style){config.toolbarStyle=style}
  function everything(){popup.selectView(0);popup.selectDetail(3)}
  function grid(){popup.selectView(3)}
- function showPage(name){popup.selectView(0);if(name==='doctor')popup.showDoctor(0);else if(name==='resources')popup.showResources();else if(name==='deploy')popup.showDeployment();else if(name==='detail')popup.showDetail('000000000000',0);else if(name==='detail1')popup.showDetail('000000000009',0)}
+ function showPage(name){popup.selectView(0);if(name==='doctor')popup.showDoctor(0);else if(name==='resources')popup.showResources();else if(name==='deploy')popup.showDeployment();else if(name==='activity')popup.showActivity();else if(name==='detail')popup.showDetail('000000000000',0);else if(name==='detail1')popup.showDetail('000000000009',0)}
  function presentation(mode,level){popup.selectView(mode);popup.selectDetail(level)}
  function level(){return popup.detailLevel}
  function mode(){return popup.viewMode}
@@ -59,6 +59,7 @@ Rectangle {
   backend.records='''+json.dumps(records)+'''
   backend.engineActive=true;backend.engineKnown=true;backend.endpointHost='unix:///var/run/docker.sock';backend.composeAvailable=true;backend.buildxAvailable=true
   backend.iconLibraryDir='''+json.dumps(str(icon_dir))+''';backend.iconEntries=Icons.parseLibrary('''+json.dumps('\n'.join(files))+''');backend.iconCount=16000;backend.iconRevision++
+  backend.activity=[{time:Date.now(),kind:'crashed',id:'000000000002',name:'lidarr',text:'lidarr exited with code 1'},{time:Date.now()-60000,kind:'restarting',id:'000000000001',name:'deemix',text:'deemix is restarting'},{time:Date.now()-180000,kind:'recovered',id:'000000000000',name:'caddy',text:'caddy is healthy again'},{time:Date.now()-900000,kind:'started',id:'000000000003',name:'navidrome',text:'navidrome started'},{time:Date.now()-1200000,kind:'stopped',id:'',name:'beets',text:'beets stopped'}]
   backend.recomputeTotals();backend.syncModel();backend.revision++;backend.updateCount=3;backend.lastUpdatedMs=Date.now()
  }
 }'''
@@ -88,6 +89,8 @@ def step(index=0):
  QTimer.singleShot(100,safe(lambda:check(index,w,m,l)))
 def check(index,w,m,l):
  assert popup().width()>0
+ if os.environ.get('DOCKMOID_UI_CAPTURE_DIR'):
+  folder=pathlib.Path(os.environ['DOCKMOID_UI_CAPTURE_DIR']);folder.mkdir(parents=True,exist_ok=True);view.grabWindow().save(str(folder/f'before-click-w{w}-m{m}-l{l}.png'))
  target=json.loads(view.rootObject().previewTarget());assert target, (w,m,l,'no preview target')
  QTest.mouseClick(view,Qt.LeftButton,Qt.NoModifier,QPoint(round(target['x']),round(target['y'])));app.processEvents()
  assert view.rootObject().previewSelected()==target['id'], (w,m,l,'selection preview')
@@ -95,7 +98,7 @@ def check(index,w,m,l):
  if os.environ.get('DOCKMOID_UI_CAPTURE_DIR'):
   folder=pathlib.Path(os.environ['DOCKMOID_UI_CAPTURE_DIR']);folder.mkdir(parents=True,exist_ok=True);image.save(str(folder/f'w{w}-m{m}-l{l}.png'))
  checks.append([w,m,l]);step(index+1)
-PAGES=[(n,w) for n in (os.environ.get('DOCKMOID_UI_ONLY') or 'doctor,resources,deploy,detail,detail1').split(',') for w in [1050,360]]
+PAGES=[(n,w) for n in (os.environ.get('DOCKMOID_UI_ONLY') or 'doctor,resources,deploy,detail,detail1,activity').split(',') for w in [1050,360]]
 def pages(i):
  if i==len(PAGES):app.quit();return
  n,w=PAGES[i];view.resize(w,760);view.rootObject().showPage(n)

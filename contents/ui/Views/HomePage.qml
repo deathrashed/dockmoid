@@ -22,6 +22,13 @@ Item {
     required property string searchText
     required property var rowFilter
     property int activeFilterCount: 0
+    property string stateFilter: "all"
+    property bool problemsOnly: false
+    signal filterRequested(string state)
+    signal attentionRequested()
+    signal updatesRequested()
+    signal viewRequested(int mode)
+    signal activityRequested()
     signal clearFiltersRequested()
     signal createRequested()
     signal resourcesRequested()
@@ -176,10 +183,19 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         spacing: root.innerSpacing
-        RowLayout {
-            Layout.fillWidth:true
-            PlasmaComponents.Label {Layout.fillWidth:true;text:i18n("Services");font.bold:true}
-            Components.ActionToolButton {id:layoutOptions;glyph:"configure";text:i18n("Configure main view");onClicked:layoutMenu.popup(layoutOptions,0,layoutOptions.height)}
+        Components.OverviewStrip {
+            Layout.fillWidth: true
+            backend: root.backend
+            cfg: root.cfg
+            stateFilter: root.stateFilter
+            problemsOnly: root.problemsOnly
+            viewMode: root.viewMode
+            onFilterRequested: function(state) { root.filterRequested(state) }
+            onAttentionRequested: root.attentionRequested()
+            onUpdatesRequested: root.updatesRequested()
+            onViewRequested: function(mode) { root.viewRequested(mode) }
+            onActivityRequested: root.activityRequested()
+            onOptionsRequested: function(anchor) { layoutMenu.popup(anchor, 0, anchor.height) }
         }
         Controls.SplitView {
             id: serviceSections
@@ -209,7 +225,7 @@ Item {
                 Components.SectionHeader {
                     Layout.fillWidth: true
                     Layout.preferredHeight: root.sectionHeaderHeight
-                    glyph: "dialog-warning"; glyphColor: Kirigami.Theme.neutralTextColor
+                    glyph: "triangle-alert"; glyphColor: Style.HUE.amber
                     title: i18n("Needs attention · %1", attentionProxy.count)
                     expanded: root.expanded("attention")
                     onToggled: root.toggleSection("attention")
@@ -230,7 +246,8 @@ Item {
                 id: runningPanel
                 objectName: "runningServiceSection"
                 Controls.SplitView.fillWidth: true
-                Controls.SplitView.minimumHeight: root.sectionHeaderHeight
+                /* Keep at least one row visible when Running is open. */
+                Controls.SplitView.minimumHeight: root.expanded("running") ? root.sectionHeaderHeight + Kirigami.Units.gridUnit * 3.2 : root.sectionHeaderHeight
                 Controls.SplitView.maximumHeight:root.expanded("running")?16777215:root.sectionHeaderHeight
             Controls.SplitView.preferredHeight: root.expanded("running") ? root.paneHeight("running",root.height / 2) : root.sectionHeaderHeight
                 Controls.SplitView.fillHeight: root.expanded("running")
@@ -239,7 +256,7 @@ Item {
                     anchors.fill: parent; spacing: 0
                     Components.SectionHeader {
                         Layout.fillWidth: true; Layout.preferredHeight: root.sectionHeaderHeight
-                        glyph: "media-playback-start"; glyphColor: Kirigami.Theme.positiveTextColor
+                        glyph: "circle-play"; glyphColor: Kirigami.Theme.positiveTextColor
                         title: i18n("Running · %1", runningProxy.count)
                         expanded: root.expanded("running")
                         onToggled: root.toggleSection("running")
@@ -271,7 +288,7 @@ Item {
                     anchors.fill: parent; spacing: 0
                     Components.SectionHeader {
                         Layout.fillWidth: true; Layout.preferredHeight: root.sectionHeaderHeight
-                        glyph: "media-playback-stop"; glyphColor: Kirigami.Theme.disabledTextColor
+                        glyph: "circle-pause"; glyphColor: Style.HUE.slate
                         title: i18n("Inactive · %1", inactiveProxy.count)
                         expanded: root.expanded("inactive")
                         onToggled: root.toggleSection("inactive")
