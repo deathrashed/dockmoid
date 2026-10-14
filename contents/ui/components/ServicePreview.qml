@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
+import "../../lib/style.js" as Style
 
 Rectangle {
     id:root
@@ -11,9 +12,9 @@ Rectangle {
     required property var backend
     signal openDetail(string recordId)
     readonly property var record: {const revision=backend.revision;return backend.findRecord(backend.previewRecordId)}
-    color:Qt.alpha(Kirigami.Theme.highlightColor,0.045)
-    border.color:Qt.alpha(Kirigami.Theme.textColor,0.18)
-    radius:4
+    color:Qt.alpha(Kirigami.Theme.highlightColor,Style.ALPHA.surface2)
+    border.color:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)
+    radius:Kirigami.Units.smallSpacing
     Controls.ScrollView {
         id:previewScroll
         contentWidth:availableWidth

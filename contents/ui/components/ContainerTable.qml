@@ -9,6 +9,7 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 import "../../lib/parsers.js" as Parsers
 import "../../lib/status.js" as Status
+import "../../lib/style.js" as Style
 
 /*
  * ContainerTable — the dense, sortable view.
@@ -142,14 +143,14 @@ Item {
                     width: root.columnWidth(index)
                     height: headerRow.height
                     color: headerHover.hovered
-                        ? Qt.alpha(Kirigami.Theme.highlightColor, 0.25)
-                        : Qt.alpha(Kirigami.Theme.textColor, 0.06)
+                        ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintHover)
+                        : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface3)
 
                     Rectangle {
                         anchors.bottom: parent.bottom
                         width: parent.width
                         height: 1
-                        color: Qt.alpha(Kirigami.Theme.textColor, 0.2)
+                        color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
                     }
 
                     RowLayout {
@@ -300,7 +301,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     color: rowItem.index % 2 === 1
-                        ? Qt.alpha(Kirigami.Theme.textColor, 0.03)
+                        ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
                         : "transparent"
                 }
 
@@ -410,7 +411,7 @@ Item {
                     anchors.bottom: parent.bottom
                     width: parent.width
                     height: 1
-                    color: Qt.alpha(Kirigami.Theme.textColor, 0.08)
+                    color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.divider)
                 }
 
                 TapHandler {

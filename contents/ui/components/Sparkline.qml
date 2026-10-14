@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
+import "../../lib/style.js" as Style
 
 /*
  * Sparkline — a tiny line graph of recent samples.
@@ -38,7 +39,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 2
-        color: Qt.alpha(root.color, 0.08)
+        color: Qt.alpha(root.color, Style.ALPHA.tintWeak)
     }
 
     Shape {

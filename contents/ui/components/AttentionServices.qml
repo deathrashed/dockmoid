@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/status.js" as Status
+import "../../lib/style.js" as Style
 
 Item {
     id: root
@@ -49,7 +50,7 @@ Item {
                 if (code) return i18n("Exited with code %1", code[1])
                 return row.attention === "failed" ? i18n("Container failed") : String(row.status || row.containerState)
             }
-            Rectangle { anchors.fill: parent; color: Qt.alpha(Kirigami.Theme.textColor, 0.025) }
+            Rectangle { anchors.fill: parent; color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1) }
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: Kirigami.Units.smallSpacing

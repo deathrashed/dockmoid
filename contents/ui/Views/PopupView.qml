@@ -11,6 +11,7 @@ import org.kde.plasma.extras as PlasmaExtras
 import "../components" as Components
 import "../../lib/profiles.js" as Profiles
 import "../../lib/actionIcons.js" as ActionIcons
+import "../../lib/style.js" as Style
 
 /*
  * PopupView — the whole expanded UI, in a form that works unchanged both
@@ -560,7 +561,7 @@ PlasmaExtras.Representation {
             Layout.fillWidth: true
             implicitHeight: headerRow.implicitHeight + Kirigami.Units.smallSpacing * 2
             visible: root.cfg.showHeader
-            color: Qt.alpha(Kirigami.Theme.textColor, 0.035)
+            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
         RowLayout {
             id: headerRow
             anchors.fill: parent

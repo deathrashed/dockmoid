@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/status.js" as Status
+import "../../lib/style.js" as Style
 
 /* Minimal view: compact horizontal cards wrap to fill the available width. */
 Item {
@@ -52,8 +53,8 @@ Item {
                 onDoubleClicked: root.openDetail(card.containerKey)
                 background: Rectangle {
                     radius: Kirigami.Units.smallSpacing
-                    color: card.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, 0.15) : Qt.alpha(Kirigami.Theme.textColor, 0.035)
-                    border.color: card.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.12)
+                    color: card.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong) : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
+                    border.color: card.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
                 }
                 contentItem: RowLayout {
                     spacing: Kirigami.Units.smallSpacing

@@ -8,6 +8,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.kitemmodels as KItemModels
 
 import "../components" as Components
+import "../../lib/style.js" as Style
 
 /* Three sections share the popup's current search/state filters. */
 Item {
@@ -164,7 +165,7 @@ Item {
         onResizingChanged:{if(resizing)wasResizing=true;else if(wasResizing){wasResizing=false;root.updateSetting("previewWidth",previewPane.width);root.updateSetting("previewHeight",previewPane.height)}}
         anchors.fill:parent
         orientation:root.width>=760?Qt.Horizontal:Qt.Vertical
-        handle:Rectangle {implicitWidth:6;implicitHeight:6;color:Controls.SplitHandle.pressed?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,0.18)}
+        handle:Rectangle {implicitWidth:6;implicitHeight:6;color:Controls.SplitHandle.pressed?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)}
         Item {
             Controls.SplitView.fillWidth:true
             Controls.SplitView.fillHeight:true
@@ -185,7 +186,7 @@ Item {
             Layout.fillHeight: true
             Layout.minimumHeight: 0
             orientation: Qt.Vertical
-            handle: Rectangle {implicitHeight:7;color:Controls.SplitHandle.pressed?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,0.18)}
+            handle: Rectangle {implicitHeight:7;color:Controls.SplitHandle.pressed?Kirigami.Theme.highlightColor:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.border)}
             property bool wasResizing:false
             onResizingChanged: {if(resizing)wasResizing=true;else if(wasResizing){wasResizing=false;root.savePanes()}}
         Rectangle {
@@ -198,7 +199,7 @@ Item {
             Controls.SplitView.preferredHeight: !visible ? 0 : root.expanded("attention")
                 ? root.paneHeight("attention",Math.min(root.height * 0.36, root.sectionHeaderHeight + attentionProxy.count * Kirigami.Units.gridUnit * 3.5))
                 : root.sectionHeaderHeight
-            color: Qt.alpha(Kirigami.Theme.neutralTextColor, 0.045)
+            color: Qt.alpha(Kirigami.Theme.neutralTextColor, Style.ALPHA.surface2)
             radius: Kirigami.Units.smallSpacing
             ColumnLayout {
                 anchors.fill: parent
@@ -232,7 +233,7 @@ Item {
                 Controls.SplitView.maximumHeight:root.expanded("running")?16777215:root.sectionHeaderHeight
             Controls.SplitView.preferredHeight: root.expanded("running") ? root.paneHeight("running",root.height / 2) : root.sectionHeaderHeight
                 Controls.SplitView.fillHeight: root.expanded("running")
-                color: Qt.alpha(Kirigami.Theme.textColor, 0.035); radius: Kirigami.Units.smallSpacing
+                color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1); radius: Kirigami.Units.smallSpacing
                 ColumnLayout {
                     anchors.fill: parent; spacing: 0
                     RowLayout {
@@ -264,7 +265,7 @@ Item {
                 Controls.SplitView.maximumHeight:root.expanded("inactive")?16777215:root.sectionHeaderHeight
             Controls.SplitView.preferredHeight: root.expanded("inactive") ? root.paneHeight("inactive",root.height / 2) : root.sectionHeaderHeight
                 Controls.SplitView.fillHeight: root.expanded("inactive")
-                color: Qt.alpha(Kirigami.Theme.textColor, 0.035); radius: Kirigami.Units.smallSpacing
+                color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1); radius: Kirigami.Units.smallSpacing
                 ColumnLayout {
                     anchors.fill: parent; spacing: 0
                     RowLayout {
@@ -301,7 +302,7 @@ Item {
                     Controls.SplitView.minimumHeight:root.sectionHeaderHeight
                     Controls.SplitView.preferredHeight:root.expanded("embedded_"+modelData.key)?root.paneHeight("embedded_"+modelData.key,360):root.sectionHeaderHeight
                     Controls.SplitView.maximumHeight:root.expanded("embedded_"+modelData.key)?16777215:root.sectionHeaderHeight
-                    color:Qt.alpha(Kirigami.Theme.textColor,0.035);border.color:Qt.alpha(Kirigami.Theme.textColor,0.12);radius:4
+                    color:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.surface1);border.color:Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.borderFaint);radius:Kirigami.Units.smallSpacing
                     ColumnLayout {
                         anchors.fill:parent;spacing:0
                         Controls.ToolButton {Layout.fillWidth:true;Layout.preferredHeight:root.sectionHeaderHeight;text:(root.expanded("embedded_"+toolPane.modelData.key)?"▾ ":"▸ ")+toolPane.modelData.label;onClicked:root.toggleSection("embedded_"+toolPane.modelData.key)}

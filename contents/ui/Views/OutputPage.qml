@@ -7,6 +7,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 
 import "../components" as Components
+import "../../lib/style.js" as Style
 
 /*
  * OutputPage — full-height viewer for command output: container logs, inspect
@@ -141,7 +142,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
-            color: Qt.alpha(Kirigami.Theme.textColor, 0.2)
+            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
         }
 
         Loader {

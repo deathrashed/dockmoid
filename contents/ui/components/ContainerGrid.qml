@@ -6,6 +6,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/parsers.js" as Parsers
 import "../../lib/status.js" as Status
+import "../../lib/style.js" as Style
 
 /* Compact fixed-height cards: long metadata stays in tooltips or the detail view. */
 Item {
@@ -63,8 +64,8 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: Kirigami.Units.smallSpacing
-                color: tileHover.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, 0.16) : Qt.alpha(Kirigami.Theme.textColor, 0.04)
-                border.color: tileHover.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.12)
+                color: tileHover.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong) : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
+                border.color: tileHover.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
             }
             ColumnLayout {
                 anchors.fill: parent
@@ -184,11 +185,11 @@ Item {
                     Layout.fillWidth: true
                     spacing: 2
                     ActionToolButton { glyph: "document-view"; text: i18n("Details"); onClicked: root.openDetail(tile.containerKey) }
-                    Rectangle { visible: root.detailLevel >= 2; Layout.preferredWidth: 1; Layout.preferredHeight: Kirigami.Units.iconSizes.small; color: Qt.alpha(Kirigami.Theme.textColor, 0.2) }
+                    Rectangle { visible: root.detailLevel >= 2; Layout.preferredWidth: 1; Layout.preferredHeight: Kirigami.Units.iconSizes.small; color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border) }
                     ActionToolButton { glyph: "document-properties"; text: i18n("Inspect"); visible: root.detailLevel >= 2 && tile.width >= Kirigami.Units.gridUnit * 18; enabled: !tile.operation.busy; onClicked: actions.showInspect(tile.record) }
                     ActionToolButton { glyph: "utilities-terminal"; text: i18n("Run command"); visible: root.detailLevel >= 2 && tile.width >= Kirigami.Units.gridUnit * 18; enabled: tile.isRunning && !root.backend.readOnly && !tile.operation.busy; onClicked: root.dialogs.openRun(tile.record) }
                     ActionToolButton { glyph: "document-edit"; text: i18n("Edit Compose file"); visible: root.detailLevel >= 2 && tile.width >= Kirigami.Units.gridUnit * 18 && !!tile.composeFiles && !root.backend.readOnly && root.backend.canUseCompose; enabled: !tile.operation.busy; onClicked: root.backend.editCompose(tile.record) }
-                    Rectangle { visible: root.detailLevel >= 2; Layout.preferredWidth: 1; Layout.preferredHeight: Kirigami.Units.iconSizes.small; color: Qt.alpha(Kirigami.Theme.textColor, 0.2) }
+                    Rectangle { visible: root.detailLevel >= 2; Layout.preferredWidth: 1; Layout.preferredHeight: Kirigami.Units.iconSizes.small; color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border) }
                     Item { Layout.fillWidth: true }
                     ActionToolButton { visible: root.detailLevel >= 3; glyph: tile.verboseExpanded ? "chevron-up" : "chevron-down"; text: tile.verboseExpanded ? i18n("Less diagnostics") : i18n("More diagnostics"); onClicked: tile.verboseExpanded = !tile.verboseExpanded }
                     ActionToolButton { glyph: "application-menu"; text: i18n("Other actions"); onClicked: actions.popup(this, 0, height) }

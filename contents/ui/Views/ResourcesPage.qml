@@ -8,6 +8,7 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 
 import "../components" as Components
+import "../../lib/style.js" as Style
 
 /* Images, Docker volumes and networks, including verified usage and cleanup. */
 Item {
@@ -356,7 +357,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
-            color: Qt.alpha(Kirigami.Theme.textColor, 0.2)
+            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
         }
 
         ColumnLayout {
@@ -384,7 +385,7 @@ Item {
                     header: ColumnLayout {
                         width: tableView.width
                         spacing: 0
-                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Kirigami.Units.gridUnit * 2; color: Qt.alpha(Kirigami.Theme.textColor, 0.04)
+                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Kirigami.Units.gridUnit * 2; color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.leftMargin: Kirigami.Units.smallSpacing
@@ -469,9 +470,9 @@ Item {
                                         onClicked: root.openRelated(resourceRow.modelData)
                                         background: Rectangle {
                                             radius: Kirigami.Units.smallSpacing
-                                            color: Qt.alpha(Kirigami.Theme.linkColor, 0.08)
+                                            color: Qt.alpha(Kirigami.Theme.linkColor, Style.ALPHA.tintWeak)
                                             border.width: 1
-                                            border.color: Qt.alpha(Kirigami.Theme.linkColor, 0.48)
+                                            border.color: Qt.alpha(Kirigami.Theme.linkColor, Style.ALPHA.borderAccent)
                                         }
                                         contentItem: RowLayout {
                                             spacing: Kirigami.Units.smallSpacing / 2
@@ -489,9 +490,9 @@ Item {
                                         onClicked: root.openRelated(resourceRow.modelData)
                                         background: Rectangle {
                                             radius: Kirigami.Units.smallSpacing
-                                            color: Qt.alpha(Kirigami.Theme.neutralTextColor, 0.07)
+                                            color: Qt.alpha(Kirigami.Theme.neutralTextColor, Style.ALPHA.tintWeak)
                                             border.width: 1
-                                            border.color: Qt.alpha(Kirigami.Theme.neutralTextColor, 0.42)
+                                            border.color: Qt.alpha(Kirigami.Theme.neutralTextColor, Style.ALPHA.borderAccent)
                                         }
                                         contentItem: RowLayout {
                                             spacing: Kirigami.Units.smallSpacing / 2

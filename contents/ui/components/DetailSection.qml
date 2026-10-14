@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.kirigami as Kirigami
+import "../../lib/style.js" as Style
 
 /* A compact disclosure section for optional container details. */
 ColumnLayout {
@@ -24,9 +25,9 @@ ColumnLayout {
         onClicked: root.expanded = !root.expanded
         background: Rectangle {
             radius: Kirigami.Units.smallSpacing
-            color: header.checked ? Qt.alpha(Kirigami.Theme.highlightColor, 0.12)
-                                  : Qt.alpha(Kirigami.Theme.textColor, 0.045)
-            border.color: Qt.alpha(Kirigami.Theme.textColor, 0.12)
+            color: header.checked ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintStrong)
+                                  : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
+            border.color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
         }
     }
     ColumnLayout {

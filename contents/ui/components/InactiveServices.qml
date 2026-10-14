@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/parsers.js" as Parsers
+import "../../lib/style.js" as Style
 
 Item {
     id: root
@@ -44,7 +45,7 @@ Item {
             height: cards.cellHeight - Kirigami.Units.smallSpacing
             readonly property var record: root.backend.findRecord(card.containerKey) || ({id:card.containerKey,name:card.name,image:card.image,state:card.containerState,isRunning:card.isRunning,project:card.project,service:card.service,composeFiles:card.composeFiles,composeWorkDir:card.composeWorkDir,pinned:false,restartPolicy:""})
             readonly property var operation: { const revision=root.backend.operationsRevision; return root.backend.operationFor(card.containerKey) }
-            Rectangle { anchors.fill: parent; radius: Kirigami.Units.smallSpacing; color: Qt.alpha(Kirigami.Theme.textColor, hover.hovered ? 0.085 : 0.04); border.color: Qt.alpha(Kirigami.Theme.textColor,0.09) }
+            Rectangle { anchors.fill: parent; radius: Kirigami.Units.smallSpacing; color: Qt.alpha(Kirigami.Theme.textColor, hover.hovered ? Style.ALPHA.hover : Style.ALPHA.surface2); border.color: Qt.alpha(Kirigami.Theme.textColor,Style.ALPHA.borderFaint) }
             RowLayout {
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.smallSpacing

@@ -6,6 +6,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
+import "../../lib/style.js" as Style
 
 /*
  * LogViewer — text with the things you want when reading logs: filter, errors
@@ -247,7 +248,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
-            color: Qt.alpha(Kirigami.Theme.textColor, 0.2)
+            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
         }
 
         QQC2.ScrollView {
