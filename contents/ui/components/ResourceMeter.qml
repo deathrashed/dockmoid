@@ -25,14 +25,12 @@ RowLayout {
         return result
     }
     spacing: Kirigami.Units.smallSpacing / 2
-    TextMetrics { id: cpuLabel; font: root.metricFont; text: root.compact ? "C" : "CPU" }
-    TextMetrics { id: ramLabel; font: root.metricFont; text: root.compact ? "R" : "RAM" }
-    TextMetrics { id: digits; font: number.font; text: root.numberColumnText }
-    TextMetrics { id: actualDigits; font: number.font; text: number.text }
+    FontMetrics { id: fm; font: root.metricFont }
+    readonly property real labelWidth: Math.ceil(Math.max(fm.advanceWidth(root.compact ? "C" : "CPU"), fm.advanceWidth(root.compact ? "R" : "RAM")))
     PlasmaComponents.Label {
         text: root.compact ? root.label.slice(0, 1) : root.label
-        Layout.preferredWidth: Math.ceil(Math.max(cpuLabel.advanceWidth, ramLabel.advanceWidth))
-        Layout.minimumWidth: Layout.preferredWidth
+        Layout.preferredWidth: root.labelWidth
+        Layout.minimumWidth: root.labelWidth
         font: root.metricFont
         color: Kirigami.Theme.disabledTextColor
     }
@@ -48,14 +46,9 @@ RowLayout {
     PlasmaComponents.Label {
         id: number
         text: root.value.toFixed(2) + "%"
-        Layout.preferredWidth: Math.max(digits.advanceWidth, actualDigits.advanceWidth)
-        Layout.minimumWidth: Math.max(digits.advanceWidth, actualDigits.advanceWidth)
+        Layout.preferredWidth: Math.max(fm.advanceWidth(root.numberColumnText), fm.advanceWidth(number.text))
+        Layout.minimumWidth: Layout.preferredWidth
         horizontalAlignment: Text.AlignRight
         font: root.metricFont
-    }
-    HoverHandler { id: hover }
-    PlasmaComponents.ToolTip {
-        visible: hover.hovered
-        text: i18n("%1: %2% · bar scale: 0–%3%", root.label, root.value.toFixed(2), String(root.maximum))
     }
 }

@@ -4,7 +4,6 @@ import QtQuick
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
-import org.kde.plasma.extras as PlasmaExtras
 
 /*
  * ContainerList — the "rows" view.
@@ -13,7 +12,7 @@ import org.kde.plasma.extras as PlasmaExtras
  * delegate highlight and the surrounding popup share one background.
  */
 PlasmaComponents.ScrollView {
-        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AsNeeded
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
     id: root
 
     required property var backend
@@ -36,6 +35,7 @@ PlasmaComponents.ScrollView {
         keyNavigationEnabled: true
         activeFocusOnTab: true
         reuseItems: true
+        cacheBuffer: Kirigami.Units.gridUnit * 4
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         contentWidth: width

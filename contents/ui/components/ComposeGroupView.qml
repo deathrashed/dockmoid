@@ -5,7 +5,6 @@ import QtQuick
 import org.kde.kirigami as Kirigami
 import org.kde.kitemmodels as KItemModels
 import org.kde.plasma.components as PlasmaComponents
-import org.kde.plasma.extras as PlasmaExtras
 
 /*
  * ComposeGroupView — containers grouped by docker compose project.
@@ -64,7 +63,7 @@ Item {
     }
 
     PlasmaComponents.ScrollView {
-        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AsNeeded
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
         id: scroll
         anchors.fill: parent
         background: null
@@ -75,6 +74,7 @@ Item {
             width: scroll.width
             currentIndex: -1
             reuseItems: true
+            cacheBuffer: Kirigami.Units.gridUnit * 4
             clip: true
             boundsBehavior: Flickable.StopAtBounds
 

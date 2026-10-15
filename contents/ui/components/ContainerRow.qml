@@ -144,8 +144,7 @@ PlasmaComponents.ItemDelegate {
                     Layout.maximumWidth: Math.max(72, layout.width * 0.55)
                     Layout.minimumWidth: 72
                     text: root.record.name
-                    HoverHandler { id: nameHover }
-                    PlasmaComponents.ToolTip { visible: nameHover.hovered; text: root.record.name }
+                    Tip { text: root.record.name }
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize
                     font.bold: true
                     elide: Text.ElideRight
@@ -164,7 +163,7 @@ PlasmaComponents.ItemDelegate {
                     font: Kirigami.Theme.smallFont
                     TapHandler { onTapped: root.dialogs.confirmUpdate(root.record) }
                     HoverHandler { id: updateHover; cursorShape: Qt.PointingHandCursor }
-                    PlasmaComponents.ToolTip { visible: updateHover.hovered; text: i18n("A newer image is available. Use the menu to update.") }
+                    Tip { text: i18n("A newer image is available. Use the menu to update.") }
                 }
                 Rectangle {
                     visible: root.record.probe === "up" || root.record.probe === "down"
@@ -172,11 +171,7 @@ PlasmaComponents.ItemDelegate {
                     implicitHeight: implicitWidth
                     radius: width / 2
                     color: root.record.probe === "up" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
-                    HoverHandler { id: probeHover }
-                    PlasmaComponents.ToolTip {
-                        visible: probeHover.hovered
-                        text: root.record.probe === "up" ? i18n("Web page answers (%1 ms)", root.record.probeMs) : i18n("Web page does not answer")
-                    }
+                    Tip { text: root.record.probe === "up" ? i18n("Web page answers (%1 ms)", root.record.probeMs) : i18n("Web page does not answer") }
                 }
                 Kirigami.Icon {
                     visible: root.cfg.showRestartPolicy && root.backend.startsAutomatically(root.record.restartPolicy)
@@ -184,8 +179,7 @@ PlasmaComponents.ItemDelegate {
                     implicitWidth: Kirigami.Units.iconSizes.small * 0.75
                     implicitHeight: implicitWidth
                     opacity: 0.55
-                    HoverHandler { id: policyHover }
-                    PlasmaComponents.ToolTip { visible: policyHover.hovered; text: root.backend.policyLabel(root.record.restartPolicy) }
+                    Tip { text: root.backend.policyLabel(root.record.restartPolicy) }
                 }
                 PlasmaComponents.Label {
                     visible: root.record.isRunning && root.record.health === "starting" && root.cfg.showHealth
@@ -205,8 +199,7 @@ PlasmaComponents.ItemDelegate {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     text: String(root.record.image).replace(/(@sha256:)[a-f0-9]{20,}/, function(_,prefix) { return prefix + String(root.record.image).split("@sha256:")[1].slice(0,12) + "…" })
-                    HoverHandler { id: imageHover }
-                    PlasmaComponents.ToolTip { visible: imageHover.hovered; text: root.record.image }
+                    Tip { text: root.record.image }
                     elide: Text.ElideMiddle
                     font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                     color: Kirigami.Theme.disabledTextColor
@@ -229,8 +222,7 @@ PlasmaComponents.ItemDelegate {
                 text: i18n("Open: %1", root.links.map(function (l) {
                     return ":" + l.port + " (" + l.label + ")"
                 }).join("  "))
-                HoverHandler { id: fieldHover0 }
-                PlasmaComponents.ToolTip { visible: fieldHover0.hovered; text: diagnosticLabel0.text }
+                Tip { text: diagnosticLabel0.text }
                 elide: Text.ElideRight
                 font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.highlightColor
@@ -241,8 +233,7 @@ PlasmaComponents.ItemDelegate {
                 Layout.fillWidth: true
                 visible: root.detailLevel >= 3
                 text: i18n("ID: %1", String(root.record.id).slice(0,12))
-                HoverHandler { id: identityHover }
-                PlasmaComponents.ToolTip { visible: identityHover.hovered; text: root.record.id }
+                Tip { text: root.record.id }
                 elide: Text.ElideMiddle
                 font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
@@ -256,8 +247,7 @@ PlasmaComponents.ItemDelegate {
                            root.record.service !== ""
                                ? i18n(" · %1", root.record.service)
                                : "")
-                HoverHandler { id: fieldHover1 }
-                PlasmaComponents.ToolTip { visible: fieldHover1.hovered; text: diagnosticLabel1.text }
+                Tip { text: diagnosticLabel1.text }
                 elide: Text.ElideRight
                 font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
@@ -268,8 +258,7 @@ PlasmaComponents.ItemDelegate {
                 Layout.fillWidth: true
                 visible: root.detailLevel >= 3 && root.record.networks !== ""
                 text: i18n("Networks: %1 · Volumes: %2", root.record.networks, root.record.localVolumes)
-                HoverHandler { id: fieldHover2 }
-                PlasmaComponents.ToolTip { visible: fieldHover2.hovered; text: diagnosticLabel2.text }
+                Tip { text: diagnosticLabel2.text }
                 elide: Text.ElideRight
                 font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
@@ -280,8 +269,7 @@ PlasmaComponents.ItemDelegate {
                 Layout.fillWidth: true
                 visible: root.detailLevel >= 3 && root.hasStats && (!!root.record.netio || !!root.record.blockio || !!root.record.pids)
                 text: [root.record.netio ? i18n("Net I/O: %1",root.record.netio) : "", root.record.blockio ? i18n("Block I/O: %1",root.record.blockio) : "", root.record.pids ? i18n("PIDs: %1",root.record.pids) : ""].filter(function(x) { return x !== "" }).join(" · ")
-                HoverHandler { id: fieldHover3 }
-                PlasmaComponents.ToolTip { visible: fieldHover3.hovered; text: diagnosticLabel3.text }
+                Tip { text: diagnosticLabel3.text }
                 elide: Text.ElideRight
                 font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
@@ -294,8 +282,7 @@ PlasmaComponents.ItemDelegate {
                 text: i18n("Uptime: %1 · Size: %2 · Platform: %3",
                            root.record.runningFor, root.record.size,
                            root.record.platform !== "" ? root.record.platform : "—")
-                HoverHandler { id: fieldHover4 }
-                PlasmaComponents.ToolTip { visible: fieldHover4.hovered; text: diagnosticLabel4.text }
+                Tip { text: diagnosticLabel4.text }
                 elide: Text.ElideRight
                 font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
@@ -458,14 +445,14 @@ PlasmaComponents.ItemDelegate {
             }
         }
 
-        ContainerActions {
+        ActionsHost {
             id: webActions
             backend: root.backend
             record: root.record
             dialogs: root.dialogs
             browserOnly: true
         }
-        ContainerActions {
+        ActionsHost {
             id: actions
             backend: root.backend
             record: root.record

@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.components as PlasmaComponents
 import "../../lib/style.js" as Style
 
 /*
@@ -34,11 +33,7 @@ Item {
         color: showTrack ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.track) : "transparent"
     }
 
-    HoverHandler { id: barHover }
-    PlasmaComponents.ToolTip {
-        visible: barHover.hovered
-        text: i18n("%1: %2% · bar scale: 0–%3%", root.label, root.value.toFixed(2), String(root.maximum))
-    }
+    Tip { text: i18n("%1: %2% · bar scale: 0–%3%", root.label, root.value.toFixed(2), String(root.maximum)) }
 
     Rectangle {
         height: parent.height
@@ -46,11 +41,5 @@ Item {
         width: root.value > 0 ? Math.min(parent.width, Math.max(2, parent.width * root.fraction)) : 0
         radius: height / 2
         color: root.barColor
-        Behavior on width {
-            NumberAnimation {
-                duration: Kirigami.Units.shortDuration
-                easing.type: Easing.OutQuad
-            }
-        }
     }
 }

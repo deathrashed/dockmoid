@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
+import "../../lib/style.js" as Style
 
 // This presentation applies only to the overview toolbar, not container actions.
 PlasmaComponents.ToolButton {
@@ -27,8 +28,6 @@ PlasmaComponents.ToolButton {
                 + (showIcon && showLabel ? Kirigami.Units.smallSpacing : 0))
         + (menuIndicator ? Kirigami.Units.iconSizes.small / 2 + Kirigami.Units.smallSpacing : 0))
     implicitWidth: idealWidth
-    Tones { id: tones }
-
     contentItem: RowLayout {
         spacing: Kirigami.Units.smallSpacing
         GridLayout {
@@ -42,7 +41,7 @@ PlasmaComponents.ToolButton {
             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             Layout.preferredWidth: Kirigami.Units.iconSizes.small
             Layout.preferredHeight: Kirigami.Units.iconSizes.small
-            color: control.enabled ? (control.tint !== "" ? tones.color(control.tint) : Kirigami.Theme.textColor) : Kirigami.Theme.disabledTextColor
+            color: control.enabled ? (control.tint !== "" ? (Style.HUE[control.tint] !== undefined ? Style.HUE[control.tint] : Kirigami.Theme.textColor) : Kirigami.Theme.textColor) : Kirigami.Theme.disabledTextColor
         }
         PlasmaComponents.Label {
             id: caption

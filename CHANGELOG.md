@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Performance: about two thirds fewer UI objects (10.6k to 3.4k in the offscreen test with 16 containers).
+  Action menus, the toolbar menus, the update review dialog, the icon chooser and tooltips are built when
+  first needed; list rows use a light icon button; usage meters no longer animate on every refresh; SVG
+  data URLs are cached; search waits a moment while you type.
+
 - Shared building blocks: style tokens (`lib/style.js`), `DockButton`, `StatusLine`, `SectionHeader` and `Tones`.
 - Podman users see "Podman" instead of "Docker"; the usage-bar scale setting is honoured; usage bars turn amber/red past the CPU/memory alert thresholds.
 - Doctor findings carry an explicit severity; log colours follow light and dark themes; a failing health check hollows the state dot.

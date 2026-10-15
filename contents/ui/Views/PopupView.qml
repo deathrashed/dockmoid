@@ -42,13 +42,18 @@ PlasmaExtras.Representation {
     readonly property int detailLevel: viewMode === 1 ? tableDetail : viewMode === 3 ? gridDetail : listDetail
     readonly property var detailNames: [i18n("Minimal"), i18n("Normal"), i18n("Detailed"), i18n("Verbose")]
     property string searchText: ""
+    /* The text the list is actually filtered by: it follows searchText after a
+       short pause, so typing does not refilter and relayout on every key. */
+    property string searchApplied: ""
+    Timer { id: searchDebounce; interval: 140; onTriggered: root.searchApplied = root.searchText }
     /* View, Detail, Filter, Sort and Search only act on the container list. */
     readonly property bool onHome: stack.depth <= 1
     /* Show only what needs attention: unhealthy, restarting, crashed or paused. */
     property bool problemsOnly: false
     readonly property int activeFilterCount: Number(stateFilter !== "all") + Number(problemsOnly) + Number(searchText.trim() !== "")
-    function clearFilters() { searchText = ""; stateFilter = "all"; problemsOnly = false }
+    function clearFilters() { searchText = ""; searchApplied = ""; stateFilter = "all"; problemsOnly = false }
     property string stateFilter: "all"
+    readonly property string messageText: root.backend.actionError || root.backend.lastError || (root.backend.readOnly ? i18n("Read-only monitoring mode") : "")
     readonly property var stateChoices: [
         {key:"all",name:i18n("All containers"),icon:"circle-ellipsis",count:backend.total},
         {key:"running",name:i18n("Running"),icon:"circle-play",count:backend.running},
@@ -118,7 +123,7 @@ PlasmaExtras.Representation {
         {role:"name", label:i18n("Name")}, {role:"cpuPct", label:i18n("CPU")},
         {role:"memPct", label:i18n("Memory")}, {role:"project", label:i18n("Project")}
     ]
-    onSearchTextChanged: if (searchPopupField.text !== searchText) searchPopupField.text = searchText
+    onSearchTextChanged: { if (searchPopupField.text !== searchText) searchPopupField.text = searchText; if (searchText === "") { searchDebounce.stop(); searchApplied = "" } else searchDebounce.restart() }
 
     implicitWidth: Kirigami.Units.gridUnit * 36
     implicitHeight: Kirigami.Units.gridUnit * 24
@@ -141,7 +146,7 @@ PlasmaExtras.Representation {
      * proxy re-run the filter.
      */
     readonly property var rowFilter: {
-        var needle = root.searchText.toLowerCase()
+        var needle = root.searchApplied.toLowerCase()
         var problems = root.problemsOnly
         var state = root.stateFilter
         var source = root.backend.containerModel
@@ -266,116 +271,142 @@ PlasmaExtras.Representation {
         }
     }
 
-    PlasmaComponents.Menu {
+    Components.LazyMenu {
         id: stateMenu
-        delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
-        Instantiator {
-            model: root.stateChoices
-            delegate: Components.ActionMenuDelegate {
-                required property var modelData
-                text: modelData.count !== undefined ? modelData.name + "   ·   " + modelData.count : modelData.name
-                icon.name: ""
-                icon.source: Qt.resolvedUrl(ActionIcons.path(modelData.icon))
-                checkable: true
-                checked: modelData.key === "attention" ? root.problemsOnly : (!root.problemsOnly && root.stateFilter === modelData.key)
-                onTriggered: {
-                    if (modelData.key === "attention") { root.problemsOnly = !root.problemsOnly; root.stateFilter = "all" }
-                    else { root.problemsOnly = false; root.stateFilter = modelData.key }
+        menu: Component {
+    PlasmaComponents.Menu {
+            id: menuRoot
+            delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
+            Instantiator {
+                model: root.stateChoices
+                delegate: Components.ActionMenuDelegate {
+                    required property var modelData
+                    text: modelData.count !== undefined ? modelData.name + "   ·   " + modelData.count : modelData.name
+                    icon.name: ""
+                    icon.source: Qt.resolvedUrl(ActionIcons.path(modelData.icon))
+                    checkable: true
+                    checked: modelData.key === "attention" ? root.problemsOnly : (!root.problemsOnly && root.stateFilter === modelData.key)
+                    onTriggered: {
+                        if (modelData.key === "attention") { root.problemsOnly = !root.problemsOnly; root.stateFilter = "all" }
+                        else { root.problemsOnly = false; root.stateFilter = modelData.key }
+                    }
                 }
+                onObjectAdded: function(i,o) { menuRoot.insertItem(i,o) }
+                onObjectRemoved: function(i,o) { menuRoot.removeItem(o) }
             }
-            onObjectAdded: function(i,o) { stateMenu.insertItem(i,o) }
-            onObjectRemoved: function(i,o) { stateMenu.removeItem(o) }
+        }
         }
     }
-    PlasmaComponents.Menu {
+    Components.LazyMenu {
         id: maintainMenu
-        objectName: "maintenanceMenu"
-        delegate: Components.ActionMenuDelegate {width:parent?parent.width:implicitWidth}
-        Components.ActionMenuDelegate {text:i18n("Updates");enabled:false}
-        Components.ActionMenuDelegate {text:i18n("Check for updates");icon.source:Qt.resolvedUrl(ActionIcons.path("package-search"));enabled:root.backend.engineActive&&root.backend.buildxAvailable&&!root.backend.updateRunning;onTriggered:root.checkUpdates()}
-        Components.ActionMenuDelegate {text:i18n("Review updates…");icon.source:Qt.resolvedUrl(ActionIcons.path("package-check"));enabled:root.backend.engineActive&&!root.backend.batchUpdating;onTriggered:reviewUpdates.open()}
-        Components.ActionMenuDelegate {text:i18n("Pull images…");icon.source:Qt.resolvedUrl(ActionIcons.path("system-download"));enabled:root.backend.engineActive&&!root.backend.readOnly;onTriggered:root.showDoctor(1)}
-        PlasmaComponents.MenuSeparator {}
-        Components.ActionMenuDelegate {text:i18n("Diagnostics");enabled:false}
-        Components.ActionMenuDelegate {text:i18n("Check engine connection");icon.source:Qt.resolvedUrl(ActionIcons.path("view-refresh"));onTriggered:{root.refreshNow();root.showDoctor(0)}}
-        Components.ActionMenuDelegate {text:i18n("Inspect unhealthy services");icon.source:Qt.resolvedUrl(ActionIcons.path("dialog-warning"));onTriggered:root.showDoctor(1)}
-        PlasmaComponents.MenuSeparator {}
-        Components.ActionMenuDelegate {text:i18n("Cleanup");enabled:false}
-        Components.ActionMenuDelegate {text:i18n("Clean dangling images…");icon.source:Qt.resolvedUrl(ActionIcons.path("edit-delete"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:root.showDoctor(3,"images")}
-        Components.ActionMenuDelegate {text:i18n("Clean build cache…");icon.source:Qt.resolvedUrl(ActionIcons.path("edit-delete"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:root.showDoctor(3,"cache")}
-        Components.ActionMenuDelegate {text:i18n("Review other cleanup…");icon.source:Qt.resolvedUrl(ActionIcons.path("configure"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:dialogs.confirmPrune()}
+        menu: Component {
+    PlasmaComponents.Menu {
+            id: menuRoot
+            objectName: "maintenanceMenu"
+            delegate: Components.ActionMenuDelegate {width:parent?parent.width:implicitWidth}
+            Components.ActionMenuDelegate {text:i18n("Updates");enabled:false}
+            Components.ActionMenuDelegate {text:i18n("Check for updates");icon.source:Qt.resolvedUrl(ActionIcons.path("package-search"));enabled:root.backend.engineActive&&root.backend.buildxAvailable&&!root.backend.updateRunning;onTriggered:root.checkUpdates()}
+            Components.ActionMenuDelegate {text:i18n("Review updates…");icon.source:Qt.resolvedUrl(ActionIcons.path("package-check"));enabled:root.backend.engineActive&&!root.backend.batchUpdating;onTriggered:root.openReviewUpdates()}
+            Components.ActionMenuDelegate {text:i18n("Pull images…");icon.source:Qt.resolvedUrl(ActionIcons.path("system-download"));enabled:root.backend.engineActive&&!root.backend.readOnly;onTriggered:root.showDoctor(1)}
+            PlasmaComponents.MenuSeparator {}
+            Components.ActionMenuDelegate {text:i18n("Diagnostics");enabled:false}
+            Components.ActionMenuDelegate {text:i18n("Check engine connection");icon.source:Qt.resolvedUrl(ActionIcons.path("view-refresh"));onTriggered:{root.refreshNow();root.showDoctor(0)}}
+            Components.ActionMenuDelegate {text:i18n("Inspect unhealthy services");icon.source:Qt.resolvedUrl(ActionIcons.path("dialog-warning"));onTriggered:root.showDoctor(1)}
+            PlasmaComponents.MenuSeparator {}
+            Components.ActionMenuDelegate {text:i18n("Cleanup");enabled:false}
+            Components.ActionMenuDelegate {text:i18n("Clean dangling images…");icon.source:Qt.resolvedUrl(ActionIcons.path("edit-delete"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:root.showDoctor(3,"images")}
+            Components.ActionMenuDelegate {text:i18n("Clean build cache…");icon.source:Qt.resolvedUrl(ActionIcons.path("edit-delete"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:root.showDoctor(3,"cache")}
+            Components.ActionMenuDelegate {text:i18n("Review other cleanup…");icon.source:Qt.resolvedUrl(ActionIcons.path("configure"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:dialogs.confirmPrune()}
+        }
+        }
     }
 
-    PlasmaComponents.Menu {
+    Components.LazyMenu {
         id: detailMenu
-        delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
-        Instantiator {
-            model: root.detailNames
-            delegate: Components.ActionMenuDelegate {
-                required property int index
-                required property string modelData
-                text: modelData
-                checkable: true
-                autoExclusive: true
-                checked: root.detailLevel === index
-                onTriggered: root.selectDetail(index)
+        menu: Component {
+    PlasmaComponents.Menu {
+            id: menuRoot
+            delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
+            Instantiator {
+                model: root.detailNames
+                delegate: Components.ActionMenuDelegate {
+                    required property int index
+                    required property string modelData
+                    text: modelData
+                    checkable: true
+                    autoExclusive: true
+                    checked: root.detailLevel === index
+                    onTriggered: root.selectDetail(index)
+                }
+                onObjectAdded: function(index, object) { menuRoot.insertItem(index, object) }
+                onObjectRemoved: function(index, object) { menuRoot.removeItem(object) }
             }
-            onObjectAdded: function(index, object) { detailMenu.insertItem(index, object) }
-            onObjectRemoved: function(index, object) { detailMenu.removeItem(object) }
+        }
         }
     }
 
-    PlasmaComponents.Menu {
+    Components.LazyMenu {
         id: toolbarViewsMenu
-        objectName: "toolbarViewsMenu"
-        delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
-        Instantiator {
-            model: root.viewChoices
-            delegate: Components.ActionMenuDelegate {
-                required property var modelData
-                text: modelData.label
-                icon.name: ""
-                icon.source: Qt.resolvedUrl(ActionIcons.path(modelData.icon))
-                checkable: true
-                autoExclusive: true
-                checked: root.viewMode === modelData.mode
-                onTriggered: root.selectView(modelData.mode)
+        menu: Component {
+    PlasmaComponents.Menu {
+            id: menuRoot
+            objectName: "toolbarViewsMenu"
+            delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
+            Instantiator {
+                model: root.viewChoices
+                delegate: Components.ActionMenuDelegate {
+                    required property var modelData
+                    text: modelData.label
+                    icon.name: ""
+                    icon.source: Qt.resolvedUrl(ActionIcons.path(modelData.icon))
+                    checkable: true
+                    autoExclusive: true
+                    checked: root.viewMode === modelData.mode
+                    onTriggered: root.selectView(modelData.mode)
+                }
+                onObjectAdded: function(index, object) { menuRoot.insertItem(index, object) }
+                onObjectRemoved: function(index, object) { menuRoot.removeItem(object) }
             }
-            onObjectAdded: function(index, object) { toolbarViewsMenu.insertItem(index, object) }
-            onObjectRemoved: function(index, object) { toolbarViewsMenu.removeItem(object) }
+        }
         }
     }
-    PlasmaComponents.Menu {
+    Components.LazyMenu {
         id: toolbarSortMenu
-        delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
-        Instantiator {
-            model: root.sortChoices
-            delegate: Components.ActionMenuDelegate {
-                required property var modelData
-                text: modelData.label
-                checkable: true
-                checked: root.cfg.sortRole === modelData.role
-                onTriggered: root.selectSort(modelData.role)
+        menu: Component {
+    PlasmaComponents.Menu {
+            id: menuRoot
+            delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
+            Instantiator {
+                model: root.sortChoices
+                delegate: Components.ActionMenuDelegate {
+                    required property var modelData
+                    text: modelData.label
+                    checkable: true
+                    checked: root.cfg.sortRole === modelData.role
+                    onTriggered: root.selectSort(modelData.role)
+                }
+                onObjectAdded: function(index, object) { menuRoot.insertItem(index, object) }
+                onObjectRemoved: function(index, object) { menuRoot.removeItem(object) }
             }
-            onObjectAdded: function(index, object) { toolbarSortMenu.insertItem(index, object) }
-            onObjectRemoved: function(index, object) { toolbarSortMenu.removeItem(object) }
+            PlasmaComponents.MenuSeparator {}
+            Components.ActionMenuDelegate {
+                text: root.cfg.sortAscending ? i18n("Switch to descending order") : i18n("Switch to ascending order")
+                icon.name: ""
+                icon.source: Qt.resolvedUrl(ActionIcons.path(root.cfg.sortAscending ? "go-down" : "go-up"))
+                onTriggered: root.cfg.sortAscending = !root.cfg.sortAscending
+            }
         }
-        PlasmaComponents.MenuSeparator {}
-        Components.ActionMenuDelegate {
-            text: root.cfg.sortAscending ? i18n("Switch to descending order") : i18n("Switch to ascending order")
-            icon.name: ""
-            icon.source: Qt.resolvedUrl(ActionIcons.path(root.cfg.sortAscending ? "go-down" : "go-up"))
-            onTriggered: root.cfg.sortAscending = !root.cfg.sortAscending
         }
     }
 
-    readonly property var candidateTargets: backend.revision >= 0 ? backend.updateTargets(allRunning.checked, includeStopped.checked) : []
+    readonly property var candidateTargets: backend.revision >= 0 ? backend.updateTargets(root.reviewAllRunning, root.reviewIncludeStopped) : []
     property var updateSelection: ({})
     readonly property var reviewedTargets: candidateTargets.filter(function(rec) { return root.updateSelection[rec.id] !== false })
     function canRecreate(rec) { return !!(rec.project && rec.service && backend.canUseCompose) }
     function refreshReviewButton() {
-        if (!reviewUpdates.opened) return
-        const button = reviewUpdates.standardButton(QQC2.Dialog.Ok)
+        const dialog = reviewLoader.item as QQC2.Dialog
+        if (!dialog || !dialog.opened) return
+        const button = dialog.standardButton(QQC2.Dialog.Ok)
         button.enabled = reviewedTargets.length > 0 && !backend.batchUpdating && !backend.readOnly
         const recreates = reviewedTargets.filter(canRecreate).length
         button.text = recreates === reviewedTargets.length ? i18np("Update %1 container", "Update %1 containers", recreates)
@@ -383,74 +414,87 @@ PlasmaExtras.Representation {
             : i18np("Run %1 action", "Run %1 actions", reviewedTargets.length)
     }
     onReviewedTargetsChanged: refreshReviewButton()
-    QQC2.Dialog {
-        id: reviewUpdates
-        objectName: "updateReviewDialog"
-        title: i18n("Review image updates")
-        modal: true
-        anchors.centerIn: parent
-        width: Math.min(root.width - 24, Kirigami.Units.gridUnit * 36)
-        height: Math.min(root.height - 24, Kirigami.Units.gridUnit * 31)
-        standardButtons: QQC2.Dialog.Ok | QQC2.Dialog.Cancel
-        onOpened: { root.updateSelection = ({}); root.refreshReviewButton() }
-        onAccepted: {
-            var generation = root.backend.generation
-            var requestId = root.backend.newOutputRequest("batch", "")
-            root.showOutput(i18n("Update results"), i18n("Starting…"), false, "", "batch", requestId, generation)
-            root.backend.updateMany(root.reviewedTargets)
-        }
-        contentItem: ColumnLayout {
-            RowLayout {
-                Layout.fillWidth: true
-                PlasmaComponents.Label {
-                    Layout.fillWidth: true; Layout.minimumWidth: 0
-                    text: root.backend.updateRunning ? i18n("Checking image updates…") : root.backend.updateState.__checked
-                        ? i18n("Last checked: %1", new Date(root.backend.updateState.__checked).toLocaleString()) : i18n("Not checked yet")
-                    wrapMode: Text.Wrap
-                    font: Kirigami.Theme.smallFont
+    property bool reviewAllRunning: false
+    property bool reviewIncludeStopped: false
+    function openReviewUpdates() {
+        reviewLoader.active = true
+        if (reviewLoader.item) (reviewLoader.item as QQC2.Dialog).open()
+    }
+    /* The review dialog is built the first time it is opened. */
+    Loader {
+        id: reviewLoader
+        active: false
+        sourceComponent: Component {
+            QQC2.Dialog {
+                id: reviewDialog
+                objectName: "updateReviewDialog"
+                title: i18n("Review image updates")
+                modal: true
+                anchors.centerIn: parent
+                width: Math.min(root.width - 24, Kirigami.Units.gridUnit * 36)
+                height: Math.min(root.height - 24, Kirigami.Units.gridUnit * 31)
+                standardButtons: QQC2.Dialog.Ok | QQC2.Dialog.Cancel
+                onOpened: { root.updateSelection = ({}); root.refreshReviewButton() }
+                onAccepted: {
+                    var generation = root.backend.generation
+                    var requestId = root.backend.newOutputRequest("batch", "")
+                    root.showOutput(i18n("Update results"), i18n("Starting…"), false, "", "batch", requestId, generation)
+                    root.backend.updateMany(root.reviewedTargets)
                 }
-                Components.ActionButton {
-                    text: i18n("Check now"); glyph: "package-search"
-                    enabled: root.backend.engineActive && root.backend.buildxAvailable && !root.backend.updateRunning
-                    onClicked: root.checkUpdates()
-                }
-            }
-            QQC2.CheckBox { id: allRunning; text: i18n("Include containers without an update badge"); onToggled: root.refreshReviewButton() }
-            QQC2.CheckBox { id: includeStopped; text: i18n("Include stopped containers · keep them stopped"); onToggled: root.refreshReviewButton() }
-            QQC2.ScrollView {
-                Layout.fillWidth: true; Layout.fillHeight: true; contentWidth: availableWidth
-                ListView {
-                    id: updateRows
-                    model: root.candidateTargets
-                    clip: true
-                    delegate: QQC2.ItemDelegate {
-                        id: updateRow
-                        required property var modelData
-                        width: ListView.view.width
-                        contentItem: RowLayout {
-                            QQC2.CheckBox {
-                                checked: root.updateSelection[updateRow.modelData.id] !== false
-                                Accessible.name: i18n("Select %1", updateRow.modelData.name)
-                                onToggled: { var next = Object.assign({}, root.updateSelection); next[updateRow.modelData.id] = checked; root.updateSelection = next }
-                            }
-                            ColumnLayout {
-                                Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 1
-                                PlasmaComponents.Label { Layout.fillWidth: true; text: updateRow.modelData.name; font.bold: true; elide: Text.ElideRight }
-                                PlasmaComponents.Label { Layout.fillWidth: true; text: updateRow.modelData.image; font: Kirigami.Theme.smallFont; elide: Text.ElideMiddle }
-                                PlasmaComponents.Label {
-                                    Layout.fillWidth: true; font: Kirigami.Theme.smallFont; wrapMode: Text.Wrap
-                                    text: (updateRow.modelData.updateAvailable ? i18n("Update available") : String(updateRow.modelData.updateState || i18n("Not checked"))) + " · "
-                                        + (root.canRecreate(updateRow.modelData) ? (updateRow.modelData.isRunning ? i18n("Pull and recreate · keep running") : i18n("Pull and recreate · leave stopped")) : i18n("Pull image only · container unchanged"))
+                contentItem: ColumnLayout {
+                    RowLayout {
+                        Layout.fillWidth: true
+                        PlasmaComponents.Label {
+                            Layout.fillWidth: true; Layout.minimumWidth: 0
+                            text: root.backend.updateRunning ? i18n("Checking image updates…") : root.backend.updateState.__checked
+                                ? i18n("Last checked: %1", new Date(root.backend.updateState.__checked).toLocaleString()) : i18n("Not checked yet")
+                            wrapMode: Text.Wrap
+                            font: Kirigami.Theme.smallFont
+                        }
+                        Components.ActionButton {
+                            text: i18n("Check now"); glyph: "package-search"
+                            enabled: root.backend.engineActive && root.backend.buildxAvailable && !root.backend.updateRunning
+                            onClicked: root.checkUpdates()
+                        }
+                    }
+                    QQC2.CheckBox { text: i18n("Include containers without an update badge"); checked: root.reviewAllRunning; onToggled: { root.reviewAllRunning = checked; root.refreshReviewButton() } }
+                    QQC2.CheckBox { text: i18n("Include stopped containers · keep them stopped"); checked: root.reviewIncludeStopped; onToggled: { root.reviewIncludeStopped = checked; root.refreshReviewButton() } }
+                    QQC2.ScrollView {
+                        Layout.fillWidth: true; Layout.fillHeight: true; contentWidth: availableWidth
+                        ListView {
+                            id: updateRows
+                            model: root.candidateTargets
+                            clip: true
+                            delegate: QQC2.ItemDelegate {
+                                id: updateRow
+                                required property var modelData
+                                width: ListView.view.width
+                                contentItem: RowLayout {
+                                    QQC2.CheckBox {
+                                        checked: root.updateSelection[updateRow.modelData.id] !== false
+                                        Accessible.name: i18n("Select %1", updateRow.modelData.name)
+                                        onToggled: { var next = Object.assign({}, root.updateSelection); next[updateRow.modelData.id] = checked; root.updateSelection = next }
+                                    }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 1
+                                        PlasmaComponents.Label { Layout.fillWidth: true; text: updateRow.modelData.name; font.bold: true; elide: Text.ElideRight }
+                                        PlasmaComponents.Label { Layout.fillWidth: true; text: updateRow.modelData.image; font: Kirigami.Theme.smallFont; elide: Text.ElideMiddle }
+                                        PlasmaComponents.Label {
+                                            Layout.fillWidth: true; font: Kirigami.Theme.smallFont; wrapMode: Text.Wrap
+                                            text: (updateRow.modelData.updateAvailable ? i18n("Update available") : String(updateRow.modelData.updateState || i18n("Not checked"))) + " · "
+                                                + (root.canRecreate(updateRow.modelData) ? (updateRow.modelData.isRunning ? i18n("Pull and recreate · keep running") : i18n("Pull and recreate · leave stopped")) : i18n("Pull image only · container unchanged"))
+                                        }
+                                    }
                                 }
+                                HoverHandler { id: updateHover }
+                                PlasmaComponents.ToolTip { visible: updateHover.hovered; text: updateRow.modelData.name + "\n" + updateRow.modelData.image }
+                            }
+                            Kirigami.PlaceholderMessage {
+                                anchors.centerIn: parent; width: parent.width - 16
+                                visible: updateRows.count === 0
+                                text: root.backend.updateRunning ? i18n("Checking…") : i18n("No update candidates. Check now or include containers without a badge.")
                             }
                         }
-                        HoverHandler { id: updateHover }
-                        PlasmaComponents.ToolTip { visible: updateHover.hovered; text: updateRow.modelData.name + "\n" + updateRow.modelData.image }
-                    }
-                    Kirigami.PlaceholderMessage {
-                        anchors.centerIn: parent; width: parent.width - 16
-                        visible: updateRows.count === 0
-                        text: root.backend.updateRunning ? i18n("Checking…") : i18n("No update candidates. Check now or include containers without a badge.")
                     }
                 }
             }
@@ -773,207 +817,212 @@ PlasmaExtras.Representation {
                                 root.backend.fetchContexts()
                                 toolsMenu.popup(toolsButton, 0, toolsButton.height)
                             }
-                        PlasmaComponents.Menu {
+                        Components.LazyMenu {
                             id: toolsMenu
-                            objectName: "toolbarOverflowMenu"
-                            delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
-
-
-
-                            Components.ActionMenuDelegate {
-                                visible: !root.directFilter
-                                text: i18n("Filter containers…")
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("view-filter"))
-                                onTriggered: stateMenu.popup(toolsButton, 0, toolsButton.height)
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: !root.directSort
-                                text: i18n("Sort containers…")
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("view-sort-ascending"))
-                                onTriggered: toolbarSortMenu.popup(toolsButton, 0, toolsButton.height)
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: !root.directSearch
-                                text: i18n("Search containers…")
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("edit-find"))
-                                onTriggered: root.openSearch()
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: !root.directRefresh
-                                text: i18n("Refresh")
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("view-refresh"))
-                                enabled: !root.backend.refreshing
-                                onTriggered: root.refreshNow()
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: !root.directNew
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("list-add"))
-                                text: i18n("Images and new containers…")
-                                enabled: root.backend.engineActive && !root.backend.readOnly
-                                onTriggered: root.showDeployment()
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: !root.directDetail
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("view-visible"))
-                                text: i18n("Detail: %1", root.detailNames[root.detailLevel])
-                                onTriggered: detailMenu.popup(toolsButton, 0, toolsButton.height)
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: root.backend.problemCount > 0 || root.problemsOnly
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("dialog-warning"))
-                                text: i18n("Only containers that need attention")
-                                checkable: true
-                                checked: root.problemsOnly
-                                onTriggered: root.problemsOnly = !root.problemsOnly
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: !root.directResources
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("drive-harddisk"))
-                                text: i18n("Images, volumes and networks…")
-                                enabled: root.backend.engineActive
-                                onTriggered: root.showResources()
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: !root.directDoctor
-                                text: i18n("Open Doctor")
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("heart-pulse"))
-                                onTriggered: root.showDoctor(0)
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: !root.directMaintain
-                                text: i18n("Maintain") + " ▾"
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("configure"))
-                                onTriggered: maintainMenu.popup(toolsButton,0,toolsButton.height)
-                            }
-                            Components.ActionMenuDelegate {
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("edit-clear"))
-                                text: i18n("Clear filters")
-                                visible: root.searchText !== "" || root.problemsOnly || root.stateFilter !== "all"
-                                onTriggered: { root.searchText = ""; root.problemsOnly = false; root.stateFilter = "all" }
-                            }
-                            PlasmaComponents.MenuSeparator {
-                                visible: !root.directFilter || !root.directSort || !root.directSearch || !root.directRefresh
-                                    || !root.directNew || !root.directDetail || !root.directResources || !root.directMaintain
-                                    || root.backend.problemCount > 0 || root.problemsOnly || root.searchText !== "" || root.stateFilter !== "all"
-                                height: visible ? implicitHeight : 0
-                            }
-                            PlasmaComponents.Menu {
-                                id: savedViewMenu
+                            menu: Component {
+    PlasmaComponents.Menu {
+                                id: menuRoot
+                                objectName: "toolbarOverflowMenu"
                                 delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
-                                title: i18n("Saved views")
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("bookmark"))
-                                Instantiator {
-                                    model: Profiles.parseViews(root.cfg.savedViews)
-                                    delegate: Components.ActionMenuDelegate {
-                                        required property var modelData
-                                        text: modelData.name
-                                        onTriggered: { root.searchText = modelData.search; root.selectView(modelData.mode); root.selectDetail(modelData.detailLevel); root.problemsOnly = modelData.problems; root.stateFilter = modelData.state || "all" }
-                                    }
-                                    onObjectAdded: function(index, object) { savedViewMenu.insertItem(index, object) }
-                                    onObjectRemoved: function(index, object) { savedViewMenu.removeItem(object) }
+
+
+
+                                Components.ActionMenuDelegate {
+                                    visible: !root.directFilter
+                                    text: i18n("Filter containers…")
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("view-filter"))
+                                    onTriggered: stateMenu.popup(toolsButton, 0, toolsButton.height)
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: !root.directSort
+                                    text: i18n("Sort containers…")
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("view-sort-ascending"))
+                                    onTriggered: toolbarSortMenu.popup(toolsButton, 0, toolsButton.height)
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: !root.directSearch
+                                    text: i18n("Search containers…")
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("edit-find"))
+                                    onTriggered: root.openSearch()
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: !root.directRefresh
+                                    text: i18n("Refresh")
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("view-refresh"))
+                                    enabled: !root.backend.refreshing
+                                    onTriggered: root.refreshNow()
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: !root.directNew
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("list-add"))
+                                    text: i18n("Images and new containers…")
+                                    enabled: root.backend.engineActive && !root.backend.readOnly
+                                    onTriggered: root.showDeployment()
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: !root.directDetail
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("view-visible"))
+                                    text: i18n("Detail: %1", root.detailNames[root.detailLevel])
+                                    onTriggered: detailMenu.popup(toolsButton, 0, toolsButton.height)
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: root.backend.problemCount > 0 || root.problemsOnly
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("dialog-warning"))
+                                    text: i18n("Only containers that need attention")
+                                    checkable: true
+                                    checked: root.problemsOnly
+                                    onTriggered: root.problemsOnly = !root.problemsOnly
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: !root.directResources
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("drive-harddisk"))
+                                    text: i18n("Images, volumes and networks…")
+                                    enabled: root.backend.engineActive
+                                    onTriggered: root.showResources()
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: !root.directDoctor
+                                    text: i18n("Open Doctor")
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("heart-pulse"))
+                                    onTriggered: root.showDoctor(0)
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: !root.directMaintain
+                                    text: i18n("Maintain") + " ▾"
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("configure"))
+                                    onTriggered: maintainMenu.popup(toolsButton,0,toolsButton.height)
+                                }
+                                Components.ActionMenuDelegate {
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("edit-clear"))
+                                    text: i18n("Clear filters")
+                                    visible: root.searchText !== "" || root.problemsOnly || root.stateFilter !== "all"
+                                    onTriggered: { root.searchText = ""; root.problemsOnly = false; root.stateFilter = "all" }
                                 }
                                 PlasmaComponents.MenuSeparator {
-                                    visible: Profiles.parseViews(root.cfg.savedViews).length > 0
+                                    visible: !root.directFilter || !root.directSort || !root.directSearch || !root.directRefresh
+                                        || !root.directNew || !root.directDetail || !root.directResources || !root.directMaintain
+                                        || root.backend.problemCount > 0 || root.problemsOnly || root.searchText !== "" || root.stateFilter !== "all"
                                     height: visible ? implicitHeight : 0
                                 }
-                                Components.ActionMenuDelegate { text: i18n("Save this view…"); onTriggered: saveViewDialog.open() }
-                                Components.ActionMenuDelegate { text: i18n("Clear saved views…"); onTriggered: dialogs.confirm(i18n("Clear saved views?"), i18n("Only saved view shortcuts are removed."), function() { root.cfg.savedViews = "[]" }) }
-                            }
-                            PlasmaComponents.Menu {
-                                id: toolbarStyleMenu
-                                title: i18n("Toolbar labels")
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("view-list-text"))
-                                delegate: Components.ActionMenuDelegate {}
-                                Instantiator {
-                                    model: [i18n("Icons only"), i18n("Text beside icons"), i18n("Text only"), i18n("Text below icons")]
-                                    delegate: Components.ActionMenuDelegate {
-                                        required property int index
-                                        required property string modelData
-                                        text: modelData
-                                        icon.source: Qt.resolvedUrl(ActionIcons.path("view-list-text"))
-                                        checkable: true
-                                        checked: root.toolbarStyle === index
-                                        onTriggered: root.cfg.toolbarStyle = index
+                                PlasmaComponents.Menu {
+                                    id: savedViewMenu
+                                    delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
+                                    title: i18n("Saved views")
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("bookmark"))
+                                    Instantiator {
+                                        model: Profiles.parseViews(root.cfg.savedViews)
+                                        delegate: Components.ActionMenuDelegate {
+                                            required property var modelData
+                                            text: modelData.name
+                                            onTriggered: { root.searchText = modelData.search; root.selectView(modelData.mode); root.selectDetail(modelData.detailLevel); root.problemsOnly = modelData.problems; root.stateFilter = modelData.state || "all" }
+                                        }
+                                        onObjectAdded: function(index, object) { savedViewMenu.insertItem(index, object) }
+                                        onObjectRemoved: function(index, object) { savedViewMenu.removeItem(object) }
                                     }
-                                    onObjectAdded: function(index, object) { toolbarStyleMenu.insertItem(index, object) }
-                                    onObjectRemoved: function(index, object) { toolbarStyleMenu.removeItem(object) }
+                                    PlasmaComponents.MenuSeparator {
+                                        visible: Profiles.parseViews(root.cfg.savedViews).length > 0
+                                        height: visible ? implicitHeight : 0
+                                    }
+                                    Components.ActionMenuDelegate { text: i18n("Save this view…"); onTriggered: saveViewDialog.open() }
+                                    Components.ActionMenuDelegate { text: i18n("Clear saved views…"); onTriggered: dialogs.confirm(i18n("Clear saved views?"), i18n("Only saved view shortcuts are removed."), function() { root.cfg.savedViews = "[]" }) }
+                                }
+                                PlasmaComponents.Menu {
+                                    id: toolbarStyleMenu
+                                    title: i18n("Toolbar labels")
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("view-list-text"))
+                                    delegate: Components.ActionMenuDelegate {}
+                                    Instantiator {
+                                        model: [i18n("Icons only"), i18n("Text beside icons"), i18n("Text only"), i18n("Text below icons")]
+                                        delegate: Components.ActionMenuDelegate {
+                                            required property int index
+                                            required property string modelData
+                                            text: modelData
+                                            icon.source: Qt.resolvedUrl(ActionIcons.path("view-list-text"))
+                                            checkable: true
+                                            checked: root.toolbarStyle === index
+                                            onTriggered: root.cfg.toolbarStyle = index
+                                        }
+                                        onObjectAdded: function(index, object) { toolbarStyleMenu.insertItem(index, object) }
+                                        onObjectRemoved: function(index, object) { toolbarStyleMenu.removeItem(object) }
+                                    }
+                                }
+                                PlasmaComponents.MenuSeparator {}
+                                PlasmaComponents.Menu {
+                                    id: hostMenu
+                                    delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
+                                    title: i18n("Host")
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("network-server"))
+                                    Components.ActionMenuDelegate { text: i18n("Default"); checkable: true; checked: root.backend.contextName === ""; onTriggered: root.backend.setContext("") }
+                                    Instantiator {
+                                        model: root.backend.contexts.filter(function(c) { return c !== "default" })
+                                        delegate: Components.ActionMenuDelegate {
+                                            required property string modelData
+                                            text: modelData
+                                            checkable: true
+                                            checked: root.backend.contextName === modelData
+                                            onTriggered: root.backend.setContext(modelData)
+                                        }
+                                        onObjectAdded: function(index, object) { hostMenu.insertItem(index + 1, object) }
+                                        onObjectRemoved: function(index, object) { hostMenu.removeItem(object) }
+                                    }
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: !root.directDetach
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("window-new"))
+                                    text: i18n("Open in a separate window")
+                                    onTriggered: root.applet.toggleDetached()
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: !root.backend.engineActive && root.backend.canControlService && !root.backend.readOnly
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("media-playback-start"))
+                                    text: i18n("Start the %1 service", root.backend.engineName)
+                                    onTriggered: root.backend.startEngine()
+                                }
+                                Components.ActionMenuDelegate {
+                                    visible: root.backend.engineActive && root.backend.canControlService && !root.backend.readOnly
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("system-shutdown"))
+                                    text: i18n("Stop the %1 service…", root.backend.engineName)
+                                    onTriggered: confirmStopEngine.open()
+                                }
+                                Components.ActionMenuDelegate {
+                                    text: i18n("Activity log")
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("bell-ring"))
+                                    onTriggered: root.showActivity()
+                                }
+                                PlasmaComponents.Menu {
+                                    id: previewMenu
+                                    title: i18n("Preview pane follows")
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("view-visible"))
+                                    delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
+                                    Components.ActionMenuDelegate { text: i18n("Selection"); checkable: true; checked: homePage ? homePage.previewMode() === "selection" : true; onTriggered: if (homePage) homePage.setDock("previewMode", "selection") }
+                                    Components.ActionMenuDelegate { text: i18n("Mouse hover"); checkable: true; checked: homePage ? homePage.previewMode() === "hover" : false; onTriggered: if (homePage) homePage.setDock("previewMode", "hover") }
+                                    Components.ActionMenuDelegate { text: i18n("Nothing"); checkable: true; checked: homePage ? homePage.previewMode() === "off" : false; onTriggered: if (homePage) homePage.setDock("previewMode", "off") }
+                                }
+                                Components.ActionMenuDelegate {
+                                    text: i18n("Read-only mode")
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path(root.cfg.readOnly ? "lock" : "lock-open"))
+                                    checkable: true
+                                    checked: root.cfg.readOnly
+                                    onTriggered: root.cfg.readOnly = !root.cfg.readOnly
+                                }
+                                PlasmaComponents.MenuSeparator {}
+                                Components.ActionMenuDelegate {
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("configure"))
+                                    text: i18n("Configure Dockmoid…")
+                                    onTriggered: root.applet.configure()
                                 }
                             }
-                            PlasmaComponents.MenuSeparator {}
-                            PlasmaComponents.Menu {
-                                id: hostMenu
-                                delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
-                                title: i18n("Host")
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("network-server"))
-                                Components.ActionMenuDelegate { text: i18n("Default"); checkable: true; checked: root.backend.contextName === ""; onTriggered: root.backend.setContext("") }
-                                Instantiator {
-                                    model: root.backend.contexts.filter(function(c) { return c !== "default" })
-                                    delegate: Components.ActionMenuDelegate {
-                                        required property string modelData
-                                        text: modelData
-                                        checkable: true
-                                        checked: root.backend.contextName === modelData
-                                        onTriggered: root.backend.setContext(modelData)
-                                    }
-                                    onObjectAdded: function(index, object) { hostMenu.insertItem(index + 1, object) }
-                                    onObjectRemoved: function(index, object) { hostMenu.removeItem(object) }
-                                }
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: !root.directDetach
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("window-new"))
-                                text: i18n("Open in a separate window")
-                                onTriggered: root.applet.toggleDetached()
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: !root.backend.engineActive && root.backend.canControlService && !root.backend.readOnly
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("media-playback-start"))
-                                text: i18n("Start the %1 service", root.backend.engineName)
-                                onTriggered: root.backend.startEngine()
-                            }
-                            Components.ActionMenuDelegate {
-                                visible: root.backend.engineActive && root.backend.canControlService && !root.backend.readOnly
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("system-shutdown"))
-                                text: i18n("Stop the %1 service…", root.backend.engineName)
-                                onTriggered: confirmStopEngine.open()
-                            }
-                            Components.ActionMenuDelegate {
-                                text: i18n("Activity log")
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("bell-ring"))
-                                onTriggered: root.showActivity()
-                            }
-                            PlasmaComponents.Menu {
-                                id: previewMenu
-                                title: i18n("Preview pane follows")
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("view-visible"))
-                                delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
-                                Components.ActionMenuDelegate { text: i18n("Selection"); checkable: true; checked: homePage ? homePage.previewMode() === "selection" : true; onTriggered: if (homePage) homePage.setDock("previewMode", "selection") }
-                                Components.ActionMenuDelegate { text: i18n("Mouse hover"); checkable: true; checked: homePage ? homePage.previewMode() === "hover" : false; onTriggered: if (homePage) homePage.setDock("previewMode", "hover") }
-                                Components.ActionMenuDelegate { text: i18n("Nothing"); checkable: true; checked: homePage ? homePage.previewMode() === "off" : false; onTriggered: if (homePage) homePage.setDock("previewMode", "off") }
-                            }
-                            Components.ActionMenuDelegate {
-                                text: i18n("Read-only mode")
-                                icon.source: Qt.resolvedUrl(ActionIcons.path(root.cfg.readOnly ? "lock" : "lock-open"))
-                                checkable: true
-                                checked: root.cfg.readOnly
-                                onTriggered: root.cfg.readOnly = !root.cfg.readOnly
-                            }
-                            PlasmaComponents.MenuSeparator {}
-                            Components.ActionMenuDelegate {
-                                icon.name: ""
-                                icon.source: Qt.resolvedUrl(ActionIcons.path("configure"))
-                                text: i18n("Configure Dockmoid…")
-                                onTriggered: root.applet.configure()
                             }
                         }
                         }
@@ -1000,14 +1049,17 @@ PlasmaExtras.Representation {
         }
 
         // ------------------------------------------------- error --------
-        Kirigami.InlineMessage {
+        Loader {
             Layout.fillWidth: true
             Layout.leftMargin: Kirigami.Units.smallSpacing
             Layout.rightMargin: Kirigami.Units.smallSpacing
-            visible: text !== ""
-            text: root.backend.actionError || root.backend.lastError || (root.backend.readOnly ? i18n("Read-only monitoring mode") : "")
-            type: root.backend.actionError || root.backend.lastError ? Kirigami.MessageType.Error : Kirigami.MessageType.Information
-            showCloseButton: true
+            active: root.messageText !== ""
+            visible: active
+            sourceComponent: Kirigami.InlineMessage {
+                text: root.messageText
+                type: root.backend.actionError || root.backend.lastError ? Kirigami.MessageType.Error : Kirigami.MessageType.Information
+                showCloseButton: true
+            }
         }
 
         // -------------------------------------------------- stack --------

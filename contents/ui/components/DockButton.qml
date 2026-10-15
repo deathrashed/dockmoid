@@ -68,13 +68,11 @@ PlasmaComponents.Button {
             : Qt.alpha(Qt.darker(Kirigami.Theme.highlightColor, 1.4), 0.8)
     }
 
-    Tones { id: iconTones }
-
     contentItem: RowLayout {
         spacing: control.iconOnly ? 0 : control.spacing
         ActionIcon {
             glyph: control.glyph
-            color: control.enabled ? (control.iconTone !== "" ? iconTones.color(control.iconTone) : control.activeColor) : Kirigami.Theme.disabledTextColor
+            color: control.enabled ? (control.iconTone !== "" ? (Style.HUE[control.iconTone] !== undefined ? Style.HUE[control.iconTone] : control.activeColor) : control.activeColor) : Kirigami.Theme.disabledTextColor
             Layout.alignment: Qt.AlignCenter
             implicitWidth: control.glyphSize
             implicitHeight: control.glyphSize

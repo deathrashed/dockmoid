@@ -16,7 +16,7 @@ Item {
     signal openOutput(string title, string content, bool live, string recordId)
 
     PlasmaComponents.ScrollView {
-        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AsNeeded
+        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
         anchors.fill: parent
         background: null
         contentItem: GridView {
@@ -26,6 +26,7 @@ Item {
             cellWidth: width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 12)))
             cellHeight: Kirigami.Units.gridUnit * 3.5
             boundsBehavior: Flickable.StopAtBounds
+            cacheBuffer: Kirigami.Units.gridUnit * 4
             delegate: PlasmaComponents.ItemDelegate {
                 id: card
                 required property int index
@@ -82,7 +83,7 @@ Item {
                     acceptedButtons: Qt.RightButton
                     onTapped: function(point) { actions.popup(card, point.position.x, point.position.y) }
                 }
-                ContainerActions {
+                ActionsHost {
                     id: actions
                     backend: root.backend
                     record: card.record
@@ -92,7 +93,7 @@ Item {
                 }
                 onHoveredChanged:if(hovered)root.backend.previewContainer(card.containerKey,false)
                 onClicked:root.backend.previewContainer(card.containerKey,true)
-                PlasmaComponents.ToolTip { visible: card.hovered; text: card.name + "\n" + (card.status || card.containerState) + (card.operation.label ? "\n" + card.operation.label : "") + "\n" + card.image + "\n" + card.containerKey; delay: 700 }
+                Tip { text: card.name + "\n" + (card.status || card.containerState) + (card.operation.label ? "\n" + card.operation.label : "") + "\n" + card.image + "\n" + card.containerKey; delay: 700 }
             }
             Kirigami.PlaceholderMessage {
                 anchors.centerIn: parent

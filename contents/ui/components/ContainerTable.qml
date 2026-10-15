@@ -6,7 +6,6 @@ import QtQuick.Controls as Controls
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
-import org.kde.plasma.extras as PlasmaExtras
 import "../../lib/parsers.js" as Parsers
 import "../../lib/status.js" as Status
 import "../../lib/style.js" as Style
@@ -252,6 +251,7 @@ Item {
             flickableDirection: Flickable.AutoFlickIfNeeded
             currentIndex: -1
             reuseItems: true
+            cacheBuffer: Kirigami.Units.gridUnit * 4
             clip: true
             boundsBehavior: Flickable.StopAtBounds
 
@@ -422,7 +422,7 @@ Item {
                     }
                 }
 
-                ContainerActions {
+                ActionsHost {
                     id: actions
                     backend: root.backend
                     record: rowItem.record

@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/status.js" as Status
+import "../../lib/style.js" as Style
 
 /*
  * StatusLine — the small "state · time" line under a container's name.
@@ -62,10 +63,21 @@ Item {
         : root.showBadge ? Status.compactStatus(root.status, root.containerState, root.runningFor)
         : root.prefix + Status.compactStatus(root.status, root.containerState, root.runningFor)
 
+    /* A tone name or hue to a colour; cheaper than an item per instance. */
+    function toneColor(name) {
+        switch (name) {
+        case "ok": return Kirigami.Theme.positiveTextColor
+        case "bad": return Kirigami.Theme.negativeTextColor
+        case "warn": return Kirigami.Theme.neutralTextColor
+        case "info": return Kirigami.Theme.highlightColor
+        case "muted": return Kirigami.Theme.disabledTextColor
+        case "text": return Kirigami.Theme.textColor
+        default: return Style.HUE[name] !== undefined ? Style.HUE[name] : Kirigami.Theme.textColor
+        }
+    }
+
     implicitWidth: line.implicitWidth
     implicitHeight: line.implicitHeight
-
-    Tones { id: tones }
 
     RowLayout {
         id: line
@@ -75,7 +87,7 @@ Item {
         ActionIcon {
             visible: root.glyphName !== ""
             glyph: root.glyphName
-            color: tones.color(Status.glyphTone(root.attention, root.isRunning))
+            color: root.toneColor(Status.glyphTone(root.attention, root.isRunning))
             implicitWidth: Kirigami.Units.iconSizes.small
             implicitHeight: implicitWidth
         }
@@ -101,12 +113,8 @@ Item {
             text: root.text
             elide: Text.ElideRight
             font: Kirigami.Theme.smallFont
-            color: tones.color(Status.statusTone(root.attention, root.operationLabel, root.operationOk, root.isRunning))
-            HoverHandler { id: hover }
-            PlasmaComponents.ToolTip {
-                visible: hover.hovered
-                text: (root.status !== "" ? root.status : root.containerState) + (root.operationLabel !== "" ? "\n" + root.operationLabel : "")
-            }
+            color: root.toneColor(Status.statusTone(root.attention, root.operationLabel, root.operationOk, root.isRunning))
+            Tip { text: (root.status !== "" ? root.status : root.containerState) + (root.operationLabel !== "" ? "\n" + root.operationLabel : "") }
         }
     }
 }

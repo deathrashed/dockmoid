@@ -29,7 +29,7 @@ Rectangle {
     property bool selected: false
     default property alias content: body.data
     property real padding: Kirigami.Units.largeSpacing
-    readonly property color stripe: root.tone !== "" ? tones.color(root.tone) : root.accent
+    readonly property color stripe: root.tone !== "" ? root.toneColor(root.tone) : root.accent
     readonly property font titleFont: {
         const f = Kirigami.Theme.smallFont
         f.bold = true
@@ -40,15 +40,28 @@ Rectangle {
     readonly property bool hasAccent: root.stripe.a > 0
 
     radius: Kirigami.Units.smallSpacing * 1.5
-    color: root.washTone !== "" ? Qt.alpha(tones.color(root.washTone), root.selected ? Style.WASH.selected : (root.interactive && root.hovered) ? Style.WASH.hover : Style.WASH.rest)
+    color: root.washTone !== "" ? Qt.alpha(root.toneColor(root.washTone), root.selected ? Style.WASH.selected : (root.interactive && root.hovered) ? Style.WASH.hover : Style.WASH.rest)
         : root.selected ? Qt.alpha(Kirigami.Theme.highlightColor, Style.WASH.selected)
         : (root.interactive && root.hovered) ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.hover)
         : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
     border.width: 1
-    border.color: root.washTone !== "" ? Qt.alpha(tones.color(root.washTone), root.selected ? Style.WASH_BORDER.selected : (root.interactive && root.hovered) ? Style.WASH_BORDER.hover : Style.WASH_BORDER.rest)
+    border.color: root.washTone !== "" ? Qt.alpha(root.toneColor(root.washTone), root.selected ? Style.WASH_BORDER.selected : (root.interactive && root.hovered) ? Style.WASH_BORDER.hover : Style.WASH_BORDER.rest)
         : root.selected ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.borderStrong)
         : (root.interactive && root.hovered) ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.borderAccent)
         : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
+
+    /* A tone name or hue to a colour; cheaper than an item per instance. */
+    function toneColor(name) {
+        switch (name) {
+        case "ok": return Kirigami.Theme.positiveTextColor
+        case "bad": return Kirigami.Theme.negativeTextColor
+        case "warn": return Kirigami.Theme.neutralTextColor
+        case "info": return Kirigami.Theme.highlightColor
+        case "muted": return Kirigami.Theme.disabledTextColor
+        case "text": return Kirigami.Theme.textColor
+        default: return Style.HUE[name] !== undefined ? Style.HUE[name] : Kirigami.Theme.textColor
+        }
+    }
 
     implicitHeight: column.implicitHeight + root.padding * 2
     implicitWidth: column.implicitWidth + root.padding * 2
@@ -63,7 +76,6 @@ Rectangle {
         color: root.stripe
     }
 
-    Tones { id: tones }
 
     ColumnLayout {
         id: column
@@ -79,7 +91,7 @@ Rectangle {
             ActionIcon {
                 visible: root.titleGlyph !== ""
                 glyph: root.titleGlyph
-                color: tones.color(root.titleTone)
+                color: root.toneColor(root.titleTone)
                 implicitWidth: Kirigami.Units.iconSizes.small
                 implicitHeight: implicitWidth
             }

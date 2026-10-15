@@ -19,16 +19,19 @@ config.update(defaultViewMode=0,defaultDetailLevel=0,sortRole='name',sortAscendi
 config_qml='\n'.join('property var '+key+': '+json.dumps(value) for key,value in config.items())
 records=[]
 names=['caddy','deemix','lidarr','navidrome','pihole','portainer','slskd','syncthing','beets','cliproxyapi','dockge','dozzle','flaresolverr','homepage','metube','obsidian']
+PERF=int(os.environ.get('DOCKMOID_UI_PERF','0') or 0)
+if PERF>len(names):names=names+['svc%03d'%i for i in range(len(names),PERF)]
+RUN=lambda i:(i<8) if not PERF else (i%3!=0)
 for i,name in enumerate(names):
  r={key:'' for key in 'id name image command createdAt runningFor state status health localVolumes networks mounts ports size platform project service composeFiles composeWorkDir composeProfile cpu mem memU blockio netio pids restartPolicy sortKey'.split()}
- r.update(id=f'{i:012x}',name=name,image=f'example/{name}:latest',command='/entrypoint',state='running' if i<8 else 'exited',status='Up 2 hours (healthy)' if i<8 else 'Exited (0) 2 days ago',health='healthy' if i<8 else 'none',isRunning=i<8,project=name,service=name,composeFiles=f'/example/{name}/compose.yaml',composeWorkDir=f'/example/{name}',cpu='2.4%' if i<8 else '',mem='1.2%' if i<8 else '',cpuPct=2.4 if i<8 else 0,memPct=1.2 if i<8 else 0,networks='media_net',mounts=('/home/example/docker/'+name+'/config,/home/example/media/music,/mnt/long storage path/container-data/'+name if i<8 else ''),ports=('127.0.0.1:8080->80/tcp, [::]:8443->443/tcp' if i<8 else ''),memU=('138 MiB / 16 GiB' if i<8 else ''),localVolumes='0',runningFor='2 hours' if i<8 else '2 days',size='0 B',platform='linux/amd64',restartPolicy='unless-stopped',pinned=False,probe='',updateAvailable=i<3,sortKey=name)
+ r.update(id=f'{i:012x}',name=name,image=f'example/{name}:latest',command='/entrypoint',state='running' if RUN(i) else 'exited',status='Up 2 hours (healthy)' if RUN(i) else 'Exited (0) 2 days ago',health='healthy' if RUN(i) else 'none',isRunning=RUN(i),project=name,service=name,composeFiles=f'/example/{name}/compose.yaml',composeWorkDir=f'/example/{name}',cpu='2.4%' if i<8 else '',mem='1.2%' if i<8 else '',cpuPct=2.4 if i<8 else 0,memPct=1.2 if i<8 else 0,networks='media_net',mounts=('/home/example/docker/'+name+'/config,/home/example/media/music,/mnt/long storage path/container-data/'+name if i<8 else ''),ports=('127.0.0.1:8080->80/tcp, [::]:8443->443/tcp' if i<8 else ''),memU=('138 MiB / 16 GiB' if i<8 else ''),localVolumes='0',runningFor='2 hours' if i<8 else '2 days',size='0 B',platform='linux/amd64',restartPolicy='unless-stopped',pinned=False,probe='',updateAvailable=i<3,sortKey=name)
  records.append(r)
 icon_dir=project/'contents/assets/library'
 files=[p.name for p in icon_dir.iterdir() if p.suffix in ['.svg','.png','.webp']]
 
 # Fictional demonstration data; no engine runner is connected.
 for i,r in enumerate(records):
- if i>=12:r.update(id='configured:demo:'+r['name'],state='not-created',status='Not created',isRunning=False)
+ if 12<=i<16:r.update(id='configured:demo:'+r['name'],state='not-created',status='Not created',isRunning=False)
 config['toolbarStyle']=3
 config_qml='\n'.join('property var '+key+': '+json.dumps(value) for key,value in config.items())
 qml='''import QtQuick
@@ -48,6 +51,8 @@ Rectangle {
  function toolbar(style){config.toolbarStyle=style}
  function everything(){popup.selectView(0);popup.selectDetail(3)}
  function grid(){popup.selectView(3)}
+ function tick(){var r=backend.records;for(var i=0;i<r.length;i++){if(r[i].isRunning){r[i].cpuPct=(r[i].cpuPct*7+i)%9;r[i].cpu=r[i].cpuPct.toFixed(2)+'%';r[i].memPct=(r[i].memPct*5+i)%7;r[i].mem=r[i].memPct.toFixed(2)+'%'}}backend.syncModel();backend.recomputeTotals();backend.revision++}
+ function typeSearch(t){popup.searchText=t}
  function showPage(name){popup.selectView(0);if(name==='doctor')popup.showDoctor(0);else if(name==='resources')popup.showResources();else if(name==='deploy')popup.showDeployment();else if(name==='activity')popup.showActivity();else if(name==='detail')popup.showDetail('000000000000',0);else if(name==='detail1')popup.showDetail('000000000009',0)}
  function presentation(mode,level){popup.selectView(mode);popup.selectDetail(level)}
  function level(){return popup.detailLevel}
@@ -85,8 +90,9 @@ def step(index=0):
   else:app.quit()
   return
  w,m,l=cases[index];view.resize(w,760);view.rootObject().presentation(m,l)
+ QTest.mouseMove(view,QPoint(w-3,757))  # keep the pointer off the toolbar, whose tooltip would cover the first row
  home=view.rootObject().findChild(QObject,"homeSectionPage");home.updateSetting("previewMode","selection")
- QTimer.singleShot(100,safe(lambda:check(index,w,m,l)))
+ QTimer.singleShot(300,safe(lambda:check(index,w,m,l)))
 def check(index,w,m,l):
  assert popup().width()>0
  if os.environ.get('DOCKMOID_UI_CAPTURE_DIR'):
@@ -110,7 +116,50 @@ def pages(i):
   folder=pathlib.Path(os.environ.get('DOCKMOID_UI_CAPTURE_DIR') or out);folder.mkdir(parents=True,exist_ok=True)
   view.grabWindow().save(str(folder/f'page-{n}-w{w}.png'));view.rootObject().presentation(0,1);(view.rootObject().findChild(QObject,'homeSectionPage').setDock('page','preview') if n.startswith('dock-') else None);QTimer.singleShot(150,safe(lambda:pages(i+1)))
  QTimer.singleShot(700,safe(grab))
-QTimer.singleShot(500,safe(step));app.exec()
+
+def perf():
+ from PySide6.QtCore import QElapsedTimer,QMetaObject,Q_ARG
+ root=view.rootObject();res={}
+ def settle(ms=60):
+  QTest.qWait(ms);app.processEvents()
+ def timed(fn,runs=1):
+  t=QElapsedTimer();t.start()
+  for _ in range(runs):fn();app.processEvents()
+  return t.elapsed()/runs
+ settle(500)
+ res['objects']=len(root.findChildren(QObject));print('objects',res['objects'],flush=True)
+ if os.environ.get('DOCKMOID_UI_PERF_DUMP'):
+  rowsx=[x for x in root.findChildren(QObject) if x.property('containerKey') not in (None,'') and x.property('detailLevel') is not None]
+  if rowsx:print('ROWS',len(rowsx),'objects in first row',len(rowsx[0].findChildren(QObject))+1,flush=True)
+  from collections import Counter
+  c=Counter(x.metaObject().className().split('_QMLTYPE')[0].split('_QML_')[0] for x in root.findChildren(QObject));print('TOP',c.most_common(30),flush=True)
+  pv=[x for x in root.findChildren(QObject) if x.metaObject().className().startswith('PopupView')][0]
+  rows=[]
+  def walk(o,depth):
+   for ch in o.children():
+    n=len(ch.findChildren(QObject))+1
+    rows.append((n,depth,ch.metaObject().className().split('_QML')[0],ch.objectName()))
+  walk(pv,0)
+  rows.sort(reverse=True);print('PV_CHILDREN',rows[:14],flush=True)
+  # one level down for the biggest
+  big=sorted([(len(ch.findChildren(QObject))+1,ch) for ch in pv.children()],key=lambda t:-t[0])[:2]
+  for n,ch in big:
+   sub=sorted([(len(g.findChildren(QObject))+1,g.metaObject().className().split('_QML')[0],g.objectName()) for g in ch.children()],reverse=True)[:8];print('INSIDE',ch.metaObject().className().split('_QML')[0],n,sub,flush=True)
+ res['containers']=len(records)
+ call=lambda name,*a:QMetaObject.invokeMethod(root,name)
+ res['tick_ms']=round(timed(lambda:call('tick'),30),1);print('tick',res['tick_ms'],flush=True)
+ for label,fn in [('list',lambda:root.presentation(0,1)),('table',lambda:root.presentation(1,1)),('grid',lambda:root.presentation(3,1)),('groups',lambda:root.presentation(2,1)),('list_again',lambda:root.presentation(0,1))]:
+  print('switch',label,flush=True);res['switch_to_'+label+'_ms']=round(timed(fn),1);settle(400);res['objects_'+label]=len(root.findChildren(QObject))
+ res['tick_ms_after']=round(timed(lambda:call('tick'),30),1)
+ def typing():
+  for t in ['s','sv','svc','svc0','svc01']:
+   QMetaObject.invokeMethod(root,'typeSearch',Q_ARG('QVariant',t));app.processEvents()
+  QMetaObject.invokeMethod(root,'typeSearch',Q_ARG('QVariant',''))
+ res['type_5_chars_ms']=round(timed(typing),1)
+ import json;print('PERF',json.dumps(res));app.quit()
+if os.environ.get('DOCKMOID_UI_PERF'):QTimer.singleShot(1500,safe(perf))
+else:QTimer.singleShot(500,safe(step))
+app.exec()
 errors=[m for m in messages if any(e in m for e in ['TypeError','ReferenceError','Cannot assign','Unable to assign','Required property','Binding loop'])]
 (out/'runtime.log').write_text('\n'.join(messages));print('Production QML demo cases:',len(checks),'failures:',failures,'errors:',errors)
-assert len(checks)==32 and not failures and not errors
+assert (os.environ.get('DOCKMOID_UI_PERF') or len(checks)==32) and not failures and not errors

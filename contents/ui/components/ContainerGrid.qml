@@ -32,6 +32,7 @@ Item {
         cellWidth: width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * (root.detailLevel <= 0 ? 11 : 16))))
         cellHeight: root.cardHeight + Kirigami.Units.smallSpacing
         boundsBehavior: Flickable.StopAtBounds
+        cacheBuffer: Kirigami.Units.gridUnit * 4
         delegate: Item {
             id: tile
             objectName: "containerGridCard"
@@ -191,7 +192,7 @@ Item {
             TapHandler {onTapped:root.backend.previewContainer(tile.containerKey,true)}
             TapHandler { onDoubleTapped: root.openDetail(tile.containerKey) }
             TapHandler { acceptedButtons: Qt.RightButton; onTapped: function(point) { actions.popup(tile, point.position.x, point.position.y) } }
-            ContainerActions {
+            ActionsHost {
                 id: actions
                 backend: root.backend
                 record: tile.record

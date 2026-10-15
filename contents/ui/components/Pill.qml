@@ -36,28 +36,40 @@ Rectangle {
     /* A shorter badge for use inside a list row. */
     property bool dense: false
 
-    readonly property color toneColor: tones.color(root.tone)
+    readonly property color base: root.toneColor(root.tone)
     /* Derived from the theme's small font, which may carry a pixel size only. */
     readonly property font valueFont: { const f = Kirigami.Theme.smallFont; f.weight = Font.DemiBold; return f }
     readonly property bool split: root.label !== ""
     readonly property real pad: Kirigami.Units.smallSpacing * (root.dense ? 1.1 : 1.5)
-    readonly property color onSolid: root.toneColor.hslLightness > 0.62 ? "#1b1e20" : "#ffffff"
+    readonly property color onSolid: root.base.hslLightness > 0.62 ? "#1b1e20" : "#ffffff"
     readonly property color valueColor: root.variant === "solid" ? root.onSolid : Qt.alpha(Kirigami.Theme.textColor, Style.TEXT.strong)
     /* Icons take an opaque colour (the SVG renderer ignores translucent ones); softness comes from opacity. */
     readonly property color iconColor: root.variant === "solid" ? root.onSolid
-        : root.colorIcon ? root.toneColor : Kirigami.Theme.textColor
+        : root.colorIcon ? root.base : Kirigami.Theme.textColor
+
+    /* A tone name or hue to a colour; cheaper than an item per instance. */
+    function toneColor(name) {
+        switch (name) {
+        case "ok": return Kirigami.Theme.positiveTextColor
+        case "bad": return Kirigami.Theme.negativeTextColor
+        case "warn": return Kirigami.Theme.neutralTextColor
+        case "info": return Kirigami.Theme.highlightColor
+        case "muted": return Kirigami.Theme.disabledTextColor
+        case "text": return Kirigami.Theme.textColor
+        default: return Style.HUE[name] !== undefined ? Style.HUE[name] : Kirigami.Theme.textColor
+        }
+    }
 
     implicitHeight: Kirigami.Units.gridUnit * (root.dense ? 1.05 : 1.3)
     implicitWidth: line.implicitWidth
     radius: Kirigami.Units.smallSpacing * 1.25
     clip: true
-    color: root.variant === "solid" ? root.toneColor
+    color: root.variant === "solid" ? root.base
         : root.variant === "secondary" ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface3)
         : "transparent"
     border.width: root.variant === "secondary" ? 0 : 1.5
-    border.color: root.variant === "solid" ? Qt.darker(root.toneColor, 1.15) : root.toneColor
+    border.color: root.variant === "solid" ? Qt.darker(root.base, 1.15) : root.base
 
-    Tones { id: tones }
 
     RowLayout {
         id: line
@@ -90,7 +102,7 @@ Rectangle {
                     implicitWidth: 6
                     implicitHeight: 6
                     radius: 3
-                    color: root.toneColor
+                    color: root.base
                     SequentialAnimation on opacity {
                         running: root.pulse && root.statusDot && root.visible
                         loops: Animation.Infinite

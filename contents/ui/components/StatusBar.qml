@@ -39,9 +39,9 @@ Item {
             ActionIcon { glyph: count.glyph; color: tones.color(count.toneName); implicitWidth: root.compact ? 12 : Kirigami.Units.iconSizes.small; implicitHeight: implicitWidth }
             PlasmaComponents.Label { text: String(count.value); font.pointSize: root.compact ? Kirigami.Theme.smallFont.pointSize : Kirigami.Theme.defaultFont.pointSize + 1; font.bold: true; font.features: ({"tnum": 1}) }
         }
-        HoverHandler { id: countHover; cursorShape: Qt.PointingHandCursor }
+        HoverHandler { cursorShape: Qt.PointingHandCursor }
         TapHandler { onTapped: count.attention ? root.attentionFilterRequested() : root.countFilter(count.filterState) }
-        PlasmaComponents.ToolTip { visible: countHover.hovered; text: count.description }
+        Tip { text: count.description }
         Accessible.name: description
         Accessible.role: Accessible.Button
     }

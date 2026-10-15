@@ -25,8 +25,16 @@ Item {
     signal runRequested(string recordId)
     function openRun(rec) { if (!root.backend.readOnly && rec.isRunning) root.runRequested(rec.id) }
 
-    CustomIconDialog { id: iconChooser; backend: root.backend }
-    function chooseIcon(rec) { iconChooser.choose(rec) }
+    /* The icon chooser is large; build it the first time it is asked for. */
+    Loader {
+        id: iconChooser
+        active: false
+        sourceComponent: CustomIconDialog { backend: root.backend }
+    }
+    function chooseIcon(rec) {
+        iconChooser.active = true
+        if (iconChooser.item) (iconChooser.item as CustomIconDialog).choose(rec)
+    }
 
     function confirmUpdate(rec) {
         var recreate = rec.project && rec.service && backend.canUseCompose
