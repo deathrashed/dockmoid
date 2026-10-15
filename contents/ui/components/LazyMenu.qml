@@ -1,4 +1,5 @@
 import QtQuick
+import org.kde.plasma.components as PlasmaComponents
 
 /*
  * LazyMenu — a menu that is built the first time it is shown.
@@ -10,15 +11,15 @@ import QtQuick
 Item {
     id: host
     property Component menu
-    readonly property bool opened: loader.item ? (loader.item as Menu).opened : false
+    readonly property bool opened: loader.item ? (loader.item as PlasmaComponents.Menu).opened : false
     width: 0
     height: 0
 
     function popup(anchor, x, y) {
         loader.active = true
-        if (loader.item) (loader.item as Menu).popup(anchor, x, y)
+        if (loader.item) (loader.item as PlasmaComponents.Menu).popup(anchor, x, y)
     }
-    function close() { if (loader.item) (loader.item as Menu).close() }
+    function close() { if (loader.item) (loader.item as PlasmaComponents.Menu).close() }
 
     Loader { id: loader; active: false; sourceComponent: host.menu }
 }

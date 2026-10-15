@@ -84,8 +84,17 @@ def popup():return [x for x in view.rootObject().findChildren(QObject) if x.meta
 def capture(name):view.grabWindow().save(str(out/name))
 cases=[(w,m,l) for w in [360,1050] for m in [0,1,2,3] for l in range(4)]
 checks=[]
+def menus():
+ # Every lazily built menu must open when asked; a silent failure here once left the toolbar dead.
+ found=[x for x in view.rootObject().findChildren(QObject) if x.metaObject().className().startswith('LazyMenu')]
+ assert len(found)>=6,('lazy menus',len(found))
+ for m in found:
+  m.popup(popup(),0,0);QTest.qWait(250)
+  if not m.property('opened'):failures.append(('menu did not open',m.objectName() or str(m)))
+  m.close();QTest.qWait(100)
 def step(index=0):
  if index==len(cases):
+  menus()
   if os.environ.get('DOCKMOID_UI_PAGES'):pages(0)
   else:app.quit()
   return
