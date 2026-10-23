@@ -171,6 +171,13 @@ Item {
         default: return i18n("Stopped")
         }
     }
+    /* State and health in one badge: "Running · Healthy", "Running · Starting". */
+    readonly property string statusText: {
+        const health = root.hasRecord && root.record.isRunning === true ? String(root.record.health || "") : ""
+        if (root.attention === "running" && health === "healthy") return i18n("%1 · Healthy", root.stateWord)
+        if (root.attention === "running" && health === "starting") return i18n("%1 · Starting", root.stateWord)
+        return root.stateWord
+    }
     readonly property var badgeInfo: Status.badgeSpec(root.attention)
     readonly property string stateTone: root.attention === "not-created" ? "cyan"
         : root.attention === "stopped" ? "slate"
@@ -197,18 +204,12 @@ Item {
             badges: [
                 Components.Pill {
                     visible: root.hasRecord
-                    text: root.stateWord
+                    text: root.statusText
                     tone: root.badgeInfo.tone
                     variant: root.badgeInfo.variant
                     glyph: root.badgeInfo.glyph
                     statusDot: root.badgeInfo.dot
                     pulse: root.badgeInfo.dot
-                },
-                Components.Pill {
-                    visible: root.hasRecord && root.record.isRunning === true && root.record.health !== "" && root.record.health !== "none"
-                    label: i18n("health")
-                    text: root.record.health
-                    tone: root.record.health === "healthy" ? "ok" : root.record.health === "unhealthy" ? "bad" : "amber"
                 },
                 Components.Pill {
                     visible: root.hasRecord && root.record.updateAvailable === true

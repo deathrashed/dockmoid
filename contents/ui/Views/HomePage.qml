@@ -99,6 +99,32 @@ Item {
     readonly property var dockComponent: dockPage === "logs" ? logsPage : dockPage === "events" ? eventsPage
         : dockPage === "compose" ? composePage : previewPage
 
+    // ------------------------------------------------ selection continuity ---
+    /*
+     * The inspected container (backend.previewRecordId) is the one selection
+     * every view shares. Switching view scrolls the new one to it, and when the
+     * list's filters hide it the inspector says so instead of silently showing
+     * a container the list no longer has.
+     */
+    function proxyRowOf(id) {
+        const model = root.backend.containerModel
+        if (!id || !model) return -1
+        for (let i = 0; i < model.count; i++)
+            if (model.get(i).containerKey === id) return root.proxy.mapFromSource(model.index(i, 0)).row
+        return -1
+    }
+    readonly property var selectedRecord: { const revision = root.backend.revision; return root.backend.findRecord(root.backend.previewRecordId) }
+    readonly property bool selectionHidden: {
+        const rows = root.proxy.count, filter = root.rowFilter
+        return !!root.selectedRecord && root.proxyRowOf(root.backend.previewRecordId) < 0
+    }
+    /* The loaded view; every view but Groups offers reveal(row). A var, since the views share no base type. */
+    readonly property var loadedView: viewLoader.item
+    function revealSelection() {
+        if (root.loadedView && typeof root.loadedView.reveal === "function")
+            root.loadedView.reveal(root.proxyRowOf(root.backend.previewRecordId))
+    }
+
     // ---------------------------------------------------- the container list ---
     Component {
         id: listComponent
@@ -190,9 +216,15 @@ Item {
                 radius: Kirigami.Units.smallSpacing
 
                 Loader {
+                    id: viewLoader
                     anchors.fill: parent
                     visible: root.backend.engineActive && root.proxy.count > 0
+                    // Dimmed while the last refresh failed: these are last known states.
+                    opacity: root.backend.dataStale && root.backend.lastUpdatedMs > 0 ? 0.7 : 1
                     sourceComponent: root.selectedViewComponent
+                    // After the first layout pass: a fresh view has no height or delegates yet.
+                    onLoaded: revealTimer.restart()
+                    Timer { id: revealTimer; interval: 0; onTriggered: root.revealSelection() }
                 }
                 PlasmaComponents.Label {
                     anchors.centerIn: parent
@@ -252,13 +284,21 @@ Item {
                                 required property var modelData
                                 glyph: modelData.glyph
                                 text: modelData.label
-                                iconOnly: root.width < Kirigami.Units.gridUnit * 44
+                                // Narrow: the current tab keeps its label, so it is always clear
+                                // whether the inspector shows Overview, Logs, Events or Compose.
+                                iconOnly: root.width < Kirigami.Units.gridUnit * 44 && !checked
                                 checked: root.dockPage === modelData.key && root.dockExpanded
                                 onClicked: { root.setDock("page", modelData.key); root.setDock("expanded", true) }
                             }
                         }
                         Item { Layout.fillWidth: true }
-                        // ---- the list's own controls ----
+                        // ---- the list's own controls, set apart from the inspector's tabs ----
+                        Rectangle {
+                            Layout.preferredWidth: 1
+                            Layout.preferredHeight: Kirigami.Units.gridUnit
+                            Layout.rightMargin: Kirigami.Units.smallSpacing
+                            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
+                        }
                         Components.ToolbarButton {
                             id: dockFilter
                             objectName: "dockFilterButton"
@@ -285,6 +325,9 @@ Item {
                         PlasmaExtras.SearchField {
                             id: searchField
                             objectName: "dockSearchField"
+                            // Shrinks before anything else when the strip is short of room.
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: Kirigami.Units.gridUnit * 3.5
                             Layout.preferredWidth: activeFocus || text !== "" ? Kirigami.Units.gridUnit * 11 : Kirigami.Units.gridUnit * 7
                             Layout.maximumWidth: Math.max(Kirigami.Units.gridUnit * 5, root.width * 0.3)
                             placeholderText: i18n("Search…")
@@ -304,6 +347,21 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 1
                         color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
+                    }
+                    Kirigami.InlineMessage {
+                        objectName: "selectionHiddenMessage"
+                        Layout.fillWidth: true
+                        Layout.margins: Kirigami.Units.smallSpacing
+                        visible: root.dockExpanded && root.selectionHidden
+                        type: Kirigami.MessageType.Information
+                        text: i18n("%1 is hidden by the list's filters.", root.selectedRecord ? root.selectedRecord.name : "")
+                        actions: [
+                            Kirigami.Action {
+                                text: i18n("Show in List")
+                                icon.name: "edit-clear"
+                                onTriggered: { root.clearFiltersRequested(); Qt.callLater(root.revealSelection) }
+                            }
+                        ]
                     }
                     Loader {
                         objectName: "dockLoader"

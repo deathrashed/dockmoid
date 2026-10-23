@@ -78,7 +78,7 @@ Rectangle {
 app=QApplication([]);pal=app.palette()
 for role,color in [(QPalette.Window,'#292e32'),(QPalette.WindowText,'#eff0f1'),(QPalette.Base,'#24292d'),(QPalette.Text,'#eff0f1'),(QPalette.Button,'#31363b'),(QPalette.ButtonText,'#eff0f1')]:pal.setColor(role,QColor(color))
 app.setPalette(pal);messages=[];qInstallMessageHandler(lambda t,c,m:messages.append(m))
-qml=qml[:-1]+'''function previewTarget(){function find(item){if(item.containerKey && item.visible && item.width>0 && item.height>0)return item;for(let child of item.children){const found=find(child);if(found)return found}return null}const item=find(root);if(!item)return '{}';const p=item.mapToItem(root,60,14);return JSON.stringify({x:p.x,y:p.y,id:item.containerKey})} function previewSelected(){return backend.previewRecordId} }'''
+qml=qml[:-1]+'''function previewTarget(){function find(item){if(item.containerKey && item.visible && item.width>0 && item.height>0)return item;for(let child of item.children){const found=find(child);if(found)return found}return null}const item=find(root);if(!item)return '{}';const p=item.mapToItem(root,60,14);return JSON.stringify({x:p.x,y:p.y,id:item.containerKey})} function previewSelected(){return backend.previewRecordId} function selectId(id){backend.previewContainer(id,true)} function selectedOnScreen(){function find(item,test){if(test(item))return item;for(let child of item.children){const f=find(child,test);if(f)return f}return null}const pane=find(root,function(i){return i.objectName==='containerListPane'});const item=find(root,function(i){return i.containerKey===backend.previewRecordId&&i.visible&&i.width>0});if(!item||!pane)return false;const p=item.mapToItem(pane,0,item.height/2);return p.y>0&&p.y<pane.height} function hideSelected(){const r=backend.findRecord(backend.previewRecordId);popup.stateFilter=r&&r.state==='running'?'stopped':'running'} function clearAll(){popup.clearFilters()} function setStale(v){backend.dataStale=v} }'''
 file=out/'Preview.qml';file.write_text(qml)
 view=QQuickView();view.setResizeMode(QQuickView.SizeRootObjectToView);view.setSource(QUrl.fromLocalFile(str(file)));assert view.status()!=QQuickView.Error,[e.toString() for e in view.errors()];view.resize(1050,760);view.show();failures=[]
 def safe(fn):
@@ -98,9 +98,29 @@ def menus():
   m.popup(popup(),0,0);QTest.qWait(250)
   if not m.property('opened'):failures.append(('menu did not open',m.objectName() or str(m)))
   m.close();QTest.qWait(100)
+def visible_named(name):
+ return any(x.property('visible') for x in view.rootObject().findChildren(QObject,name))
+def continuity():
+ # One selection across views: switching view scrolls to it; a filter that hides it is explained.
+ root=view.rootObject();view.resize(1050,760);root.presentation(0,1);QTest.qWait(300)
+ proxy=view.rootObject().findChild(QObject,'containerProxy');role=[k for k,v in proxy.roleNames().items() if bytes(v)==b'containerKey'][0]
+ last=proxy.data(proxy.index(proxy.rowCount()-1,0),role);root.selectId(last);QTest.qWait(100)  # the last row: off screen until revealed
+ for m in [1,3,0]:
+  root.presentation(m,1);QTest.qWait(400)
+  if not root.selectedOnScreen():failures.append(('selection not revealed after view switch',m))
+ root.hideSelected();QTest.qWait(300)
+ if not visible_named('selectionHiddenMessage'):failures.append('hidden selection not explained')
+ root.clearAll();QTest.qWait(300)
+ if visible_named('selectionHiddenMessage'):failures.append('hidden-selection note stayed after clearing filters')
+ # A failed refresh keeps the last state but says how old it is.
+ root.setStale(True);QTest.qWait(200)
+ if not visible_named('footerStale'):failures.append('stale data not indicated')
+ root.setStale(False);QTest.qWait(100)
+ if visible_named('footerStale'):failures.append('stale note stayed after a good refresh')
 def step(index=0):
  if index==len(cases):
   menus()
+  continuity()
   if os.environ.get('DOCKMOID_UI_PAGES'):pages(0)
   else:app.quit()
   return

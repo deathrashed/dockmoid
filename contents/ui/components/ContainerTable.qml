@@ -6,7 +6,6 @@ import QtQuick.Controls as Controls
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
-import "../../lib/parsers.js" as Parsers
 import "../../lib/status.js" as Status
 import "../../lib/style.js" as Style
 
@@ -58,6 +57,9 @@ Item {
         {key:"networks", title:i18n("Networks"), min:140, sort:"networks", level:3},
         {key:"memU", title:i18n("Memory Used"), min:130, sort:"memPct", level:3}
     ]
+    /* Bring proxy row `row` into view (view switches, Show in List). */
+    function reveal(row) { if (row >= 0 && row < table.count) table.positionViewAtIndex(row, ListView.Contain) }
+
     function savedKeys() {
         try { const v = root.cfg.tableVisibleColumns || ""; return Array.isArray(JSON.parse(v)) ? JSON.parse(v) : String(v).split(",").filter(function(x){return x !== ""}) } catch (e) { return String(root.cfg.tableVisibleColumns || "").split(",").filter(function(x){return x !== ""}) }
     }

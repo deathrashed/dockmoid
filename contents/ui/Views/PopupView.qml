@@ -172,6 +172,7 @@ PlasmaExtras.Representation {
 
     KItemModels.KSortFilterProxyModel {
         id: proxy
+        objectName: "containerProxy"
         sourceModel: root.backend.containerModel
         filterCaseSensitivity: Qt.CaseInsensitive
         sortCaseSensitivity: Qt.CaseInsensitive

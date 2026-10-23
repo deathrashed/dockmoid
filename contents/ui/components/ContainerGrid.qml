@@ -23,6 +23,9 @@ Item {
     readonly property real cardHeight: Kirigami.Units.gridUnit *
         (detailLevel <= 0 ? 5 : detailLevel === 1 ? 8 : detailLevel === 2 ? 15 : 17)
 
+    /* Bring proxy row `row` into view (view switches, Show in List). */
+    function reveal(row) { if (row >= 0 && row < grid.count) grid.positionViewAtIndex(row, GridView.Contain) }
+
     GridView {
         id: grid
         objectName: "containerGridView"
@@ -89,7 +92,7 @@ Item {
                                 status: tile.status; containerState: tile.containerState; runningFor: tile.record.runningFor || ""
                                 isRunning: tile.isRunning; attention: tile.attention
                                 operationLabel: tile.operation.label; operationOk: tile.operation.ok; operationBusy: tile.operation.busy
-                                glyphMode: "attention"; showBusy: true; badge: true
+                                glyphMode: "attention"; showBusy: true; badge: true; spelled: true
                             }
                         }
                     }

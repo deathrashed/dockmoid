@@ -26,6 +26,8 @@ Item {
     property bool follow: true
     property bool wrap: true
     property bool paused: false
+    /* Room to name the toggles instead of showing icons only. */
+    readonly property bool labelToggles: root.width >= Kirigami.Units.gridUnit * 34
     property string frozenText: ""
     readonly property string sourceText: root.paused ? root.frozenText : root.text
     property int timestampMode: Number(plasmoid.configuration.logTimestampMode) >= 0 ? Number(plasmoid.configuration.logTimestampMode) : 1
@@ -232,39 +234,41 @@ Item {
                 }
             }
 
+            // Freeze, Follow and Wrap are toggles: named on a wide viewer, and
+            // checked (highlighted) while on at any width.
             PlasmaComponents.ToolButton {
                 id: pauseButton
                 visible: root.logMode
-                display: PlasmaComponents.AbstractButton.IconOnly
-                icon.name: root.paused ? "media-playback-start" : "media-playback-pause"
-                text: root.paused ? i18n("Resume incoming log updates") : i18n("Pause incoming log updates")
+                display: root.labelToggles ? PlasmaComponents.AbstractButton.TextBesideIcon : PlasmaComponents.AbstractButton.IconOnly
+                icon.name: "media-playback-pause"
+                text: i18n("Freeze")
                 checkable: true
                 checked: root.paused
                 onClicked: root.paused = checked
-                PlasmaComponents.ToolTip { text: pauseButton.text }
+                PlasmaComponents.ToolTip { text: root.paused ? i18n("The display is frozen; new lines are kept back. Click to show them.") : i18n("Freeze the display to read; new lines are kept back") }
             }
 
             PlasmaComponents.ToolButton {
                 id: followButton
                 visible: root.logMode
-                display: PlasmaComponents.AbstractButton.IconOnly
+                display: root.labelToggles ? PlasmaComponents.AbstractButton.TextBesideIcon : PlasmaComponents.AbstractButton.IconOnly
                 icon.name: "go-bottom"
-                text: i18n("Keep scrolled to the newest line")
+                text: i18n("Follow")
                 checkable: true
                 checked: root.follow
                 onClicked: { root.follow = checked; if (checked) root.scrollToEnd() }
-                PlasmaComponents.ToolTip { text: followButton.text }
+                PlasmaComponents.ToolTip { text: root.follow ? i18n("Following the newest line") : i18n("Keep scrolled to the newest line") }
             }
 
             PlasmaComponents.ToolButton {
                 id: wrapButton
-                display: PlasmaComponents.AbstractButton.IconOnly
+                display: root.labelToggles ? PlasmaComponents.AbstractButton.TextBesideIcon : PlasmaComponents.AbstractButton.IconOnly
                 icon.name: "text-wrap"
-                text: i18n("Wrap lines")
+                text: i18n("Wrap")
                 checkable: true
                 checked: root.wrap
                 onClicked: root.wrap = checked
-                PlasmaComponents.ToolTip { text: wrapButton.text }
+                PlasmaComponents.ToolTip { text: root.wrap ? i18n("Long lines wrap") : i18n("Wrap long lines") }
             }
 
             PlasmaComponents.ToolButton {
@@ -281,6 +285,22 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
             color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
+        }
+
+        // Frozen is easy to forget: say so above the text, with the way out.
+        Kirigami.InlineMessage {
+            Layout.fillWidth: true
+            Layout.margins: Kirigami.Units.smallSpacing
+            visible: root.logMode && root.paused
+            type: Kirigami.MessageType.Information
+            text: root.text !== root.frozenText ? i18n("Display frozen · newer lines are waiting") : i18n("Display frozen")
+            actions: [
+                Kirigami.Action {
+                    text: i18n("Show New Lines")
+                    icon.name: "media-playback-start"
+                    onTriggered: root.paused = false
+                }
+            ]
         }
 
         QQC2.ScrollView {

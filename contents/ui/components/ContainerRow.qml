@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../../lib/parsers.js" as Parsers
 import "../../lib/status.js" as Status
 import "../../lib/style.js" as Style
 
@@ -208,7 +207,7 @@ PlasmaComponents.ItemDelegate {
                     isRunning: root.record.isRunning === true
                     attention: root.attention
                     operationLabel: root.operation.label; operationOk: root.operation.ok; operationBusy: root.operation.busy
-                    glyphMode: "none"; badge: true
+                    glyphMode: "none"; badge: true; spelled: true
                 }
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
@@ -366,7 +365,7 @@ PlasmaComponents.ItemDelegate {
             isRunning: root.record.isRunning === true
             attention: root.attention
             operationLabel: root.operation.label; operationOk: root.operation.ok; operationBusy: root.operation.busy
-            glyphMode: "none"; badge: true
+            glyphMode: "none"; badge: true; spelled: true
         }
         Item {
             visible: root.detailLevel >= 1 && root.width >= Kirigami.Units.gridUnit * 38 && root.cfg.showResourceBars

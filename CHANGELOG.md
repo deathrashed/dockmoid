@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Clearer at a glance: rows spell out their state ("Stopped · 2d ago", "Running · 2h"); the detail
+  header shows one "Running · Healthy" badge instead of a separate health badge; the footer names
+  its counts ("8 running · 4 stopped") as far as the width allows; the inspector's current tab keeps
+  its label on a narrow popup, and the list's Filter/Sort/Search are set apart from the tabs.
+- Logs: Freeze, Follow and Wrap are named toggles on a wide viewer, and a frozen display says so,
+  with "Show New Lines".
+- Stale data: when a refresh fails the footer shows how old the shown state is (click to retry) and
+  the list is dimmed, instead of last-known colours looking like a fresh check.
+- One selection across views: switching List, Table, Grid or Chips scrolls to the inspected
+  container; arrow keys in the list move the inspector with them; when a filter hides the
+  inspected container the inspector says so and offers "Show in List".
+
 - Fixed: Full Logs in the inspector opened the detail page on Overview; it now opens on Logs and
   loads them straight away.
 - Fixed: saved views with Pending Deployment, Updates Available or Failed came back as All

@@ -11,6 +11,9 @@ Item {
     id: root
     required property var backend
     required property var proxy
+    /* Bring proxy row `row` into view (view switches, Show in List). */
+    property var revealView: null
+    function reveal(row) { if (revealView && row >= 0 && row < revealView.count) revealView.positionViewAtIndex(row, GridView.Contain) }
     required property var dialogs
     signal openDetail(string recordId)
     signal openOutput(string title, string content, bool live, string recordId)
@@ -21,6 +24,7 @@ Item {
         background: null
         contentItem: GridView {
             id: view
+            Component.onCompleted: root.revealView = view
             model: root.proxy
             clip: true
             cellWidth: width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 12)))

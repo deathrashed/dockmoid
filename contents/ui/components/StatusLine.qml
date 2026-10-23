@@ -34,6 +34,8 @@ Item {
     property bool showBusy: false
     /* Replaces the status text, for views that explain *why* (Needs attention). */
     property string labelOverride: ""
+    /* Spell the state out ("Stopped · 2d ago") instead of leaving it to the glyph. */
+    property bool spelled: false
 
     readonly property string glyphName: root.showBadge ? "" : Status.statusGlyph(root.attention, root.operationBusy, root.isRunning, root.badge ? "always" : root.glyphMode)
     readonly property var spec: Status.badgeSpec(root.attention)
@@ -58,10 +60,20 @@ Item {
         default: return ""
         }
     }
+    readonly property string elapsed: Status.compactStatus(root.status, root.containerState, root.runningFor)
+    readonly property bool hasElapsed: root.attention !== "not-created" && root.elapsed !== "" && root.elapsed !== root.containerState
+    /* "2h" while up, "2d ago" once stopped. */
+    readonly property string when: !root.hasElapsed ? ""
+        : root.isRunning || root.attention === "restarting" || root.attention === "paused" ? root.elapsed
+        : i18nc("time since it stopped", "%1 ago", root.elapsed)
+    /* "Running · 2h", "Stopped · 2d ago", "Undeployed". */
+    readonly property string spelledText: root.when === "" ? root.badgeWord
+        : i18nc("state · time", "%1 · %2", root.badgeWord, root.when)
     readonly property string text: root.operationLabel !== "" ? root.operationLabel
         : root.labelOverride !== "" ? root.labelOverride
-        : root.showBadge ? Status.compactStatus(root.status, root.containerState, root.runningFor)
-        : root.prefix + Status.compactStatus(root.status, root.containerState, root.runningFor)
+        : root.showBadge ? (root.spelled ? root.when : root.elapsed)
+        : root.spelled ? root.spelledText
+        : root.prefix + root.elapsed
 
     /* A tone name or hue to a colour; cheaper than an item per instance. */
     function toneColor(name) {

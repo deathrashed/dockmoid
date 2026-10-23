@@ -45,10 +45,19 @@ PlasmaComponents.ScrollView {
 
     background: null
 
+    /* Bring proxy row `row` into view and make it current (view switches, Show in List). */
+    function reveal(row) {
+        if (row < 0 || row >= view.count) return
+        view.currentIndex = row
+        view.positionViewAtIndex(row, ListView.Contain)
+    }
+
     contentItem: ListView {
         id: view
         model: root.proxy
         currentIndex: -1
+        // Arrow keys select like a click does, so the inspector follows.
+        onCurrentIndexChanged: { const row = currentItem as ContainerRow; if (row && activeFocus) root.backend.previewContainer(row.containerKey, true) }
         keyNavigationEnabled: true
         activeFocusOnTab: true
         reuseItems: true
