@@ -18,6 +18,9 @@ Item {
     readonly property var spec: Status.badgeSpec(root.attention)
     readonly property bool running: root.record !== null && root.record.isRunning === true
     readonly property var links: root.record ? root.backend.linksFor(root.record) : []
+    readonly property var can: backend.actionsFor(record)
+    readonly property var stateCan: backend.stateActionsFor(record)
+    readonly property var primary: backend.primaryActionFor(record)
 
     Tones { id: tones }
 
@@ -122,17 +125,26 @@ Item {
                 Layout.leftMargin: Kirigami.Units.largeSpacing
                 Layout.rightMargin: Kirigami.Units.largeSpacing
                 spacing: Kirigami.Units.smallSpacing
+                // The same rules as the menu and the list (lib/actions.js).
                 DockButton {
-                    visible: !!root.record && !root.backend.readOnly
-                    variant: root.running ? "default" : "primary"
-                    glyph: root.running ? "square" : "play"
-                    text: root.record && root.record.state === "not-created" ? i18n("Create and Start") : root.running ? i18n("Stop") : i18n("Start")
-                    onClicked: root.running ? root.backend.stopContainer(root.record) : root.backend.startContainer(root.record)
+                    visible: !!root.record && root.stateCan[root.primary.action] === true
+                    enabled: root.primary.enabled
+                    variant: root.primary.action === "stop" ? "default" : "primary"
+                    glyph: root.primary.action === "stop" ? "square" : "play"
+                    text: root.primary.action === "create" ? i18n("Create and Start") : root.primary.action === "stop" ? i18n("Stop") : i18n("Start")
+                    onClicked: root.backend.runAction(root.record, root.primary.action)
                 }
                 DockButton {
-                    visible: root.running && !root.backend.readOnly
+                    visible: root.stateCan.restart === true
+                    enabled: root.can.restart === true
                     glyph: "rotate-cw"; text: i18n("Restart")
-                    onClicked: root.backend.restartContainer(root.record)
+                    onClicked: root.backend.runAction(root.record, "restart")
+                }
+                DockButton {
+                    visible: root.stateCan.resume === true
+                    enabled: root.can.resume === true
+                    glyph: "play"; text: i18n("Resume")
+                    onClicked: root.backend.runAction(root.record, "resume")
                 }
                 DockButton {
                     visible: root.links.length > 0 && root.running

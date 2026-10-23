@@ -390,11 +390,12 @@ Item {
                                     spacing: 0
                                     ActionToolButton { visible: root.detailLevel >= 2; glyph:"document-view"; text:i18n("Details"); onClicked:root.openDetail(rowItem.containerKey) }
                                     ActionToolButton {
+                                        readonly property var primary: root.backend.primaryActionFor(rowItem.record)
                                         visible: root.detailLevel >= 1
-                                        glyph: rowItem.isRunning ? "media-playback-stop" : "media-playback-start"
-                                        text: rowItem.isRunning ? i18n("Stop") : i18n("Start")
-                                        enabled: !root.backend.readOnly && !rowItem.operation.busy && (rowItem.isRunning ? Parsers.canStop(rowItem.containerState) : Parsers.canStart(rowItem.containerState))
-                                        onClicked: rowItem.isRunning ? root.backend.stopContainer(rowItem.record) : root.backend.startContainer(rowItem.record)
+                                        glyph: primary.action === "stop" ? "media-playback-stop" : "media-playback-start"
+                                        text: primary.action === "create" ? i18n("Create and start") : primary.action === "stop" ? i18n("Stop") : i18n("Start")
+                                        enabled: primary.enabled
+                                        onClicked: root.backend.runAction(rowItem.record, primary.action)
                                     }
                                     ActionToolButton { glyph:"application-menu"; text:i18n("Container actions"); onClicked:actions.popup(this,0,height) }
                                 }

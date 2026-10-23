@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Container actions follow one rule set (lib/actions.js) in the menu, list rows, grid, table, detail
+  header and inspector. Fixed: a paused container offered Restart, which then did nothing; the
+  start/stop button showed Start on a paused container. A crash-looping container can now be
+  stopped or killed, menu entries grey out while an action is running, and Run Command needs a
+  reachable engine.
+
 - Settings → Appearance → Panel: pick the panel style from live preview tiles, see it in all four
   states (all well, paused, problem, Docker down), with labelled colour swatches that are always
   visible. One "Badge shows" choice replaces the old style/checkbox/dot mix and adds "Nothing" and

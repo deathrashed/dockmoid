@@ -40,6 +40,9 @@ Item {
     readonly property var cfg: plasmoid.configuration
     readonly property var links: backend.linksFor(record)
     readonly property bool hasRecord: record !== null
+    readonly property var can: backend.actionsFor(record)
+    readonly property var stateCan: backend.stateActionsFor(record)
+    readonly property var primary: backend.primaryActionFor(record)
     readonly property bool isNotCreated: root.hasRecord && root.record.state === "not-created"
 
     property int tab: 0        // 0 overview, 1 logs, 2 inspect, 3 run
@@ -209,32 +212,36 @@ Item {
                 }
             ]
 
+            // Shown when the state allows the action, greyed while another runs
+            // (lib/actions.js, shared with the menu and the list).
             Components.DockButton {
-                visible: root.hasRecord && actions.canPerform("start-stop")
-                variant: root.record && root.record.isRunning ? "default" : "primary"
+                visible: root.hasRecord && root.stateCan[root.primary.action] === true
+                enabled: root.primary.enabled
+                variant: root.primary.action === "stop" ? "default" : "primary"
                 iconOnly: root.narrow
-                glyph: root.record && root.record.isRunning ? "media-playback-stop" : "media-playback-start"
-                text: root.isNotCreated ? i18n("Create and start") : (root.record && root.record.isRunning ? i18n("Stop") : i18n("Start"))
-                onClicked: actions.perform("start-stop")
+                glyph: root.primary.action === "stop" ? "media-playback-stop" : "media-playback-start"
+                text: root.primary.action === "create" ? i18n("Create and start") : root.primary.action === "stop" ? i18n("Stop") : i18n("Start")
+                onClicked: root.backend.runAction(root.record, root.primary.action)
             }
             Components.DockButton {
-                visible: root.hasRecord && !root.isNotCreated && actions.canPerform("restart")
+                visible: root.stateCan.restart === true
+                enabled: root.can.restart === true
                 iconOnly: root.narrow
                 glyph: "view-refresh"
                 text: i18n("Restart")
-                onClicked: actions.perform("restart")
+                onClicked: root.backend.runAction(root.record, "restart")
             }
             Components.DockButton {
-                visible: root.hasRecord && !root.isNotCreated && !root.backend.readOnly
-                    && (root.record.state === "running" || root.record.state === "paused")
+                visible: root.stateCan.pause === true || root.stateCan.resume === true
+                enabled: root.can.pause === true || root.can.resume === true
                 iconOnly: root.narrow
-                glyph: root.record && root.record.state === "paused" ? "media-playback-start" : "media-playback-pause"
-                text: root.record && root.record.state === "paused" ? i18n("Resume") : i18n("Pause")
-                onClicked: root.record.state === "paused" ? root.backend.unpauseContainer(root.record) : root.backend.pauseContainer(root.record)
+                glyph: root.stateCan.resume ? "media-playback-start" : "media-playback-pause"
+                text: root.stateCan.resume ? i18n("Resume") : i18n("Pause")
+                onClicked: root.backend.runAction(root.record, root.stateCan.resume ? "resume" : "pause")
             }
             Components.DockButton {
-                visible: root.hasRecord && !root.isNotCreated && !root.backend.readOnly
-                    && (root.record.isRunning === true || root.record.state === "paused" || root.record.state === "restarting")
+                visible: root.stateCan.kill === true
+                enabled: root.can.kill === true
                 iconOnly: root.narrow
                 variant: "danger"
                 glyph: "process-stop"
@@ -242,10 +249,11 @@ Item {
                 PlasmaComponents.ToolTip.text: i18n("Force stop now, without a graceful shutdown")
                 PlasmaComponents.ToolTip.visible: hovered && !root.narrow
                 PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                onClicked: root.backend.killContainer(root.record)
+                onClicked: root.backend.runAction(root.record, "kill")
             }
             Components.DockButton {
-                visible: root.hasRecord && !root.isNotCreated && !root.backend.readOnly
+                visible: root.stateCan.update === true
+                enabled: root.can.update === true
                 iconOnly: root.narrow
                 glyph: "cloud-download"
                 // Violet when the registry has a newer image; otherwise a plain pull-and-recreate.

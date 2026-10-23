@@ -82,6 +82,9 @@ PlasmaComponents.ItemDelegate {
 
     readonly property var cfg: plasmoid.configuration
     readonly property var operation: backend.operationsRevision >= 0 ? backend.operationFor(containerKey) : ({busy:false,label:"",ok:true})
+    /* What this container allows now, and its one start/stop button (lib/actions.js). */
+    readonly property var can: backend.actionsFor(record)
+    readonly property var primary: backend.primaryActionFor(record)
     readonly property string attention: Status.attentionKind(root.record)
     readonly property bool compactMetrics: root.width < 560
     /* Below this there is no room for a column of its own for the state. */
@@ -318,20 +321,20 @@ PlasmaComponents.ItemDelegate {
                 ActionToolButton {
                     text: i18n("Restart container")
                     glyph: "view-refresh"
-                    enabled: !root.backend.readOnly && (root.record.isRunning || root.record.state === "exited")
-                    onClicked: root.backend.restartContainer(root.record)
+                    enabled: root.can.restart
+                    onClicked: root.backend.runAction(root.record, "restart")
                 }
                 ActionToolButton {
                     text: root.record.state === "paused" ? i18n("Resume container") : i18n("Pause container")
                     glyph: root.record.state === "paused" ? "media-playback-start" : "media-playback-pause"
-                    enabled: !root.backend.readOnly && (Parsers.canPause(root.record.state) || Parsers.canUnpause(root.record.state))
-                    onClicked: root.record.state === "paused" ? root.backend.unpauseContainer(root.record) : root.backend.pauseContainer(root.record)
+                    enabled: root.can.pause || root.can.resume
+                    onClicked: root.backend.runAction(root.record, root.can.resume ? "resume" : "pause")
                 }
                 ActionToolButton {
-                    text: root.record.state === "not-created" ? i18n("Create and start service") : root.record.isRunning ? i18n("Stop container") : i18n("Start container")
-                    glyph: root.record.isRunning ? "media-playback-stop" : "media-playback-start"
-                    enabled: !root.backend.readOnly && (root.record.isRunning ? Parsers.canStop(root.record.state) : Parsers.canStart(root.record.state))
-                    onClicked: root.record.isRunning ? root.backend.stopContainer(root.record) : root.backend.startContainer(root.record)
+                    text: root.primary.action === "create" ? i18n("Create and start service") : root.primary.action === "stop" ? i18n("Stop container") : i18n("Start container")
+                    glyph: root.primary.action === "stop" ? "media-playback-stop" : "media-playback-start"
+                    enabled: root.primary.enabled
+                    onClicked: root.backend.runAction(root.record, root.primary.action)
                 }
                 ActionToolButton {
                     text: i18n("Web links")
@@ -419,16 +422,10 @@ PlasmaComponents.ItemDelegate {
                         id: toggleButton
                         opacity: root.hovered || root.highlighted || toggleButton.activeFocus ? 1 : 0.55
                         visible: root.detailLevel !== 0 && root.detailLevel !== 3
-                        enabled: !root.backend.readOnly && !root.operation.busy
-                        glyph: root.record.isRunning ? "media-playback-stop" : "media-playback-start"
-                        text: root.record.state === "not-created" ? i18n("Create and start") : root.record.isRunning ? i18n("Stop") : i18n("Start")
-                        onClicked: {
-                            if (root.record.isRunning) {
-                                root.backend.stopContainer(root.record)
-                            } else {
-                                root.backend.startContainer(root.record)
-                            }
-                        }
+                        enabled: root.primary.enabled
+                        glyph: root.primary.action === "stop" ? "media-playback-stop" : "media-playback-start"
+                        text: root.primary.action === "create" ? i18n("Create and start") : root.primary.action === "stop" ? i18n("Stop") : i18n("Start")
+                        onClicked: root.backend.runAction(root.record, root.primary.action)
                     }
                     ActionToolButton {
                         id: webButton

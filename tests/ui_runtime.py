@@ -61,7 +61,7 @@ Rectangle {
  function mode(){return popup.viewMode}
  function minimal(){popup.selectView(0);popup.selectDetail(0)}
  // DOCKMOID_UI_MENU=1 prints a container's menu as an indented tree.
- function menuTree(id){var rec=backend.findRecord(id);var comp=Qt.createComponent("'''+(project/'contents/ui/components/ContainerActions.qml').as_uri()+'''");if(comp.status!==Component.Ready)return comp.errorString();var m=comp.createObject(root,{backend:backend,record:rec,dialogs:null});m.rebuild();var out=[];function walk(menu,depth){for(var i=0;i<menu.count;i++){var it=menu.itemAt(i);if(!it)continue;var sub=it.subMenu;var label=sub?sub.title+' >':(it.label!==undefined?it.label:(it.text||'---'));if(it.isSectionHeader)label='['+label+']';out.push('  '.repeat(depth)+label);if(sub)walk(sub,depth+1)}}walk(m,0);m.destroy();return out.join('\n')}
+ function menuTree(id,state){var rec=backend.findRecord(id);if(state)rec=Object.assign({},rec,{state:state,isRunning:state==='running'});var comp=Qt.createComponent("'''+(project/'contents/ui/components/ContainerActions.qml').as_uri()+'''");if(comp.status!==Component.Ready)return comp.errorString();var m=comp.createObject(root,{backend:backend,record:rec,dialogs:null});m.rebuild();var out=[];function walk(menu,depth){for(var i=0;i<menu.count;i++){var it=menu.itemAt(i);if(!it)continue;var sub=it.subMenu;var label=sub?sub.title+' >':(it.label!==undefined?it.label:(it.text||'---'));if(it.isSectionHeader)label='['+label+']';out.push('  '.repeat(depth)+label);if(sub)walk(sub,depth+1)}}walk(m,0);m.destroy();return out.join('\n')}
  function search(){popup.searchText='nav';popup.openSearch()}
  function clearSearch(){popup.searchText=''}
  Component.onCompleted: {
@@ -174,7 +174,8 @@ def perf():
  import json;print('PERF',json.dumps(res));app.quit()
 def menu_dump():
  for rid in ['000000000000','000000000009']:
-  view.rootObject().enableCompose();print('--- menu for',rid);print(view.rootObject().menuTree(rid),flush=True)
+  view.rootObject().enableCompose();print('--- menu for',rid);print(view.rootObject().menuTree(rid,''),flush=True)
+ print('--- menu for 000000000001 as paused');print(view.rootObject().menuTree('000000000001','paused'),flush=True)
  app.quit()
 if os.environ.get('DOCKMOID_UI_MENU'):QTimer.singleShot(800,safe(menu_dump))
 elif os.environ.get('DOCKMOID_UI_PERF'):QTimer.singleShot(1500,safe(perf))

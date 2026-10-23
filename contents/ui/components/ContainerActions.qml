@@ -59,40 +59,37 @@ PlasmaComponents.Menu {
         root.popup(anchor, 0, anchor.height)
     }
 
-    /* Shared entry points for actions shown directly in the detail header.
-       Keep state and read-only decisions here so the buttons and overflow
-       menu follow the same rules. */
+    /* The detail header's buttons and this menu ask the same rules
+       (lib/actions.js through the backend), so they cannot disagree. */
     function canPerform(action) {
         var rec = root.record
         if (!rec || !rec.id) return false
-        var state = String(rec.state || "")
-        if (action === "logs" || action === "inspect") return state !== "not-created"
-        if (action === "start-stop")
-            return !root.backend.readOnly && (Parsers.canStop(state) || Parsers.canStart(state))
-        if (action === "start") return !root.backend.readOnly && Parsers.canStart(state)
-        if (action === "stop") return !root.backend.readOnly && Parsers.canStop(state)
-        if (action === "restart")
-            return !root.backend.readOnly && (rec.isRunning === true || state === "exited")
-        return false
+        if (action === "start-stop") return root.backend.primaryActionFor(rec).enabled
+        return root.backend.actionsFor(rec)[action] === true
     }
 
     function perform(action) {
-        if (!root.canPerform(action)) return
         var rec = root.record
+        if (!root.canPerform(action)) return
         if (action === "start-stop") {
-            root.perform(Parsers.canStop(String(rec.state || "")) ? "stop" : "start")
-        } else if (action === "start") {
-            root.backend.startContainer(rec)
-        } else if (action === "stop") {
-            root.backend.stopContainer(rec)
-        } else if (action === "restart") {
-            root.backend.restartContainer(rec)
+            root.backend.runAction(rec, root.backend.primaryActionFor(rec).action)
         } else if (action === "logs") {
             root.backend.newOutputRequest("logs", rec.id)
             root.openOutput(root.backend.logsTitle(rec), i18n("Loading…"), true, rec.id)
         } else if (action === "inspect") {
             root.showInspect(rec)
+        } else {
+            root.backend.runAction(rec, action)
         }
+    }
+
+    /*
+     * A menu entry for one action: listed when the container's state allows
+     * it, and greyed out while something else is running on it.
+     */
+    function offer(menu, label, glyph, action, run) {
+        if (root.backend.stateActionsFor(root.record)[action] !== true) return null
+        return addToMenu(menu, label, glyph, run || function () { root.perform(action) }, root.canPerform(action))
     }
 
     // ============================================================= items ====
@@ -370,7 +367,7 @@ PlasmaComponents.Menu {
         if (rec.state === "not-created") {
             if (root.sectionOnly === "copy") { addCopyMenu(rec); return }
             addEntry(i18n("Details"), "badge-info", function() { root.openDetail(rec.id) }, "", "details")
-            if (!root.backend.readOnly) addEntry(i18n("Create and Start"), "rocket", function() { root.backend.startContainer(rec) })
+            if (root.backend.actionsFor(rec).create) addEntry(i18n("Create and Start"), "rocket", function() { root.backend.runAction(rec, "create") })
             addEntry(i18n("Open Project Folder"), "folder-open", function() { root.backend.openContainerFolder(rec) })
             addEntry(i18n("Edit Compose File…"), "document-edit", function() { root.backend.editCompose(rec) })
             return
@@ -406,20 +403,20 @@ PlasmaComponents.Menu {
         if (wants("manage") && !root.backend.readOnly) {
             const manage = makeSubmenu(root, i18n("Manage"), "settings-2", "manage")
             if (manage) {
-                if (Parsers.canStart(state)) addToMenu(manage, i18n("Start"), "media-playback-start", function () { root.perform("start") })
-                if (Parsers.canStop(state)) addToMenu(manage, i18n("Stop"), "media-playback-stop", function () { root.perform("stop") })
-                if (Parsers.canPause(state)) addToMenu(manage, i18n("Pause"), "media-playback-pause", function () { root.backend.pauseContainer(rec) })
-                if (Parsers.canUnpause(state)) addToMenu(manage, i18n("Resume"), "media-playback-start", function () { root.backend.unpauseContainer(rec) })
-                if (running || state === "exited" || paused) addToMenu(manage, i18n("Restart"), "view-refresh", function () { root.perform("restart") })
-                if (running || paused || restarting) addToMenu(manage, i18n("Kill"), "process-stop", function () { root.backend.killContainer(rec) })
-                addToMenu(manage, i18n("Update…"), "cloud-download", function () { root.dialogs.confirmUpdate(rec) })
+                offer(manage, i18n("Start"), "media-playback-start", "start")
+                offer(manage, i18n("Stop"), "media-playback-stop", "stop")
+                offer(manage, i18n("Pause"), "media-playback-pause", "pause")
+                offer(manage, i18n("Resume"), "media-playback-start", "resume")
+                offer(manage, i18n("Restart"), "view-refresh", "restart")
+                offer(manage, i18n("Kill"), "process-stop", "kill")
+                offer(manage, i18n("Update…"), "cloud-download", "update", function () { root.dialogs.confirmUpdate(rec) })
 
                 // Force: the same actions without waiting for a clean shutdown.
                 const force = makeSubmenu(manage, i18n("Force"), "zap")
                 if (force) {
-                    if (running || paused || restarting) addToMenu(force, i18n("Restart Now"), "view-refresh", function () { root.backend.forceRestartContainer(rec) })
-                    if (composeService) addToMenu(force, i18n("Recreate"), "media-playlist-repeat", function () { root.runCompose(rec, "service-recreate", false) })
-                    addToMenu(force, i18n("Remove…"), "trash", function () { root.dialogs.confirmRemove(rec) })
+                    offer(force, i18n("Restart Now"), "view-refresh", "forceRestart")
+                    offer(force, i18n("Recreate"), "media-playlist-repeat", "recreate", function () { root.runCompose(rec, "service-recreate", false) })
+                    offer(force, i18n("Remove…"), "trash", "remove", function () { root.dialogs.confirmRemove(rec) })
                 }
 
                 if (!root.backend.isPodman && rec.restartPolicy !== undefined && rec.restartPolicy !== "") {
@@ -471,7 +468,7 @@ PlasmaComponents.Menu {
                     root.backend.customIconStore.reset(root.backend.customIconStore.keyForName(rec.name))
                     root.backend.customIconStore.reset(root.backend.customIconStore.keyForImage(rec.image))
                 })
-                if (!root.backend.readOnly) addToMenu(customize, i18n("Rename Container…"), "edit-rename", function () { root.dialogs.promptRename(rec) })
+                offer(customize, i18n("Rename Container…"), "edit-rename", "rename", function () { root.dialogs.promptRename(rec) })
                 addSeparator(customize)
                 addToMenu(customize, rec.pinned ? i18n("Unpin from Top") : i18n("Pin to Top"), rec.pinned ? "window-unpin" : "window-pin", function () { root.backend.togglePin(rec) })
                 if (rec.pinned) {
@@ -498,7 +495,7 @@ PlasmaComponents.Menu {
             }
             const terminal = makeSubmenu(root, i18n("Terminal"), "square-terminal", "terminal")
             if (terminal) {
-                if (running && !root.backend.readOnly) addToMenu(terminal, i18n("Run Command…"), "square-terminal", function () { root.dialogs.openRun(rec) })
+                offer(terminal, i18n("Run Command…"), "square-terminal", "exec", function () { root.dialogs.openRun(rec) })
                 addToMenu(terminal, i18n("Follow Logs in Terminal"), "terminal", function () { root.backend.followLogs(rec) })
                 if (running) addToMenu(terminal, i18n("Copy Shell Command"), "edit-copy", function () { clipboard.content = root.backend.engineBinary + " exec -it " + rec.name + " sh" })
             }

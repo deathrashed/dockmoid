@@ -7,6 +7,7 @@ import org.kde.kirigami as Kirigami
 import "../../lib/parsers.js" as Parsers
 import "../../lib/icons.js" as Icons
 import "../../lib/engines.js" as Engines
+import "../../lib/actions.js" as Actions
 
 /*
  * DockerBackend — everything the UI is allowed to know about Docker.
@@ -1283,6 +1284,50 @@ Item {
             backend.reportResult(rec.name, successText, i18n("Command failed"), code, out, err)
             backend.refresh({ "withStats": false })
         })
+    }
+
+    /*
+     * What this container allows right now (lib/actions.js), with this
+     * backend's mode, connection and in-flight operation filled in. Views
+     * read it in bindings, so it depends on revision and operationsRevision.
+     */
+    function actionsFor(rec) {
+        void revision; void operationsRevision
+        return Actions.allowed(rec, actionContext(rec))
+    }
+    /* The same, ignoring an action already in flight: what to show (greyed while busy). */
+    function stateActionsFor(rec) {
+        void revision; void operationsRevision
+        return Actions.allowed(rec, Object.assign(actionContext(rec), {busy: false}))
+    }
+    function primaryActionFor(rec) {
+        void revision; void operationsRevision
+        return Actions.primary(rec, actionContext(rec))
+    }
+    function actionContext(rec) {
+        return {
+            readOnly: readOnly,
+            engineActive: engineActive,
+            busy: !!rec && operationFor(rec.id).busy === true,
+            compose: !!rec && canUseCompose && !!rec.project && !!rec.service
+        }
+    }
+
+    /* Run a direct action if it is allowed; refused actions do nothing. */
+    function runAction(rec, action) {
+        if (!rec || actionsFor(rec)[action] !== true) return false
+        switch (action) {
+        case "create":
+        case "start": startContainer(rec); break
+        case "stop": stopContainer(rec); break
+        case "restart": restartContainer(rec); break
+        case "pause": pauseContainer(rec); break
+        case "resume": unpauseContainer(rec); break
+        case "kill": killContainer(rec); break
+        case "forceRestart": forceRestartContainer(rec); break
+        default: return false
+        }
+        return true
     }
 
     function startContainer(rec) {
