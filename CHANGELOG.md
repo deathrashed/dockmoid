@@ -2,6 +2,59 @@
 
 ## Unreleased
 
+- The panel under the list is now an inspector for the selected container: Overview (with live CPU and
+  memory graphs), Logs (a live tail), Events (Dockmoid's alerts plus the engine's last 24 hours) and
+  Compose (the file, with Validate and Edit). Filter, Sort and Search moved into its bar; Doctor,
+  Resources and Deploy open as pages from the toolbar, and Activity joined the toolbar with a badge for
+  entries you have not seen.
+- Detail page: Started, Restarts, Last exit (with out-of-memory), each network's IP address, CPU and
+  memory limits, the health-check command, user and working directory.
+- Resources: a menu per item with Deploy from This Image, Pull Latest, Show Containers, Inspect,
+  Layer History, Connect/Disconnect a Container (networks), Copy and Remove.
+
+- Settings can be shared between Dockmoid widgets (panel, system tray, desktop): General → Behavior →
+  "share with my other Dockmoid widgets" and "Copy These Settings to All Widgets". Popup size and list
+  layout stay per widget.
+- List sections fold on click, with a coloured icon and a count at the right end of the rule.
+  Compose services without a container are "Pending Deployment" (blue, circle-plus) and a row
+  reads "Undeployed". Stopped is red, Needs Attention yellow; All is grey and last in the status bar.
+- Detail page: Overview, Container and Storage on the left, Usage and Network on the right; headings
+  share one band with a coloured icon and rule. Pause/Resume, Kill and Update sit beside Stop and
+  Restart (the Logs button went; the Logs tab stays). Link buttons name their network. The misleading
+  "Up for" row (it showed time since creation) is gone.
+- Context menu: Container (Details, Web, Logs, Manage, Links), Project (Open, Compose, Copy) and Tools
+  (Customize, Inspect, Terminal). Manage holds Start/Stop/Pause/Restart/Kill/Update, a Force submenu
+  (Restart Now, Recreate, Remove…) and Autostart. Compose splits into Inspect, Whole Project, This
+  Service and Files, adding Start, Pause/Resume, Images, Processes, Validate Configuration and
+  per-service Logs/Restart/Pull/Force Recreate. Inspect adds Processes, Usage Snapshot, Health Checks,
+  Port Mappings, Filesystem Changes and Recent Events (all read-only).
+- "New" is now Deploy (package-plus icon; Find Image, Configure, Import, Storage); its forms use the detail-page cards.
+- Resources: labelled Refresh, Clean Up and Pull/Create buttons, summary tiles (unused filters the
+  list), card rows with side-by-side usage badges, and a layout that fits the tray popup.
+- Tabs look like tabs when not selected. Grid cards without live usage show state, image and
+  project. A narrow status bar reads "CPU 8.7% · RAM 5.3%".
+- Menus use title case with clearer wording (Remove Dangling Images…, Run Command…, More Cleanup Options…).
+- Refresh is always a normal button; a click during a background read runs right after it.
+- Badges have even padding; state icons line up on narrow rows; dock tabs centre their icons; the
+  detached window and tooltip logos render smoothly on HiDPI screens.
+
+- Less background work: one sleeping helper now waits for container change events instead of
+  starting an `events` query every 3 s (open) or 15 s (closed); polling stays as the fallback.
+  While closed, the full re-read relaxes to every 5 minutes, web probes to every 5 minutes (unless
+  probe notifications are on), and `docker info` to every 10 minutes. The heartbeat reads the list
+  without a separate engine check. All of these are under General → Refresh and Monitoring.
+- Usage is sampled every 15 s on pages that only show the status-bar totals (New, Doctor, output).
+- An unchanged container list skips re-processing; model sync uses an id index.
+- The polling fallback recovers after ten minutes as intended (its check never re-ran before).
+- The pulsing status dot stops while the popup is closed.
+- Detail overview: one card style for every section, two columns when wide, foldable cards with
+  a summary when folded; Usage shows memory, network, disk I/O and processes; ports, mounts and
+  networks list one per line; web links appear under Network.
+- Image search shows two cards per row, compact download counts (2.4B rather than 2.37e+09), and
+  no longer opens the command output panel.
+- Buttons have even padding and keep their icon and label centred; page-header badges wrap on a
+  narrow popup instead of running under the action buttons.
+
 - Performance: about two thirds fewer UI objects (10.6k to 3.4k in the offscreen test with 16 containers).
   Action menus, the toolbar menus, the update review dialog, the icon chooser and tooltips are built when
   first needed; list rows use a light icon button; usage meters no longer animate on every refresh; SVG

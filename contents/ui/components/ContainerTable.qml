@@ -56,7 +56,7 @@ Item {
         {key:"project", title:i18n("Project"), min:120, sort:"project", level:2},
         {key:"id", title:i18n("Container ID"), min:115, sort:"containerKey", level:3},
         {key:"networks", title:i18n("Networks"), min:140, sort:"networks", level:3},
-        {key:"memU", title:i18n("Memory used"), min:130, sort:"memPct", level:3}
+        {key:"memU", title:i18n("Memory Used"), min:130, sort:"memPct", level:3}
     ]
     function savedKeys() {
         try { const v = root.cfg.tableVisibleColumns || ""; return Array.isArray(JSON.parse(v)) ? JSON.parse(v) : String(v).split(",").filter(function(x){return x !== ""}) } catch (e) { return String(root.cfg.tableVisibleColumns || "").split(",").filter(function(x){return x !== ""}) }
@@ -214,7 +214,7 @@ Item {
             onClicked: columnsMenu.popup(columnsButton, 0, height)
             PlasmaComponents.Menu {
                 id: columnsMenu
-                title: i18n("Visible columns")
+                title: i18n("Visible Columns")
                 PlasmaComponents.MenuItem { text: i18n("Name"); checkable: true; checked: root.columns.some(function(c){return c.key === "name"}); onToggled: root.toggleColumn("name", checked) }
                 PlasmaComponents.MenuItem { text: i18n("Actions"); checkable: true; checked: root.columns.some(function(c){return c.key === "actions"}); onToggled: root.toggleColumn("actions", checked) }
                 PlasmaComponents.MenuItem { text: i18n("Status"); checkable: true; checked: root.columns.some(function(c){return c.key === "state"}); onToggled: root.toggleColumn("state", checked) }
@@ -225,7 +225,7 @@ Item {
                 PlasmaComponents.MenuItem { text: i18n("Project"); checkable: true; checked: root.columns.some(function(c){return c.key === "project"}); onToggled: root.toggleColumn("project", checked) }
                 PlasmaComponents.MenuItem { text: i18n("Container ID"); checkable: true; checked: root.columns.some(function(c){return c.key === "id"}); onToggled: root.toggleColumn("id", checked) }
                 PlasmaComponents.MenuItem { text: i18n("Networks"); checkable: true; checked: root.columns.some(function(c){return c.key === "networks"}); onToggled: root.toggleColumn("networks", checked) }
-                PlasmaComponents.MenuItem { text: i18n("Memory used"); checkable: true; checked: root.columns.some(function(c){return c.key === "memU"}); onToggled: root.toggleColumn("memU", checked) }
+                PlasmaComponents.MenuItem { text: i18n("Memory Used"); checkable: true; checked: root.columns.some(function(c){return c.key === "memU"}); onToggled: root.toggleColumn("memU", checked) }
             }
         }
     }

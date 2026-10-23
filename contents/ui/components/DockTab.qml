@@ -17,20 +17,26 @@ Controls.AbstractButton {
     hoverEnabled: true
     Accessible.name: control.text
 
-    contentItem: RowLayout {
-        id: row
-        spacing: Kirigami.Units.smallSpacing
-        ActionIcon {
-            Layout.alignment: Qt.AlignVCenter
-            Layout.leftMargin: control.iconOnly ? 0 : Kirigami.Units.smallSpacing
-            glyph: control.glyph
-            implicitWidth: Kirigami.Units.iconSizes.small
-            implicitHeight: implicitWidth
-        }
-        PlasmaComponents.Label {
-            visible: !control.iconOnly
-            text: control.text
-            font.bold: control.checked
+    // Centred as a group, so an icon-only tab draws its icon in the middle of
+    // its square rather than against the left edge.
+    contentItem: Item {
+        implicitWidth: row.implicitWidth
+        implicitHeight: row.implicitHeight
+        RowLayout {
+            id: row
+            anchors.centerIn: parent
+            spacing: Kirigami.Units.smallSpacing
+            ActionIcon {
+                Layout.alignment: Qt.AlignVCenter
+                glyph: control.glyph
+                implicitWidth: Kirigami.Units.iconSizes.small
+                implicitHeight: implicitWidth
+            }
+            PlasmaComponents.Label {
+                visible: !control.iconOnly
+                text: control.text
+                font.bold: control.checked
+            }
         }
     }
     background: Rectangle {

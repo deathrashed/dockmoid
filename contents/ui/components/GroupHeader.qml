@@ -103,7 +103,7 @@ Item {
         ActionToolButton {
             id: groupStart
             glyph: "media-playback-start"
-            text: i18n("Start all in this group")
+            text: i18n("Start All in Group")
             enabled: !root.backend.readOnly && !root.filtering
             onClicked: root.backend.startGroup(root.groupKey)
         }
@@ -111,7 +111,7 @@ Item {
         ActionToolButton {
             id: groupRestart
             glyph: "view-refresh"
-            text: i18n("Restart all in this group")
+            text: i18n("Restart All in Group")
             enabled: !root.backend.readOnly && !root.filtering
             onClicked: root.backend.restartGroup(root.groupKey)
         }
@@ -126,19 +126,19 @@ Item {
 
             PlasmaComponents.Menu {
                 id: groupMenu
-                ComposeMenuItem { glyph: "media-playback-start"; text: i18n("Up (create and start)"); onTriggered: root.composeRequested("up") }
-                ComposeMenuItem { glyph: "system-download"; text: i18n("Pull images"); onTriggered: root.composeRequested("pull") }
-                ComposeMenuItem { glyph: "package-upgrade"; text: i18n("Pull and recreate"); onTriggered: root.composeRequested("update") }
-                ComposeMenuItem { glyph: "view-refresh"; text: i18n("Force recreate"); onTriggered: root.composeRequested("recreate") }
+                ComposeMenuItem { glyph: "media-playback-start"; text: i18n("Up (Create and Start)"); onTriggered: root.composeRequested("up") }
+                ComposeMenuItem { glyph: "system-download"; text: i18n("Pull Images"); onTriggered: root.composeRequested("pull") }
+                ComposeMenuItem { glyph: "package-upgrade"; text: i18n("Pull and Recreate"); onTriggered: root.composeRequested("update") }
+                ComposeMenuItem { glyph: "view-refresh"; text: i18n("Force Recreate"); onTriggered: root.composeRequested("recreate") }
                 PlasmaComponents.MenuSeparator {}
-                ComposeMenuItem { glyph: "edit-delete"; text: i18n("Down (remove containers)"); onTriggered: root.composeRequested("down") }
+                ComposeMenuItem { glyph: "edit-delete"; text: i18n("Down (Remove Containers)"); onTriggered: root.composeRequested("down") }
             }
         }
 
         ActionToolButton {
             id: groupStop
             glyph: "media-playback-stop"
-            text: i18n("Stop all in this group")
+            text: i18n("Stop All in Group")
             enabled: !root.backend.readOnly && !root.filtering
             onClicked: root.backend.stopGroup(root.groupKey)
         }

@@ -91,10 +91,14 @@ Rectangle {
         }
         Item {
             Layout.fillHeight: true
-            implicitWidth: valueRow.implicitWidth + root.pad * 2
+            /* A leading dot or icon reads tighter than the text's trailing edge,
+               so that side gets a little more room to look even. */
+            readonly property real lead: root.statusDot || root.glyph !== "" ? Kirigami.Units.smallSpacing / 2 : 0
+            implicitWidth: valueRow.implicitWidth + root.pad * 2 + lead
             RowLayout {
                 id: valueRow
                 anchors.centerIn: parent
+                anchors.horizontalCenterOffset: parent.lead / 2
                 spacing: Kirigami.Units.smallSpacing * 0.75
                 Rectangle {
                     id: dot
@@ -104,10 +108,14 @@ Rectangle {
                     radius: 3
                     color: root.base
                     SequentialAnimation on opacity {
+                        // A closed popup keeps its items "visible", so also ask the window;
+                        // otherwise the pulse keeps the animation timer awake.
                         running: root.pulse && root.statusDot && root.visible
+                                 && root.Window.window !== null && root.Window.window.visible
                         loops: Animation.Infinite
                         NumberAnimation { to: 0.3; duration: 900; easing.type: Easing.InOutSine }
                         NumberAnimation { to: 1; duration: 900; easing.type: Easing.InOutSine }
+                        onStopped: dot.opacity = 1
                     }
                 }
                 ActionIcon {

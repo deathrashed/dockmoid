@@ -19,4 +19,10 @@ class Helpers(unittest.TestCase):
         with patch('urllib.request.urlopen',return_value=io.StringIO(json.dumps(response))),patch.object(sys,'argv',['search_images.py','nginx']),contextlib.redirect_stdout(stream):
             runpy.run_path(str(ROOT/'contents/scripts/search_images.py'),run_name='__main__')
         data=json.loads(stream.getvalue());self.assertEqual(data[0]['pulls'],123456);self.assertTrue(data[0]['official']);self.assertIsNone(data[1]['pulls'])
+    def test_event_wait_returns_the_first_event_quiet_timeout_and_failure(self):
+        helper=str(ROOT/'contents/scripts/wait_events.py')
+        def wait(seconds,cmd): return subprocess.run([sys.executable,'-I',helper,str(seconds),cmd],capture_output=True,text=True,timeout=20)
+        event=wait(10,'echo start; echo die; sleep 30');self.assertEqual((event.returncode,event.stdout),(0,'start\n'))
+        quiet=wait(1,'sleep 30');self.assertEqual((quiet.returncode,quiet.stdout),(0,''))
+        failed=wait(10,'echo cannot connect >&2; exit 3');self.assertEqual(failed.returncode,3);self.assertIn('cannot connect',failed.stderr)
 if __name__=='__main__':unittest.main()

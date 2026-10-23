@@ -40,6 +40,7 @@ PlasmaComponents.ItemDelegate {
      * `containerKey` role (DockerBackend publishes both).
      */
     required property string containerKey
+    required property string stateGroup
     required property string name
     required property string image
     required property string runningFor
@@ -158,7 +159,7 @@ PlasmaComponents.ItemDelegate {
                 }
                 PlasmaComponents.Label {
                     visible: root.record.updateAvailable === true
-                    text: i18n("update")
+                    text: i18n("Update")
                     color: Style.HUE.violet
                     font: Kirigami.Theme.smallFont
                     TapHandler { onTapped: root.dialogs.confirmUpdate(root.record) }
@@ -183,7 +184,7 @@ PlasmaComponents.ItemDelegate {
                 }
                 PlasmaComponents.Label {
                     visible: root.record.isRunning && root.record.health === "starting" && root.cfg.showHealth
-                    text: i18n("starting")
+                    text: i18n("Starting")
                     color: Kirigami.Theme.highlightColor
                     font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                 }
@@ -195,6 +196,17 @@ PlasmaComponents.ItemDelegate {
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
                 visible: root.detailLevel >= 1
+                StatusLine {
+                    visible: root.narrow
+                    // First on the line, so the state icons form a column on every row;
+                    // the minimum keeps short times ("2h", "12m") the same width.
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 2.8
+                    status: root.record.status; containerState: root.record.state; runningFor: root.record.runningFor
+                    isRunning: root.record.isRunning === true
+                    attention: root.attention
+                    operationLabel: root.operation.label; operationOk: root.operation.ok; operationBusy: root.operation.busy
+                    glyphMode: "none"; badge: true
+                }
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
@@ -203,14 +215,6 @@ PlasmaComponents.ItemDelegate {
                     elide: Text.ElideMiddle
                     font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
                     color: Kirigami.Theme.disabledTextColor
-                }
-                StatusLine {
-                    visible: root.narrow
-                    status: root.record.status; containerState: root.record.state; runningFor: root.record.runningFor
-                    isRunning: root.record.isRunning === true
-                    attention: root.attention
-                    operationLabel: root.operation.label; operationOk: root.operation.ok; operationBusy: root.operation.busy
-                    glyphMode: "none"; badge: true
                 }
             }
 

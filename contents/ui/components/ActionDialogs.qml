@@ -249,7 +249,7 @@ Item {
                 visible: pruneContainers.checked
                 wrapMode: Text.WordWrap
                 color: Kirigami.Theme.negativeTextColor
-                text: i18n("Remove stopped container instances and their writable layers. Compose services remain visible as Not created. Volumes and bind-mounted data are preserved.")
+                text: i18n("Remove stopped container instances and their writable layers. Compose services remain visible as Undeployed. Volumes and bind-mounted data are preserved.")
             }
 
             PlasmaComponents.Label {

@@ -10,6 +10,8 @@ Item {
     readonly property string projectRoot: { try { return Deploy.absolutePath(cfg.deploymentDirectory || home + "/docker",home) } catch(e) { return String(cfg.deploymentDirectory || "") } }
     readonly property bool canDeploy: backend.engineActive && backend.canUseCompose && !backend.readOnly && !backend.remoteEngine && !backend.isPodman
     property bool busy: false
+    /* What the current or last command was: "search", "pull", "create" or "resource". */
+    property string activity: ""
     property string message: ""
     property string output: ""
     property bool failed: false
@@ -29,7 +31,7 @@ Item {
         if(busy)return
         query=String(query).trim();if(!query)return
         if(query==="__popular__")query=""
-        searchPerformed=true;busy=true;failed=false;message=i18n("Searching Docker Hub…");output="";results=[]
+        activity="search";searchPerformed=true;busy=true;failed=false;message=i18n("Searching Docker Hub…");output="";results=[]
         const script=decodeURIComponent(String(Qt.resolvedUrl("../../scripts/search_images.py")).replace(/^file:\/\//,""))
         backend.run("python3 "+Deploy.quote(script)+" "+Deploy.quote(query),"diagnostic-registry-search",function(code,out,err){
             finish(code,"",err)
@@ -40,7 +42,7 @@ Item {
     function pull(image) {
         if(busy||backend.readOnly)return
         try{image=Deploy.imageReference(image,cfg.deploymentRegistry)}catch(e){message=String(e);failed=true;return}
-        busy=true;failed=false;message=i18n("Pulling %1…",image);output=""
+        activity="pull";busy=true;failed=false;message=i18n("Pulling %1…",image);output=""
         backend.run(backend.engineBinary+" pull "+Deploy.quote(image),"deploy-pull",function(code,out,err){finish(code,out,err);backend.actionDone(i18n("Pull image"),code===0?i18n("Image pulled"):message,code===0);if(code===0)backend.refresh({force:true,withStats:false})})
     }
     function preview(input) { var plan=Deploy.recipe(input,cfg,home);plan.generation=backend.generation;plan.engine=backend.engineBinary;return plan }
@@ -50,14 +52,14 @@ Item {
         // The caller passes the reviewed recipe. Never overwrite an existing project.
         var compose=backend.expand(cfg.composeCommand,{})
         var cmd=Deploy.buildCommand(plan,compose,start)
-        busy=true;failed=false;message=i18n("Creating %1… Docker progress will appear when the command finishes.",plan.name);output="";lastFolder=plan.directory
+        activity="create";busy=true;failed=false;message=i18n("Creating %1… Docker progress will appear when the command finishes.",plan.name);output="";lastFolder=plan.directory
         backend.run(cmd,"deploy-create",function(code,out,err){finish(code,out,err);if(code===0){message=i18n("%1 created. Project: %2",plan.name,plan.directory);backend.refresh({force:true,withStats:true})}else message=i18n("Creation failed with exit code %1. Project files: %2",code,plan.directory);backend.actionDone(plan.name,code===0?i18n("Project created"):message,code===0)})
     }
     function createResource(kind,name) {
         if(busy||backend.readOnly)return
         if(!/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(name)){message=i18n("Use letters, digits, dots, dashes or underscores.");failed=true;return}
         if(kind!=="volume"&&kind!=="network")return
-        busy=true;failed=false;message=i18n("Creating %1…",name);output=""
+        activity="resource";busy=true;failed=false;message=i18n("Creating %1…",name);output=""
         backend.run(backend.engineBinary+" "+kind+" create "+Deploy.quote(name),"deploy-resource",function(code,out,err){finish(code,out,err);backend.actionDone(name,code===0?i18n("Created"):message,code===0);if(code===0)backend.fetchResources(kind+"s")})
     }
     Connections { target: root.backend; function onGenerationChanged(){root.busy=false;root.results=[];root.failed=true;root.message=i18n("Connection changed. Review your deployment for the selected host.")} }

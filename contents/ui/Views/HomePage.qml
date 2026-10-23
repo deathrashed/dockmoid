@@ -5,15 +5,18 @@ import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.extras as PlasmaExtras
 
 import "../components" as Components
 import "../../lib/style.js" as Style
 
 /*
- * The main page: the overview strip, then two stacked panes.
+ * The main page: the container list, and under it an inspector for the
+ * container selected in the list.
  *
- *   top   the containers the strip's selection asks for (All shows every one)
- *   dock  a collapsible page host: Preview, Activity, Doctor, Resources or New
+ *   top   the containers the filters ask for
+ *   dock  Overview, Logs, Events and Compose for the selection, plus the
+ *         list's Filter, Sort and Search, which sit next to what they change
  */
 Item {
     id: root
@@ -27,6 +30,12 @@ Item {
     required property var rowFilter
     property int activeFilterCount: 0
     signal clearFiltersRequested()
+    /* The list's controls live in the dock bar; PopupView owns their menus. */
+    signal filterMenuRequested(Item anchor)
+    signal sortMenuRequested(Item anchor)
+    signal searchEdited(string text)
+    property string stateFilterLabel: ""
+    function focusSearch() { searchField.forceActiveFocus(); searchField.selectAll() }
     signal createRequested()
     signal resourcesRequested()
     signal openDetail(string recordId)
@@ -60,14 +69,15 @@ Item {
         all.dock = dock
         cfg.serviceSectionSettings = JSON.stringify(all)
     }
-    readonly property string dockPage: String(dockSetting("page", "preview"))
+    /* Older settings may name a page that moved to the toolbar. */
+    readonly property string dockPage: { const page = String(dockSetting("page", "preview")); return ["preview", "logs", "events", "compose"].indexOf(page) >= 0 ? page : "preview" }
     readonly property bool dockExpanded: dockSetting("expanded", true) === true
     function previewMode() { return String(dockSetting("previewMode", "selection")) }
 
     Binding {
         target: root.backend
         property: "previewMode"
-        value: root.visible && root.dockExpanded && root.dockPage === "preview" ? root.previewMode() : "off"
+        value: root.visible && root.dockExpanded ? root.previewMode() : "off"
     }
 
     readonly property int dockHeaderHeight: Kirigami.Units.gridUnit * 2.4
@@ -75,27 +85,31 @@ Item {
     readonly property real dockDefaultHeight: root.dockPage === "preview" ? Kirigami.Units.gridUnit * 12 : root.height * 0.55
     readonly property real dockWantedHeight: Number(dockSetting("height_" + root.dockPage, root.dockDefaultHeight))
 
-    // ----------------------------------------------------------- dock pages ---
+    // ------------------------------------------------------ inspector pages ---
     readonly property var dockTabs: [
-        {key: "preview", label: i18n("Preview"), glyph: "eye"},
-        {key: "activity", label: i18n("Activity"), glyph: "bell-ring"},
-        {key: "doctor", label: i18n("Doctor"), glyph: "heart-pulse"},
-        {key: "resources", label: i18n("Resources"), glyph: "boxes"},
-        {key: "new", label: i18n("New"), glyph: "package-plus"}
+        {key: "preview", label: i18n("Overview"), glyph: "eye"},
+        {key: "logs", label: i18n("Logs"), glyph: "scroll-text"},
+        {key: "events", label: i18n("Events"), glyph: "bell-ring"},
+        {key: "compose", label: i18n("Compose"), glyph: "file-code"}
     ]
     Component { id: previewPage; Components.ServicePreview { backend: root.backend; onOpenDetail: function(id) { root.openDetail(id) } } }
-    Component { id: activityPage; ActivityPage { backend: root.backend; embedded: true; onOpenDetail: function(id) { root.openDetail(id) } } }
-    Component { id: doctorPage; DoctorPage { backend: root.backend; dialogs: root.dialogs; embedded: true; onOpenDetail: function(id, tab) { root.openDetail(id) }; onOpenResources: root.setDock("page", "resources") } }
-    Component { id: resourcesPage; ResourcesPage { backend: root.backend; dialogs: root.dialogs; navigator: null; embedded: true; onOpenDetail: function(id) { root.openDetail(id) }; onDeploymentRequested: root.setDock("page", "new") } }
-    Component { id: newPage; DeploymentPage { backend: root.backend; embedded: true; onCloseRequested: root.setDock("page", "preview") } }
-    readonly property var dockComponent: dockPage === "activity" ? activityPage : dockPage === "doctor" ? doctorPage
-        : dockPage === "resources" ? resourcesPage : dockPage === "new" ? newPage : previewPage
+    Component { id: logsPage; InspectorLogs { backend: root.backend; onOpenDetail: function(id, tab) { root.openDetail(id) } } }
+    Component { id: eventsPage; InspectorEvents { backend: root.backend } }
+    Component { id: composePage; InspectorCompose { backend: root.backend } }
+    readonly property var dockComponent: dockPage === "logs" ? logsPage : dockPage === "events" ? eventsPage
+        : dockPage === "compose" ? composePage : previewPage
 
     // ---------------------------------------------------- the container list ---
     Component {
         id: listComponent
         Components.ContainerList {
             backend: root.backend; proxy: root.proxy; dialogs: root.dialogs; detailLevel: root.detailLevel
+            collapsedGroups: root.settingsCache.list && root.settingsCache.list.collapsed ? root.settingsCache.list.collapsed : ({})
+            onGroupToggled: function(group) {
+                const next = Object.assign({}, collapsedGroups)
+                if (next[group]) delete next[group]; else next[group] = true
+                root.updateSetting("collapsed", next)
+            }
             onOpenDetail: function(recordId) { root.openDetail(recordId) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
@@ -193,7 +207,7 @@ Item {
                     text: root.backend.total === 0 ? (root.backend.refreshing ? i18n("Loading containers…") : i18n("No containers yet")) : i18n("No containers match the active filters")
                     explanation: root.backend.total === 0 ? i18n("Create a container from an image, or refresh the engine.") : i18n("Clear filters to see all containers.")
                     helpfulAction: Kirigami.Action {
-                        text: root.backend.total === 0 ? i18n("New container…") : i18n("Clear filters")
+                        text: root.backend.total === 0 ? i18n("Deploy a Container…") : i18n("Clear filters")
                         icon.name: root.backend.total === 0 ? "list-add" : "edit-clear"
                         enabled: root.backend.total === 0 ? !root.backend.readOnly : root.activeFilterCount > 0
                         onTriggered: root.backend.total === 0 ? root.createRequested() : root.clearFiltersRequested()
@@ -238,15 +252,50 @@ Item {
                                 required property var modelData
                                 glyph: modelData.glyph
                                 text: modelData.label
-                                iconOnly: root.width < Kirigami.Units.gridUnit * 30
+                                iconOnly: root.width < Kirigami.Units.gridUnit * 44
                                 checked: root.dockPage === modelData.key && root.dockExpanded
                                 onClicked: { root.setDock("page", modelData.key); root.setDock("expanded", true) }
                             }
                         }
                         Item { Layout.fillWidth: true }
+                        // ---- the list's own controls ----
+                        Components.ToolbarButton {
+                            id: dockFilter
+                            objectName: "dockFilterButton"
+                            presentation: root.width < Kirigami.Units.gridUnit * 36 ? 0 : 1
+                            glyph: "view-filter"
+                            label: i18n("Filter")
+                            text: i18n("Filter: %1", root.stateFilterLabel)
+                            menuIndicator: true
+                            checkable: true
+                            checked: root.activeFilterCount > 0
+                            badgeText: root.activeFilterCount > 0 ? String(root.activeFilterCount) : ""
+                            onClicked: root.filterMenuRequested(dockFilter)
+                        }
+                        Components.ToolbarButton {
+                            id: dockSort
+                            objectName: "dockSortButton"
+                            presentation: root.width < Kirigami.Units.gridUnit * 36 ? 0 : 1
+                            glyph: "view-sort-ascending"
+                            label: i18n("Sort")
+                            text: i18n("Sort containers")
+                            menuIndicator: true
+                            onClicked: root.sortMenuRequested(dockSort)
+                        }
+                        PlasmaExtras.SearchField {
+                            id: searchField
+                            objectName: "dockSearchField"
+                            Layout.preferredWidth: activeFocus || text !== "" ? Kirigami.Units.gridUnit * 11 : Kirigami.Units.gridUnit * 7
+                            Layout.maximumWidth: Math.max(Kirigami.Units.gridUnit * 5, root.width * 0.3)
+                            placeholderText: i18n("Search…")
+                            text: root.searchText
+                            onTextChanged: if (text !== root.searchText) root.searchEdited(text)
+                            Keys.onEscapePressed: { clear(); root.forceActiveFocus() }
+                            Behavior on Layout.preferredWidth { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+                        }
                         Components.ActionToolButton {
                             glyph: root.dockExpanded ? "chevron-down" : "chevron-up"
-                            text: root.dockExpanded ? i18n("Collapse the page area") : i18n("Expand the page area")
+                            text: root.dockExpanded ? i18n("Hide the inspector") : i18n("Show the inspector")
                             onClicked: root.setDock("expanded", !root.dockExpanded)
                         }
                     }

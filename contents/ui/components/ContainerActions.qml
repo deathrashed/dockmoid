@@ -204,7 +204,8 @@ PlasmaComponents.Menu {
         return item
     }
 
-    function addBrowserEntries(menu: PlasmaComponents.Menu, rec: var) {
+    /* The container's web addresses, to open or copy. */
+    function addUrlEntries(menu: PlasmaComponents.Menu, rec: var) {
         const links = root.backend.linksFor(rec)
         const all = root.backend.allLinksFor(rec)
         if (links.length === 0) addToMenu(menu, all.length ? i18n("All browser ports are hidden") : i18n("No published web addresses"), "insert-link", function(){}, false)
@@ -212,11 +213,15 @@ PlasmaComponents.Menu {
             const item = addToMenu(menu, link.title || i18n("Web UI · %1", link.label), "insert-link", function() { root.backend.openLink(link) })
             if (item) item.detail = link.url || Parsers.linkUrl(link)
         })
-        if (!all.length) return
-        addSeparator(menu)
-        const copy = links.length ? makeSubmenu(menu, i18n("Copy web address"), "edit-copy") : null
+        const copy = links.length ? makeSubmenu(menu, i18n("Copy URL"), "edit-copy") : null
         if (copy) links.forEach(function(link) { addToMenu(copy, link.title, "edit-copy", function() { clipboard.content = link.url }) })
-        const preferred = makeSubmenu(menu, i18n("Preferred link"), "bookmark")
+    }
+
+    /* Which address opens first, and which ports are offered at all. */
+    function addUrlSettings(menu: PlasmaComponents.Menu, rec: var) {
+        const all = root.backend.allLinksFor(rec)
+        if (!all.length) return
+        const preferred = makeSubmenu(menu, i18n("Preferred URL"), "bookmark")
         if (preferred) {
             const current = root.backend.browserSettings(root.backend.cfg.preferredBrowserLinks)[root.backend.browserKey(rec)] || ""
             all.forEach(function(link) {
@@ -224,7 +229,7 @@ PlasmaComponents.Menu {
                 if (item) { item.checkable = true; item.checked = link.url === current; item.detail = link.url }
             })
         }
-        const ports = makeSubmenu(menu, i18n("Visible browser ports"), "configure")
+        const ports = makeSubmenu(menu, i18n("Visible Ports"), "configure")
         const seen = {}
         if (ports) all.forEach(function(link) {
             if (seen[link.port]) return
@@ -249,11 +254,11 @@ PlasmaComponents.Menu {
         var menu = makeSubmenu(root, i18n("Copy"), "edit-copy", "copy")
         if (!menu) return
         var values = [[i18n("Name"), rec.name, "copy-name"], [i18n("Container ID"), rec.id, "copy-id"], [i18n("Image"), rec.image, "copy-image"],
-            [i18n("Shell command"), root.backend.engineBinary + " exec -it " + rec.name + " sh", "square-terminal"],
-            [i18n("Logs command"), root.backend.engineBinary + " logs -f --tail 200 " + rec.name, "scroll-text"]]
+            [i18n("Shell Command"), root.backend.engineBinary + " exec -it " + rec.name + " sh", "square-terminal"],
+            [i18n("Logs Command"), root.backend.engineBinary + " logs -f --tail 200 " + rec.name, "scroll-text"]]
         if (rec.project) values.push([i18n("Project"), rec.project, "copy-project"])
         if (rec.service) values.push([i18n("Service"), rec.service, "copy-service"])
-        if (rec.composeFiles) values.push([i18n("Compose file path"), rec.composeFiles, "copy-compose"])
+        if (rec.composeFiles) values.push([i18n("Compose File Path"), rec.composeFiles, "copy-compose"])
         for (let i = 0; i < values.length; i++) {
             let value = values[i]
             let item = menuItemTemplate.createObject(menu.contentItem) as ActionMenuItem
@@ -265,41 +270,72 @@ PlasmaComponents.Menu {
         }
     }
 
-    /* Everything a Compose project can do as a whole. */
+    /* A Compose verb as a menu entry; destructive ones ask first. */
+    function addComposeItem(menu, verb, label, glyph, destructive) {
+        return addToMenu(menu, label, glyph, function () { root.runCompose(root.record, verb, destructive === true) })
+    }
+
+    /*
+     * Compose: read-only looks first, then what can be done to the whole
+     * project and to this one service, then its files.
+     */
     function addComposeMenu(rec) {
-        var menu = makeSubmenu(root, i18n("Compose project"), "layers", "compose")
+        var menu = makeSubmenu(root, i18n("Compose"), "layers", "compose")
         if (!menu) return
-        var verbs = [
-            ["ps", i18n("Status"), "view-list-details", false],
-            ["logs", i18n("Project logs"), "text-x-generic", false],
-            ["up", i18n("Start"), "media-playback-start", false],
-            ["restart", i18n("Restart"), "view-refresh", false],
-            ["stop", i18n("Stop"), "media-playback-stop", false],
-            ["pull", i18n("Pull images"), "system-download", false],
-            ["update", i18n("Update and start"), "package-upgrade", false],
-            ["recreate", i18n("Recreate and start"), "media-playlist-repeat", false],
-            ["down", i18n("Remove project…"), "edit-delete", true]
-        ]
-        for (let i = 0; i < verbs.length; i++) {
-            let v = verbs[i]
-            if (i === 2 || i === 5 || i === 8) addSeparator(menu)
-            if (i === 0) addHeading(i18n("Inspection"),menu)
-            if (i === 2) addHeading(i18n("Lifecycle"),menu)
-            if (i === 5) addHeading(i18n("Images"),menu)
-            if (i === 8) addHeading(i18n("Removal"),menu)
-            let item = menuItemTemplate.createObject(menu.contentItem) as ActionMenuItem
-            item.label = v[1]
-            item.glyph = v[2]
-            item.run = function () { root.runCompose(rec, v[0], v[3]) }
-            menu.addItem(item)
-            if (menu === root) root.entries.push(item)
+        addHeading(i18n("Inspect"), menu)
+        addComposeItem(menu, "ps", i18n("Status"), "view-list-details")
+        addComposeItem(menu, "logs", i18n("Logs"), "text-x-generic")
+        addComposeItem(menu, "images", i18n("Images"), "layers")
+        addComposeItem(menu, "top", i18n("Processes"), "activity")
+        addComposeItem(menu, "config", i18n("Validate Configuration"), "badge-check")
+
+        if (!root.backend.readOnly) {
+            addSeparator(menu)
+            const project = makeSubmenu(menu, i18n("Whole Project"), "boxes")
+            addHeading(i18n("Lifecycle"), project)
+            addComposeItem(project, "up", i18n("Up (Create and Start)"), "media-playback-start")
+            addComposeItem(project, "start", i18n("Start"), "play")
+            addComposeItem(project, "stop", i18n("Stop"), "media-playback-stop")
+            addComposeItem(project, "restart", i18n("Restart"), "view-refresh")
+            addComposeItem(project, "pause", i18n("Pause"), "media-playback-pause")
+            addComposeItem(project, "unpause", i18n("Resume"), "media-playback-start")
+            addSeparator(project)
+            addHeading(i18n("Images"), project)
+            addComposeItem(project, "pull", i18n("Pull Images"), "system-download")
+            addComposeItem(project, "update", i18n("Update (Pull and Up)"), "package-upgrade")
+            addComposeItem(project, "recreate", i18n("Force Recreate"), "media-playlist-repeat")
+            addSeparator(project)
+            addComposeItem(project, "down", i18n("Take Down…"), "edit-delete", true)
+
+            if (rec.service) {
+                const service = makeSubmenu(menu, i18n("This Service · %1", rec.service), "workflow")
+                addComposeItem(service, "service-logs", i18n("Logs"), "text-x-generic")
+                addComposeItem(service, "service-restart", i18n("Restart"), "view-refresh")
+                addComposeItem(service, "service-pull", i18n("Pull Image"), "system-download")
+                addComposeItem(service, "service-recreate", i18n("Force Recreate"), "media-playlist-repeat")
+            }
         }
+
         addSeparator(menu)
-        if (rec.composeFiles !== "") addToMenu(menu, i18n("Edit Compose file…"), "document-edit", function () { root.backend.editCompose(rec) })
+        addHeading(i18n("Files"), menu)
+        if (rec.composeFiles !== "") addToMenu(menu, i18n("Edit Compose File…"), "document-edit", function () { root.backend.editCompose(rec) })
+        if (!root.backend.remoteEngine && rec.composeWorkDir) addToMenu(menu, i18n("Open Project Folder"), "folder-open", function () { root.backend.openContainerFolder(rec) })
+    }
+
+    /* A read-only look at the container, on the output page. */
+    function showDiagnostic(rec, what) {
+        var generation = root.backend.generation
+        var requestId = root.backend.newOutputRequest("diagnostics", rec.id)
+        root.openOutput(root.backend.diagnosticTitle(what, rec), i18n("Loading…"), false, rec.id)
+        root.backend.diagnose(rec, what, requestId, generation)
     }
 
     function composeLabel(verb) {
-        return ({ps:i18n("Project status"),logs:i18n("Project logs"),up:i18n("Start project"),restart:i18n("Restart project"),stop:i18n("Stop project"),pull:i18n("Pull images"),update:i18n("Update project"),recreate:i18n("Recreate project"),down:i18n("Remove project")})[verb] || i18n("Compose")
+        return ({ps:i18n("Project Status"),logs:i18n("Project Logs"),up:i18n("Start Project"),restart:i18n("Restart Project"),stop:i18n("Stop Project"),
+                 pull:i18n("Pull Images"),update:i18n("Update Project"),recreate:i18n("Recreate Project"),down:i18n("Take Down Project"),
+                 start:i18n("Start Project"),pause:i18n("Pause Project"),unpause:i18n("Resume Project"),images:i18n("Project Images"),
+                 top:i18n("Project Processes"),config:i18n("Validate Configuration"),"service-logs":i18n("Service Logs"),
+                 "service-restart":i18n("Restart Service"),"service-pull":i18n("Pull Service Image"),"service-recreate":i18n("Recreate Service")})[verb] || i18n("Compose")
     }
 
     function showInspect(rec) {
@@ -333,14 +369,15 @@ PlasmaComponents.Menu {
 
         if (rec.state === "not-created") {
             if (root.sectionOnly === "copy") { addCopyMenu(rec); return }
-            addEntry(i18n("Open details"), "badge-info", function() { root.openDetail(rec.id) }, "", "details")
-            if (!root.backend.readOnly) addEntry(i18n("Create and start"), "rocket", function() { root.backend.startContainer(rec) })
-            addEntry(i18n("Open project folder"), "folder-open", function() { root.backend.openContainerFolder(rec) })
-            addEntry(i18n("Edit Compose file…"), "document-edit", function() { root.backend.editCompose(rec) })
+            addEntry(i18n("Details"), "badge-info", function() { root.openDetail(rec.id) }, "", "details")
+            if (!root.backend.readOnly) addEntry(i18n("Create and Start"), "rocket", function() { root.backend.startContainer(rec) })
+            addEntry(i18n("Open Project Folder"), "folder-open", function() { root.backend.openContainerFolder(rec) })
+            addEntry(i18n("Edit Compose File…"), "document-edit", function() { root.backend.editCompose(rec) })
             return
         }
         if (root.browserOnly) {
-            addBrowserEntries(root, rec)
+            addUrlEntries(root, rec)
+            if (root.backend.allLinksFor(rec).length > 0) { addSeparator(); addUrlSettings(root, rec) }
             return
         }
 
@@ -353,38 +390,43 @@ PlasmaComponents.Menu {
         var composeService = !!rec.service && composeProject
 
         var restarting = state.toLowerCase() === "restarting"
+        var paused = state === "paused"
+        var web = running ? root.backend.linksFor(rec) : []
+        var hasUrls = root.backend.allLinksFor(rec).length > 0
+
+        // ---- the container: look at it, then act on it -----------------------
         if (fullMenu) {
             addHeading(i18n("Container"))
-            const web = running ? root.backend.linksFor(rec) : []
+            addEntry(i18n("Details"), "badge-info", function () { root.openDetail(rec.id) }, "", "details")
             if (web.length > 0)
-                addEntry(i18n("Open web UI"), "globe", function () { root.backend.openLink(web[0]) }, "", "open web ui")
-            addEntry(i18n("Open details"), "badge-info", function () { root.openDetail(rec.id) }, "", "details")
-            addEntry(i18n("View logs"), "scroll-text", function () { root.perform("logs") }, "", "logs")
-            if (!root.backend.readOnly && (running || state === "exited"))
-                addEntry(i18n("Restart"), "rotate-cw", function () { root.perform("restart") }, "", "restart")
-            if (!root.backend.readOnly && Parsers.canStop(state))
-                addEntry(i18n("Stop"), "square", function () { root.perform("stop") }, "", "stop")
-            else if (!root.backend.readOnly && Parsers.canStart(state))
-                addEntry(i18n("Start"), "play", function () { root.perform("start") }, "", "start")
-            addSeparator()
-            addHeading(i18n("Management"))
+                addEntry(i18n("Web"), "globe", function () { root.backend.openLink(web[0]) }, "", "open web ui")
+            addEntry(i18n("Logs"), "scroll-text", function () { root.perform("logs") }, "", "logs")
         }
 
         if (wants("manage") && !root.backend.readOnly) {
             const manage = makeSubmenu(root, i18n("Manage"), "settings-2", "manage")
             if (manage) {
-                addHeading(i18n("Lifecycle"), manage)
-                addToMenu(manage, composeService ? i18n("Pull and recreate…") : i18n("Pull latest image…"), "cloud-download", function () { root.dialogs.confirmUpdate(rec) })
                 if (Parsers.canStart(state)) addToMenu(manage, i18n("Start"), "media-playback-start", function () { root.perform("start") })
                 if (Parsers.canStop(state)) addToMenu(manage, i18n("Stop"), "media-playback-stop", function () { root.perform("stop") })
                 if (Parsers.canPause(state)) addToMenu(manage, i18n("Pause"), "media-playback-pause", function () { root.backend.pauseContainer(rec) })
                 if (Parsers.canUnpause(state)) addToMenu(manage, i18n("Resume"), "media-playback-start", function () { root.backend.unpauseContainer(rec) })
-                if (running || state === "paused") addToMenu(manage, i18n("Force stop"), "process-stop", function () { root.backend.killContainer(rec) })
+                if (running || state === "exited" || paused) addToMenu(manage, i18n("Restart"), "view-refresh", function () { root.perform("restart") })
+                if (running || paused || restarting) addToMenu(manage, i18n("Kill"), "process-stop", function () { root.backend.killContainer(rec) })
+                addToMenu(manage, i18n("Update…"), "cloud-download", function () { root.dialogs.confirmUpdate(rec) })
+
+                // Force: the same actions without waiting for a clean shutdown.
+                const force = makeSubmenu(manage, i18n("Force"), "zap")
+                if (force) {
+                    if (running || paused || restarting) addToMenu(force, i18n("Restart Now"), "view-refresh", function () { root.backend.forceRestartContainer(rec) })
+                    if (composeService) addToMenu(force, i18n("Recreate"), "media-playlist-repeat", function () { root.runCompose(rec, "service-recreate", false) })
+                    addToMenu(force, i18n("Remove…"), "trash", function () { root.dialogs.confirmRemove(rec) })
+                }
+
                 if (!root.backend.isPodman && rec.restartPolicy !== undefined && rec.restartPolicy !== "") {
                     addSeparator(manage)
-                    const startup = makeSubmenu(manage, i18n("Startup policy"), "media-playlist-repeat")
+                    const startup = makeSubmenu(manage, i18n("Autostart"), "media-playlist-repeat")
                     const policies = ["no", "on-failure", "unless-stopped", "always"]
-                    const labels = [i18n("Manual start"), i18n("On failure"), i18n("Unless stopped"), i18n("Always")]
+                    const labels = [i18n("Manual Start"), i18n("On Failure"), i18n("Unless Stopped"), i18n("Always")]
                     const glyphs = ["startup-manual", "startup-failure", "startup-unless-stopped", "startup-always"]
                     for (let p = 0; startup && p < policies.length; p++) {
                         let policy = policies[p]
@@ -393,75 +435,73 @@ PlasmaComponents.Menu {
                         option.checked = rec.restartPolicy === policy
                     }
                 }
-                addSeparator(manage)
-                addHeading(i18n("Removal"), manage)
-                addToMenu(manage, i18n("Delete container…"), "trash", function () { root.dialogs.confirmRemove(rec) })
             }
         }
 
-        if (fullMenu) addSeparator()
-
-        if (wants("customize")) {
-        const customize = makeSubmenu(root, i18n("Customize"), "palette", "customize")
-        if (customize) {
-            const icons = makeSubmenu(customize, i18n("Service icon"), "image")
-            addToMenu(icons, i18n("Choose icon…"), "edit-find", function () { root.dialogs.chooseIcon(rec) })
-            addToMenu(icons, i18n("Use automatic icon"), "edit-undo", function () {
-                root.backend.customIconStore.reset(root.backend.customIconStore.keyFor(rec))
-                root.backend.customIconStore.reset(root.backend.customIconStore.keyForName(rec.name))
-                root.backend.customIconStore.reset(root.backend.customIconStore.keyForImage(rec.image))
-            })
-            addSeparator(customize)
-            if (!root.backend.readOnly) addToMenu(customize, i18n("Rename container…"), "edit-rename", function () { root.dialogs.promptRename(rec) })
-            addToMenu(customize, rec.pinned ? i18n("Unpin from top") : i18n("Pin to top"), rec.pinned ? "window-unpin" : "window-pin", function () { root.backend.togglePin(rec) })
-            if (rec.pinned) {
-                addToMenu(customize, i18n("Move up"), "go-up", function () { root.backend.movePin(rec, -1) })
-                addToMenu(customize, i18n("Move down"), "go-down", function () { root.backend.movePin(rec, 1) })
-            }
+        if (wants("open") && hasUrls) {
+            const links = makeSubmenu(root, i18n("Links"), "insert-link", "links")
+            if (links) addUrlEntries(links, rec)
         }
 
-        }
+        // ---- where it comes from --------------------------------------------
+        if (fullMenu) { addSeparator(); addHeading(i18n("Project")) }
 
-        if (fullMenu) addSeparator()
-
-        if (fullMenu) addHeading(i18n("Open and links"))
         var apps = root.backend.launchersFor(rec)
         if (wants("open") && (!root.backend.remoteEngine || (!root.backend.readOnly && apps.length > 0))) {
             const openInMenu = makeSubmenu(root, i18n("Open"), "document-open", "open")
-            if (openInMenu && !root.backend.remoteEngine) addToMenu(openInMenu, i18n("Container folder"), "folder", function () { root.backend.openContainerFolder(rec) })
+            if (openInMenu && !root.backend.remoteEngine) addToMenu(openInMenu, i18n("Container Folder"), "folder", function () { root.backend.openContainerFolder(rec) })
             if (openInMenu && !root.backend.readOnly && apps.length > 0) {
                 if (!root.backend.remoteEngine) addSeparator(openInMenu)
                 for (let n = 0; n < apps.length; n++) addLauncherEntry(openInMenu, apps[n], rec)
             }
         }
+        if (wants("compose") && root.backend.canUseCompose && rec.project !== "") addComposeMenu(rec)
+        if (fullMenu || wants("copy")) addCopyMenu(rec)
 
-        if (wants("open") && (root.backend.allLinksFor(rec).length > 0)) {
-            const linksMenu = makeSubmenu(root, i18n("Web links"), "globe")
-            if (linksMenu) addBrowserEntries(linksMenu, rec)
+        // ---- tools ----------------------------------------------------------
+        if (fullMenu) { addSeparator(); addHeading(i18n("Tools")) }
+
+        if (wants("customize")) {
+            const customize = makeSubmenu(root, i18n("Customize"), "palette", "customize")
+            if (customize) {
+                const icons = makeSubmenu(customize, i18n("Service Icon"), "image")
+                addToMenu(icons, i18n("Choose Icon…"), "edit-find", function () { root.dialogs.chooseIcon(rec) })
+                addToMenu(icons, i18n("Use Automatic Icon"), "edit-undo", function () {
+                    root.backend.customIconStore.reset(root.backend.customIconStore.keyFor(rec))
+                    root.backend.customIconStore.reset(root.backend.customIconStore.keyForName(rec.name))
+                    root.backend.customIconStore.reset(root.backend.customIconStore.keyForImage(rec.image))
+                })
+                if (!root.backend.readOnly) addToMenu(customize, i18n("Rename Container…"), "edit-rename", function () { root.dialogs.promptRename(rec) })
+                addSeparator(customize)
+                addToMenu(customize, rec.pinned ? i18n("Unpin from Top") : i18n("Pin to Top"), rec.pinned ? "window-unpin" : "window-pin", function () { root.backend.togglePin(rec) })
+                if (rec.pinned) {
+                    addToMenu(customize, i18n("Move Up"), "go-up", function () { root.backend.movePin(rec, -1) })
+                    addToMenu(customize, i18n("Move Down"), "go-down", function () { root.backend.movePin(rec, 1) })
+                }
+                if (hasUrls) {
+                    addSeparator(customize)
+                    addUrlSettings(customize, rec)
+                }
+            }
         }
-        if (fullMenu) addSeparator()
-        if (fullMenu) addHeading(i18n("Project and tools"))
-        if (wants("compose") && !root.backend.readOnly && root.backend.canUseCompose && rec.project !== "") addComposeMenu(rec)
 
-        if (fullMenu) addSeparator()
         if (wants("diagnostics")) {
-        const diagnostics = makeSubmenu(root, i18n("Diagnostics"), "stethoscope", "diagnostics")
-        if (diagnostics) {
-            addToMenu(diagnostics, i18n("Inspect JSON"), "document-properties", function () { root.showInspect(rec) })
-            if (running && !root.backend.readOnly) addToMenu(diagnostics, i18n("Run a command…"), "square-terminal", function () { root.dialogs.openRun(rec) })
-            addToMenu(diagnostics, i18n("Refresh now"), "refresh-cw", function () { root.backend.refresh({force:true,withStats:true}) })
-            addToMenu(diagnostics, i18n("Follow logs in a terminal"), "terminal", function () { root.backend.followLogs(rec) })
-            if (!root.backend.readOnly && ((running && String(rec.health || "").toLowerCase() === "unhealthy") || restarting))
-                addToMenu(diagnostics, i18n("Restart container…"), "dialog-warning", function () { root.dialogs.confirm(i18n("Restart %1?", rec.name), i18n("This will restart the container. Dockmoid will not attempt automatic repair."), function () { root.backend.restartContainer(rec) }) })
-        }
-
-        }
-
-        if (fullMenu) {
-            addSeparator()
-            addCopyMenu(rec)
-        } else if (wants("copy")) {
-            addCopyMenu(rec)
+            const inspect = makeSubmenu(root, i18n("Inspect"), "stethoscope", "diagnostics")
+            if (inspect) {
+                addToMenu(inspect, i18n("Configuration (JSON)"), "document-properties", function () { root.showInspect(rec) })
+                if (running || paused) addToMenu(inspect, i18n("Processes"), "activity", function () { root.showDiagnostic(rec, "top") })
+                if (running) addToMenu(inspect, i18n("Usage Snapshot"), "gauge", function () { root.showDiagnostic(rec, "stats") })
+                if (running && rec.health && rec.health !== "none") addToMenu(inspect, i18n("Health Checks"), "heart-pulse", function () { root.showDiagnostic(rec, "health") })
+                if (running) addToMenu(inspect, i18n("Port Mappings"), "plug", function () { root.showDiagnostic(rec, "port") })
+                addToMenu(inspect, i18n("Filesystem Changes"), "file-diff", function () { root.showDiagnostic(rec, "diff") })
+                addToMenu(inspect, i18n("Recent Events"), "clock", function () { root.showDiagnostic(rec, "events") })
+            }
+            const terminal = makeSubmenu(root, i18n("Terminal"), "square-terminal", "terminal")
+            if (terminal) {
+                if (running && !root.backend.readOnly) addToMenu(terminal, i18n("Run Command…"), "square-terminal", function () { root.dialogs.openRun(rec) })
+                addToMenu(terminal, i18n("Follow Logs in Terminal"), "terminal", function () { root.backend.followLogs(rec) })
+                if (running) addToMenu(terminal, i18n("Copy Shell Command"), "edit-copy", function () { clipboard.content = root.backend.engineBinary + " exec -it " + rec.name + " sh" })
+            }
         }
     }
 

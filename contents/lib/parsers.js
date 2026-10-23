@@ -762,3 +762,39 @@ function pushSample(list, value, max) {
     var out = (list || []).concat([value]);
     return out.length > max ? out.slice(out.length - max) : out;
 }
+
+
+/* The detail page's extra facts from `inspect --format` (see fetchFacts). */
+function parseFacts(text) {
+    var d = JSON.parse(String(text || "").trim() || "{}");
+    function when(value) {
+        var t = Date.parse(value || "");
+        return isNaN(t) || t <= 0 || /^0001-/.test(String(value)) ? 0 : t;
+    }
+    var networks = [];
+    var nets = d.networks || {};
+    Object.keys(nets).sort().forEach(function (name) {
+        var n = nets[name] || {};
+        if (n.IPAddress || n.GlobalIPv6Address) networks.push({ name: name, ip: n.IPAddress || "", ipv6: n.GlobalIPv6Address || "" });
+    });
+    var hc = d.healthcheck || null;
+    var test = hc && Array.isArray(hc.Test) ? hc.Test : [];
+    var check = "";
+    if (test.length && test[0] !== "NONE") check = (test[0] === "CMD-SHELL" || test[0] === "CMD" ? test.slice(1) : test).join(" ");
+    var seconds = function (ns) { return ns ? Math.round(Number(ns) / 1e9) : 0; };
+    return {
+        restarts: Number(d.restarts) || 0,
+        startedAt: when(d.started),
+        finishedAt: when(d.finished),
+        exitCode: d.exitCode === undefined || d.exitCode === null ? -1 : Number(d.exitCode),
+        error: String(d.error || ""),
+        oomKilled: d.oom === true,
+        memoryLimit: Number(d.memory) || 0,
+        cpuLimit: d.nanoCpus ? Number(d.nanoCpus) / 1e9 : 0,
+        networks: networks,
+        healthCheck: check,
+        healthInterval: hc ? seconds(hc.Interval) : 0,
+        user: String(d.user || ""),
+        workdir: String(d.workdir || "")
+    };
+}

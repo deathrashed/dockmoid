@@ -45,7 +45,7 @@ Item {
         case "failed": return i18n("Failed")
         case "paused": return i18n("Paused")
         case "restarting": return i18n("Restarting")
-        case "not-created": return i18n("Not created")
+        case "not-created": return i18n("Undeployed")
         default: return i18n("Stopped")
         }
     }

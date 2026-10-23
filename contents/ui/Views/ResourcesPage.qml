@@ -6,9 +6,11 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
+import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 
 import "../components" as Components
 import "../../lib/style.js" as Style
+import "../../lib/actionIcons.js" as ActionIcons
 
 /* Images, Docker volumes and networks, including verified usage and cleanup. */
 Item {
@@ -21,9 +23,12 @@ Item {
     required property var navigator
 
     signal openDetail(string recordId)
-    signal deploymentRequested(int initialTab)
+    /* image: a reference to put in the Configure form, or "". */
+    signal deploymentRequested(int initialTab, string image)
 
     property int tab: 0 // images, volumes, networks
+    /* A tray-sized popup: shorter tabs, a 2 x 2 summary and badges under the name. */
+    readonly property bool narrow: width < Kirigami.Units.gridUnit * 26
     property bool unusedOnly: false
     property string searchText: ""
     property string sortMode: "name"
@@ -36,7 +41,6 @@ Item {
     readonly property var sourceItems: root.backend.resourceLists[root.kind] || []
     readonly property string resourceError: root.backend.resourceErrors[root.kind] || ""
     readonly property bool loading: root.backend.resourceLoading[root.kind] === true
-    readonly property int tableWidth: root.kind === "images" ? 900 : root.kind === "volumes" ? 730 : 760
 
     readonly property var items: {
         var rows = root.sourceItems.filter(function (item) {
@@ -163,7 +167,36 @@ Item {
         root.relatedConfiguredRecords = root.configuredImageRefs(item)
     }
 
+    /* Inspect output or layer history, shown in the same panel as references. */
+    property string infoTitle: ""
+    property string infoText: ""
+    function openInfo(item, what) {
+        root.relatedItem = item
+        root.relatedRecords = []
+        root.relatedConfiguredRecords = []
+        root.infoTitle = what === "history" ? i18n("Layers of %1", root.resourceTitle(item)) : i18n("Inspect %1", root.resourceTitle(item))
+        root.infoText = i18n("Loading…")
+        const kind = root.kind
+        root.backend.resourceInfo(kind, item, what, function (text) { if (root.relatedItem === item) root.infoText = text })
+    }
+
+    /* Running containers that are, or are not, on this network. */
+    function networkMembers(item, onIt) {
+        return root.backend.records.filter(function (r) {
+            const on = String(r.networks || "").split(",").map(function (n) { return n.trim() }).indexOf(item.name) >= 0
+            return r.isRunning && r.state !== "not-created" && on === onIt
+        })
+    }
+
+    property var menuItem: null
+    function openItemMenu(item, anchor) {
+        root.menuItem = item
+        itemMenu.popup(anchor, 0, anchor.height)
+    }
+
     function closeRelated() {
+        root.infoTitle = ""
+        root.infoText = ""
         root.relatedItem = null
         root.relatedRecords = []
         root.relatedConfiguredRecords = []
@@ -201,7 +234,115 @@ Item {
             function () { root.backend.removeResource(root.kind, item) })
     }
 
-    function createForCurrentTab() { root.deploymentRequested(root.tab === 0 ? 0 : 3) }
+    function createForCurrentTab() { root.deploymentRequested(root.tab === 0 ? 0 : 3, "") }
+
+    /* 1234567890 -> "1.23 GB", for the summary's total. */
+    function formatBytes(bytes) {
+        if (!(bytes > 0)) return "0 B"
+        const units = ["B", "kB", "MB", "GB", "TB"]
+        let i = 0
+        while (bytes >= 1000 && i < units.length - 1) { bytes /= 1000; i++ }
+        return (i === 0 ? String(Math.round(bytes)) : bytes.toFixed(bytes >= 100 ? 0 : bytes >= 10 ? 1 : 2)) + " " + units[i]
+    }
+    readonly property var summary: {
+        const rows = root.sourceItems
+        let used = 0, unused = 0, bytes = 0
+        for (let i = 0; i < rows.length; i++) {
+            if (root.isUnused(rows[i])) unused++
+            else if (root.usageCount(rows[i]) > 0 || root.configuredImageCount(rows[i]) > 0) used++
+            const size = root.sizeBytes(rows[i].size)
+            if (size > 0) bytes += size
+        }
+        return {total: rows.length, used: used, unused: unused, bytes: bytes}
+    }
+    /* This tab's line from `docker system df`, when it has been loaded. */
+    readonly property var diskLine: {
+        const type = root.kind === "images" ? "Images" : root.kind === "volumes" ? "Local Volumes" : ""
+        const lines = root.backend.diskUsage || []
+        for (let i = 0; i < lines.length; i++) if (lines[i].type === type) return lines[i]
+        return null
+    }
+    readonly property string kindGlyph: root.kind === "images" ? "layers" : root.kind === "volumes" ? "database" : "network"
+    readonly property string createLabel: root.kind === "images" ? i18n("Pull Image…") : root.kind === "volumes" ? i18n("Create Volume…") : i18n("Create Network…")
+
+    /* Usage reads as one badge per kind of reference, side by side. */
+    component UsageBadges: Flow {
+        id: badges
+        required property var row
+        spacing: Kirigami.Units.smallSpacing / 2
+        Components.Pill {
+            visible: badges.row.used > 0
+            dense: true
+            tone: "ok"
+            glyph: "box"
+            text: i18np("%1 container", "%1 containers", badges.row.used)
+            opacity: badges.row.hasContainers ? 1 : 0.55
+            HoverHandler { id: existingHover; cursorShape: badges.row.hasContainers ? Qt.PointingHandCursor : Qt.ArrowCursor }
+            TapHandler { enabled: badges.row.hasContainers; onTapped: root.openRelated(badges.row.modelData) }
+            PlasmaComponents.ToolTip { visible: existingHover.hovered; text: root.usageHelp(badges.row.modelData) }
+        }
+        Components.Pill {
+            visible: badges.row.configured > 0
+            dense: true
+            tone: "amber"
+            glyph: "file-code"
+            text: i18n("Compose · %1", badges.row.configured)
+            HoverHandler { id: configuredHover; cursorShape: Qt.PointingHandCursor }
+            TapHandler { onTapped: root.openRelated(badges.row.modelData) }
+            PlasmaComponents.ToolTip { visible: configuredHover.hovered; text: root.usageHelp(badges.row.modelData) }
+        }
+        Components.Pill {
+            visible: badges.row.used === 0 && badges.row.configured === 0
+            dense: true
+            tone: "muted"
+            text: i18n("Unused")
+        }
+        Components.Pill {
+            visible: badges.row.used < 0
+            dense: true
+            tone: "warn"
+            text: i18n("Usage unknown")
+            HoverHandler { id: unknownHover }
+            PlasmaComponents.ToolTip { visible: unknownHover.hovered; text: root.usageHelp(badges.row.modelData) }
+        }
+        }
+
+    /* One summary figure; Unused also toggles the filter. */
+    component Figure: Components.Card {
+        id: figure
+        property string glyph: ""
+        property string iconTone: "muted"
+        property string value: ""
+        property string caption: ""
+        property bool clickable: false
+        property bool active: false
+        signal clicked()
+        Layout.fillWidth: true
+        Layout.preferredWidth: 1
+        Layout.minimumWidth: 0
+        padding: Kirigami.Units.smallSpacing * 1.5
+        interactive: clickable
+        hovered: figureHover.hovered
+        selected: active
+        HoverHandler { id: figureHover; enabled: figure.clickable; cursorShape: Qt.PointingHandCursor }
+        TapHandler { enabled: figure.clickable; onTapped: figure.clicked() }
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.smallSpacing * 1.5
+            Components.ActionIcon {
+                glyph: figure.glyph
+                color: figure.toneColor(figure.iconTone)
+                implicitWidth: Kirigami.Units.iconSizes.smallMedium
+                implicitHeight: implicitWidth
+            }
+            ColumnLayout {
+                spacing: 0
+                Layout.fillWidth: true
+                PlasmaComponents.Label { text: figure.value; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+                PlasmaComponents.Label { text: figure.caption; font: Kirigami.Theme.smallFont; color: Kirigami.Theme.disabledTextColor; elide: Text.ElideRight; Layout.fillWidth: true }
+            }
+        }
+    }
 
     onTabChanged: {
         root.searchText = ""
@@ -221,18 +362,21 @@ Item {
             subtitle: i18n("Images, volumes and networks on %1", root.backend.engineName)
         }
 
+        // ---- tabs and the page's actions ------------------------------------
         RowLayout {
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.smallSpacing
             spacing: Kirigami.Units.smallSpacing
 
             Repeater {
-                model: [i18n("Images"), i18n("Volumes"), i18n("Networks")]
+                model: [{label: i18n("Images"), glyph: "layers", kind: "images"},
+                        {label: i18n("Volumes"), glyph: "database", kind: "volumes"},
+                        {label: i18n("Networks"), glyph: "network", kind: "networks"}]
                 delegate: Components.SectionTabButton {
                     required property int index
-                    required property string modelData
-                    id: resourceTab
-                    text: modelData
+                    required property var modelData
+                    readonly property int count: (root.backend.resourceLists[modelData.kind] || []).length
+                    text: count > 0 && !root.narrow ? i18n("%1 · %2", modelData.label, count) : modelData.label
                     checkable: true
                     checked: root.tab === index
                     onClicked: root.tab = index
@@ -241,116 +385,120 @@ Item {
 
             Item { Layout.fillWidth: true }
 
-            Components.ActionToolButton {
-                glyph: "list-add"
-                text: root.tab === 0 ? i18n("Add image or container…") : i18n("Create resource…")
-                enabled: root.backend.engineActive && !root.backend.readOnly
-                onClicked: root.createForCurrentTab()
-            }
-
             PlasmaComponents.BusyIndicator {
                 visible: root.loading
+                running: visible
                 implicitWidth: Kirigami.Units.iconSizes.small
                 implicitHeight: implicitWidth
             }
-
-            Components.ActionToolButton {
+            Components.DockButton {
                 id: refreshButton
                 glyph: "view-refresh"
-                text: i18n("Refresh resources")
-                onClicked: root.reload()
+                text: i18n("Refresh")
+                iconOnly: root.width < Kirigami.Units.gridUnit * 34
+                onClicked: { root.reload(true); if (root.backend.diskUsageKnown) root.backend.refreshDiskUsage() }
             }
-
-            Components.ActionToolButton {
-                id: diskRefreshButton
-                glyph: "drive-harddisk"
-                text: i18n("Refresh disk usage")
-                onClicked: root.backend.refreshDiskUsage()
-            }
-
-            Components.ActionToolButton {
+            Components.DockButton {
                 id: pruneButton
-                glyph: "edit-clear-history"
-                text: i18n("Review cleanup…")
+                // Also under Maintain; a tray-sized popup keeps the row to what fits.
+                visible: !root.narrow
+                glyph: "broom"
+                text: i18n("Clean Up…")
+                iconOnly: root.width < Kirigami.Units.gridUnit * 34
                 enabled: !root.backend.readOnly && !root.backend.isPodman
                 onClicked: root.dialogs.confirmPrune()
             }
+            Components.DockButton {
+                variant: "primary"
+                glyph: root.kind === "images" ? "download" : "list-add"
+                text: root.createLabel
+                iconOnly: root.width < Kirigami.Units.gridUnit * 26
+                enabled: root.backend.engineActive && !root.backend.readOnly
+                onClicked: root.createForCurrentTab()
+            }
         }
 
+        // ---- what this tab holds, at a glance ------------------------------
+        GridLayout {
+            columns: root.narrow ? 2 : 4
+            columnSpacing: Kirigami.Units.smallSpacing
+            rowSpacing: Kirigami.Units.smallSpacing
+            uniformCellWidths: true
+            Layout.fillWidth: true
+            Layout.leftMargin: Kirigami.Units.smallSpacing
+            Layout.rightMargin: Kirigami.Units.smallSpacing
+            Layout.bottomMargin: Kirigami.Units.smallSpacing
+            visible: !root.relatedItem
+
+            Figure {
+                glyph: root.kindGlyph; iconTone: "blue"
+                value: String(root.summary.total)
+                caption: root.tab === 0 ? i18n("images") : root.tab === 1 ? i18n("volumes") : i18n("networks")
+            }
+            Figure {
+                glyph: "box"; iconTone: "ok"
+                value: String(root.summary.used)
+                caption: i18n("in use")
+            }
+            Figure {
+                glyph: "circle-dashed"; iconTone: "amber"
+                value: String(root.summary.unused)
+                caption: root.unusedOnly ? i18n("unused · shown alone") : i18n("unused · click to filter")
+                clickable: true
+                active: root.unusedOnly
+                onClicked: root.unusedOnly = !root.unusedOnly
+            }
+            Figure {
+                visible: root.kind !== "networks"
+                glyph: "hard-drive"; iconTone: "violet"
+                value: root.diskLine ? root.diskLine.size : root.formatBytes(root.summary.bytes)
+                caption: root.diskLine && root.diskLine.reclaimable
+                    ? i18n("%1 reclaimable", root.diskLine.reclaimable)
+                    : (root.backend.diskUsageKnown ? i18n("on disk") : i18n("click to measure reclaimable space"))
+                clickable: !root.backend.diskUsageKnown
+                onClicked: root.backend.refreshDiskUsage()
+            }
+        }
+
+        // ---- search, sort and filter ---------------------------------------
         RowLayout {
             Layout.fillWidth: true
             Layout.leftMargin: Kirigami.Units.smallSpacing
             Layout.rightMargin: Kirigami.Units.smallSpacing
             Layout.bottomMargin: Kirigami.Units.smallSpacing
             spacing: Kirigami.Units.smallSpacing
+            visible: !root.relatedItem
 
             PlasmaExtras.SearchField {
                 id: searchField
                 Layout.fillWidth: true
-                placeholderText: i18n("Search resources")
+                placeholderText: root.tab === 0 ? i18n("Search images…") : root.tab === 1 ? i18n("Search volumes…") : i18n("Search networks…")
                 text: root.searchText
                 onTextChanged: if (root.searchText !== text) root.searchText = text
                 Keys.onEscapePressed: clear()
             }
-
             PlasmaComponents.ComboBox {
                 id: sortBox
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                Layout.preferredWidth: Kirigami.Units.gridUnit * (root.narrow ? 6 : 8)
                 model: root.sortOptions
                 textRole: "label"
                 valueRole: "key"
                 currentIndex: Math.max(0, root.sortOptions.findIndex(function (option) { return option.key === root.sortMode }))
                 onActivated: function (index) { root.sortMode = root.sortOptions[index].key }
-                PlasmaComponents.ToolTip { text: i18n("Sort resources") }
-            }
-
-            PlasmaComponents.CheckBox {
-                text: i18n("Unused")
-                checked: root.unusedOnly
-                onToggled: root.unusedOnly = checked
-                PlasmaComponents.ToolTip { text: i18n("Only show resources with verified zero usage.") }
+                PlasmaComponents.ToolTip { text: i18n("Sort") }
             }
         }
 
-        RowLayout {
+        PlasmaComponents.Label {
             Layout.fillWidth: true
-            Layout.leftMargin: Kirigami.Units.smallSpacing
-            Layout.rightMargin: Kirigami.Units.smallSpacing
+            Layout.leftMargin: Kirigami.Units.largeSpacing
+            Layout.rightMargin: Kirigami.Units.largeSpacing
             Layout.bottomMargin: Kirigami.Units.smallSpacing
-            spacing: Kirigami.Units.smallSpacing
-            PlasmaComponents.Label {
-                text: i18n("Disk usage")
-                font.bold: true
-            }
-            PlasmaComponents.Label {
-                visible: !root.backend.diskUsageKnown
-                text: i18n("Not loaded")
-                color: Kirigami.Theme.disabledTextColor
-            }
-            Flow {
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-                Repeater {
-                    model: root.backend.diskUsage || []
-                    delegate: PlasmaComponents.Label {
-                        required property var modelData
-                        text: i18n("%1: %2 · %3 reclaimable", modelData.type,
-                                   modelData.size || i18n("unknown"), modelData.reclaimable || i18n("unknown"))
-                        font: Kirigami.Theme.smallFont
-                        PlasmaComponents.ToolTip { text: i18n("%1 total · %2 of %3 active", modelData.total, modelData.active, modelData.total) }
-                    }
-                }
-            }
-        }
-
-        Kirigami.InlineMessage {
-            Layout.fillWidth: true
-            Layout.leftMargin: Kirigami.Units.smallSpacing
-            Layout.rightMargin: Kirigami.Units.smallSpacing
-            Layout.bottomMargin: Kirigami.Units.smallSpacing
-            visible: root.kind === "volumes"
-            type: Kirigami.MessageType.Information
-            text: i18n("Docker volumes are managed inside Docker’s data directory. Use a bind mount when you want files in a chosen host folder.")
+            visible: root.kind === "volumes" && !root.relatedItem
+            text: i18n("Volumes live inside Docker’s data directory. Use a bind mount when files should sit in a folder you choose.")
+            wrapMode: Text.Wrap
+            font: Kirigami.Theme.smallFont
+            color: Kirigami.Theme.disabledTextColor
         }
 
         Kirigami.InlineMessage {
@@ -362,195 +510,143 @@ Item {
             text: i18n("Refresh failed: %1. Showing the last successful results.", root.resourceError)
         }
 
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
-        }
-
-        ColumnLayout {
+        // ---- the list --------------------------------------------------------
+        PlasmaComponents.ScrollView {
+            PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: !root.relatedItem
-            spacing: 0
+            background: null
+            contentItem: ListView {
+                id: tableView
+                model: root.items
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                reuseItems: true
+                spacing: Kirigami.Units.smallSpacing
+                topMargin: 1
+                bottomMargin: Kirigami.Units.smallSpacing
 
-            PlasmaComponents.ScrollView {
-        PlasmaComponents.ScrollBar.vertical.policy: PlasmaComponents.ScrollBar.AlwaysOn
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                background: null
-                contentItem: ListView {
-                    id: tableView
-                    width: Math.max(root.tableWidth, parent ? parent.width : root.tableWidth)
-                    height: parent ? parent.height : 0
-                    model: root.items
-                    contentWidth: width
-                    flickableDirection: Flickable.HorizontalAndVerticalFlick
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-                    reuseItems: true
+                delegate: Item {
+                    id: resourceRow
+                    required property var modelData
+                    readonly property int used: root.usageCount(modelData)
+                    readonly property int configured: root.configuredImageCount(modelData)
+                    readonly property bool hasContainers: root.knownContainers(modelData).length > 0
+                    width: ListView.view.width - Kirigami.Units.smallSpacing * 2
+                    x: Kirigami.Units.smallSpacing
+                    height: rowCard.implicitHeight
 
-                    header: ColumnLayout {
-                        width: tableView.width
-                        spacing: 0
-                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Kirigami.Units.gridUnit * 2; color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: Kirigami.Units.smallSpacing
-                                anchors.rightMargin: Kirigami.Units.smallSpacing
-                                spacing: Kirigami.Units.smallSpacing
-                                PlasmaComponents.Label { Layout.preferredWidth: root.kind === "images" ? 250 : 235; text: root.kind === "images" ? i18n("Image") : i18n("Name"); font.bold: true }
-                                PlasmaComponents.Label { Layout.preferredWidth: root.kind === "images" ? 130 : 120; text: root.kind === "images" ? i18n("Tag") : i18n("Driver"); font.bold: true }
-                                PlasmaComponents.Label { Layout.preferredWidth: root.kind === "images" ? 105 : 105; visible: root.kind !== "networks"; text: i18n("Size"); font.bold: true }
-                                PlasmaComponents.Label { Layout.preferredWidth: root.kind === "images" ? 140 : 115; visible: root.kind === "images"; text: i18n("Created"); font.bold: true }
-                                PlasmaComponents.Label { Layout.preferredWidth: root.kind === "networks" ? 100 : 145; visible: root.kind === "networks"; text: i18n("Scope"); font.bold: true }
-                                PlasmaComponents.Label { Layout.preferredWidth: 160; text: i18n("Used by"); font.bold: true }
-                                Item { Layout.fillWidth: true }
-                                Item { Layout.preferredWidth: Kirigami.Units.iconSizes.small }
-                            }
-                        }
-                    }
+                    Components.Card {
+                        id: rowCard
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        padding: Kirigami.Units.smallSpacing * 1.5
+                        interactive: true
+                        hovered: rowHover.hovered
+                        HoverHandler { id: rowHover }
 
-                    delegate: Item {
-                        id: resourceRow
-                        required property var modelData
-                        width: tableView.width
-                        height: rowLayout.implicitHeight + Kirigami.Units.smallSpacing
                         RowLayout {
-                            id: rowLayout
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.leftMargin: Kirigami.Units.smallSpacing
-                            anchors.rightMargin: Kirigami.Units.smallSpacing
-                            anchors.topMargin: Kirigami.Units.smallSpacing / 2
-                            spacing: Kirigami.Units.smallSpacing
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.largeSpacing
 
-                            PlasmaComponents.Label {
-                                Layout.preferredWidth: root.kind === "images" ? 250 : 235
-                                text: root.kind === "images" ? (resourceRow.modelData.repository || i18n("untagged image")) : resourceRow.modelData.name
-                                elide: Text.ElideMiddle
-                                PlasmaComponents.ToolTip { text: root.kind === "images" ? resourceRow.modelData.repository : resourceRow.modelData.name }
+                            Components.ActionIcon {
+                                glyph: root.kindGlyph
+                                color: resourceRow.used > 0 ? Kirigami.Theme.positiveTextColor
+                                    : resourceRow.configured > 0 ? Style.HUE.amber : Kirigami.Theme.disabledTextColor
+                                implicitWidth: Kirigami.Units.iconSizes.smallMedium
+                                implicitHeight: implicitWidth
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                spacing: 0
+                                PlasmaComponents.Label {
+                                    Layout.fillWidth: true
+                                    text: root.kind === "images" ? (resourceRow.modelData.repository || i18n("untagged image")) : resourceRow.modelData.name
+                                    font.bold: true
+                                    elide: Text.ElideMiddle
+                                    PlasmaComponents.ToolTip { text: root.resourceTitle(resourceRow.modelData) }
+                                }
+                                PlasmaComponents.Label {
+                                    Layout.fillWidth: true
+                                    text: (root.kind === "images"
+                                        ? [resourceRow.modelData.tag ? ":" + resourceRow.modelData.tag : "", resourceRow.modelData.created]
+                                        : [resourceRow.modelData.driver, resourceRow.modelData.scope]).filter(function (v) { return !!v }).join("  ·  ")
+                                    font: Kirigami.Theme.smallFont
+                                    color: Kirigami.Theme.disabledTextColor
+                                    elide: Text.ElideRight
+                                }
+    UsageBadges {
+                                    visible: root.narrow
+                                    Layout.fillWidth: true
+                                    Layout.topMargin: 2
+                                    row: resourceRow
+                                }
                             }
                             PlasmaComponents.Label {
-                                Layout.preferredWidth: root.kind === "images" ? 130 : 120
-                                text: root.kind === "images" ? (resourceRow.modelData.tag || "—") : resourceRow.modelData.driver
-                                elide: Text.ElideRight
-                                PlasmaComponents.ToolTip { text: root.kind === "images" ? resourceRow.modelData.tag : resourceRow.modelData.driver }
-                            }
-                            PlasmaComponents.Label {
-                                Layout.preferredWidth: 105
                                 visible: root.kind !== "networks"
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 4
+                                horizontalAlignment: Text.AlignRight
                                 text: resourceRow.modelData.size || "—"
-                                elide: Text.ElideRight
+                                font.features: ({"tnum": 1})
                             }
-                            PlasmaComponents.Label {
-                                Layout.preferredWidth: 140
-                                visible: root.kind === "images"
-                                text: resourceRow.modelData.created || "—"
-                                elide: Text.ElideRight
+                            UsageBadges {
+                                visible: !root.narrow
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 9
+                                row: resourceRow
                             }
-                            PlasmaComponents.Label {
-                                Layout.preferredWidth: 115
-                                visible: root.kind === "networks"
-                                text: resourceRow.modelData.scope || "—"
+                            Components.ActionToolButton {
+                                id: moreButton
+                                glyph: "application-menu"
+                                text: i18n("More actions")
+                                onClicked: root.openItemMenu(resourceRow.modelData, moreButton)
                             }
-                            RowLayout {
-                                Layout.preferredWidth: 160
-                                spacing: 1
-                                PlasmaComponents.Label {
-                                    visible: root.usageCount(resourceRow.modelData) === 0
-                                    text: root.usageRowText(resourceRow.modelData)
-                                    color: root.configuredImageCount(resourceRow.modelData) > 0
-                                        ? Kirigami.Theme.neutralTextColor : Kirigami.Theme.positiveTextColor
-                                    font: Kirigami.Theme.smallFont
-                                }
-                                ColumnLayout {
-                                    Layout.preferredWidth: 160
-                                    spacing: 1
-                                    Components.Pill {
-                                        id: existingUsage
-                                        visible: root.usageCount(resourceRow.modelData) > 0
-                                        dense: true
-                                        variant: "outline"
-                                        tone: "teal"
-                                        glyph: "box"
-                                        text: i18n("In use · %1", root.usageCount(resourceRow.modelData))
-                                        opacity: root.knownContainers(resourceRow.modelData).length > 0 ? 1 : 0.55
-                                        HoverHandler { id: existingHover; cursorShape: root.knownContainers(resourceRow.modelData).length > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor }
-                                        TapHandler { enabled: root.knownContainers(resourceRow.modelData).length > 0; onTapped: root.openRelated(resourceRow.modelData) }
-                                        PlasmaComponents.ToolTip { visible: existingHover.hovered; text: root.usageHelp(resourceRow.modelData) }
-                                    }
-                                    Components.Pill {
-                                        id: configuredUsage
-                                        visible: root.configuredImageCount(resourceRow.modelData) > 0
-                                        dense: true
-                                        variant: "outline"
-                                        tone: "amber"
-                                        glyph: "file-code"
-                                        text: i18n("Compose · %1", root.configuredImageCount(resourceRow.modelData))
-                                        HoverHandler { id: configuredHover; cursorShape: Qt.PointingHandCursor }
-                                        TapHandler { onTapped: root.openRelated(resourceRow.modelData) }
-                                        PlasmaComponents.ToolTip { visible: configuredHover.hovered; text: root.usageHelp(resourceRow.modelData) }
-                                    }
-                                }
-                                PlasmaComponents.Label {
-                                    visible: root.usageCount(resourceRow.modelData) < 0
-                                    text: root.usageText(resourceRow.modelData)
-                                    color: Kirigami.Theme.neutralTextColor
-                                    font: Kirigami.Theme.smallFont
-                                    PlasmaComponents.ToolTip { text: root.usageHelp(resourceRow.modelData) }
-                                }
-                            }
-                            Item { Layout.fillWidth: true }
                             Components.ActionToolButton {
                                 id: removeButton
                                 objectName: "resourceRemoveButton"
-                                Layout.preferredWidth: Kirigami.Units.iconSizes.small
-                                glyph: "edit-delete"
+                                glyph: "trash"
                                 text: i18n("Remove")
                                 enabled: root.canRemove(resourceRow.modelData)
+                                opacity: enabled ? 1 : 0.35
                                 onClicked: root.requestRemove(resourceRow.modelData)
                                 PlasmaComponents.ToolTip { text: root.removeHelp(resourceRow.modelData) }
                             }
                         }
-                        Kirigami.Separator { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; opacity: 0.35 }
                     }
+                }
 
-                    Kirigami.PlaceholderMessage {
-                        anchors.centerIn: parent
-                        width: Math.min(parent.width - Kirigami.Units.gridUnit * 2, Kirigami.Units.gridUnit * 28)
-                        visible: tableView.count === 0 && !root.loading
-                            && (root.resourceError === "" || root.sourceItems.length > 0)
-                        text: root.searchText !== "" ? i18n("No resources match this search.")
-                            : (root.unusedOnly ? i18n("No resources have verified zero usage.")
-                            : (root.kind === "images" ? i18n("No images found")
-                            : (root.kind === "volumes" ? i18n("No Docker volumes found") : i18n("No networks found"))))
-                        icon.name: "folder-open"
-                        helpfulAction: Kirigami.Action {
-                            text: root.kind === "volumes" && root.searchText === "" && !root.unusedOnly
-                                ? i18n("Create volume") : i18n("Refresh")
-                            onTriggered: root.kind === "volumes" && root.searchText === "" && !root.unusedOnly
-                                ? root.deploymentRequested(3) : root.reload()
-                        }
+                Kirigami.PlaceholderMessage {
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width - Kirigami.Units.gridUnit * 2, Kirigami.Units.gridUnit * 28)
+                    visible: tableView.count === 0 && !root.loading
+                        && (root.resourceError === "" || root.sourceItems.length > 0)
+                    text: root.searchText !== "" ? i18n("No resources match this search.")
+                        : (root.unusedOnly ? i18n("No unused resources.")
+                        : (root.kind === "images" ? i18n("No images yet")
+                        : (root.kind === "volumes" ? i18n("No Docker volumes yet") : i18n("No networks found"))))
+                    icon.name: "folder-open"
+                    helpfulAction: Kirigami.Action {
+                        text: root.searchText === "" && !root.unusedOnly && root.kind !== "networks" ? root.createLabel : i18n("Refresh")
+                        onTriggered: root.searchText === "" && !root.unusedOnly && root.kind !== "networks" ? root.createForCurrentTab() : root.reload()
                     }
+                }
 
-                    Kirigami.PlaceholderMessage {
-                        anchors.centerIn: parent
-                        width: Math.min(parent.width - Kirigami.Units.gridUnit * 2, Kirigami.Units.gridUnit * 28)
-                        visible: tableView.count === 0 && !root.loading && root.resourceError !== ""
-                            && root.sourceItems.length === 0
-                        text: i18n("Could not load %1: %2", root.kind, root.resourceError)
-                        icon.name: "dialog-error"
-                        helpfulAction: Kirigami.Action { text: i18n("Retry"); onTriggered: root.reload() }
-                    }
+                Kirigami.PlaceholderMessage {
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width - Kirigami.Units.gridUnit * 2, Kirigami.Units.gridUnit * 28)
+                    visible: tableView.count === 0 && !root.loading && root.resourceError !== ""
+                        && root.sourceItems.length === 0
+                    text: i18n("Could not load %1: %2", root.kind, root.resourceError)
+                    icon.name: "dialog-error"
+                    helpfulAction: Kirigami.Action { text: i18n("Retry"); onTriggered: root.reload() }
+                }
 
-                    Kirigami.PlaceholderMessage {
-                        anchors.centerIn: parent
-                        visible: tableView.count === 0 && root.loading
-                        text: i18n("Loading %1…", root.kind)
-                        icon.name: "view-refresh"
-                    }
+                Kirigami.PlaceholderMessage {
+                    anchors.centerIn: parent
+                    visible: tableView.count === 0 && root.loading
+                    text: i18n("Loading %1…", root.kind)
+                    icon.name: "view-refresh"
                 }
             }
         }
@@ -565,11 +661,18 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Components.ActionToolButton { glyph: "go-previous"; text: i18n("Back to %1", root.kind); onClicked: root.closeRelated() }
-                PlasmaExtras.Heading { Layout.fillWidth: true; level: 3; text: i18n("References for %1", root.resourceTitle(root.relatedItem || ({}))) }
+                PlasmaExtras.Heading { Layout.fillWidth: true; level: 3; elide: Text.ElideMiddle; text: root.infoTitle !== "" ? root.infoTitle : i18n("References for %1", root.resourceTitle(root.relatedItem || ({}))) }
+            }
+            Components.LogViewer {
+                visible: root.infoTitle !== ""
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                text: root.infoText
+                emptyText: i18n("No output.")
             }
             PlasmaComponents.Label {
                 Layout.fillWidth: true
-                visible: root.relatedRecords.length === 0 && root.relatedConfiguredRecords.length === 0
+                visible: root.infoTitle === "" && root.relatedRecords.length === 0 && root.relatedConfiguredRecords.length === 0
                 wrapMode: Text.Wrap
                 text: root.usageCount(root.relatedItem || ({})) > 0
                     ? i18n("Docker reports this resource is in use, but its containers are not in the current container list.")
@@ -635,4 +738,53 @@ Item {
             }
         }
     }
+
+    // ---- per-item actions -----------------------------------------------------
+    component MenuEntry: Components.ActionMenuDelegate {
+        property string glyph: ""
+        icon.source: glyph !== "" ? Qt.resolvedUrl(ActionIcons.path(glyph)) : ""
+    }
+    PlasmaComponents.Menu {
+        id: itemMenu
+        // Plasma's default delegate reads parent.width before it has a parent.
+        delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
+        readonly property var item: root.menuItem || ({})
+        readonly property bool writable: !root.backend.readOnly && root.backend.engineActive
+        MenuEntry { visible: root.kind === "images" && itemMenu.writable; text: i18n("Deploy from This Image…"); glyph: "package-plus"
+            onTriggered: root.deploymentRequested(1, itemMenu.item.ref || "") }
+        MenuEntry { visible: root.kind === "images" && itemMenu.writable && !!itemMenu.item.repository && itemMenu.item.repository !== "<none>"; text: i18n("Pull Latest"); glyph: "system-download"
+            onTriggered: root.backend.pullImageRef(itemMenu.item.ref) }
+        MenuEntry { visible: root.usageCount(itemMenu.item) > 0 || root.configuredImageCount(itemMenu.item) > 0; text: i18n("Show Containers"); glyph: "box"
+            onTriggered: root.openRelated(itemMenu.item) }
+        PlasmaComponents.MenuSeparator {}
+        MenuEntry { text: i18n("Inspect"); glyph: "document-properties"; onTriggered: root.openInfo(itemMenu.item, "inspect") }
+        MenuEntry { visible: root.kind === "images"; text: i18n("Layer History"); glyph: "layers"; onTriggered: root.openInfo(itemMenu.item, "history") }
+        PlasmaComponents.Menu {
+            id: connectMenu
+            title: i18n("Connect a Container")
+            enabled: root.kind === "networks" && itemMenu.writable && !itemMenu.item.builtin
+            Instantiator {
+                model: root.kind === "networks" && itemMenu.opened ? root.networkMembers(itemMenu.item, false) : []
+                delegate: MenuEntry { required property var modelData; text: modelData.name; glyph: "plug"; onTriggered: root.backend.networkConnect(itemMenu.item, modelData, true) }
+                onObjectAdded: function (index, object) { connectMenu.insertItem(index, object) }
+                onObjectRemoved: function (index, object) { connectMenu.removeItem(object) }
+            }
+        }
+        PlasmaComponents.Menu {
+            id: disconnectMenu
+            title: i18n("Disconnect a Container")
+            enabled: root.kind === "networks" && itemMenu.writable && !itemMenu.item.builtin
+            Instantiator {
+                model: root.kind === "networks" && itemMenu.opened ? root.networkMembers(itemMenu.item, true) : []
+                delegate: MenuEntry { required property var modelData; text: modelData.name; glyph: "unplug"; onTriggered: root.backend.networkConnect(itemMenu.item, modelData, false) }
+                onObjectAdded: function (index, object) { disconnectMenu.insertItem(index, object) }
+                onObjectRemoved: function (index, object) { disconnectMenu.removeItem(object) }
+            }
+        }
+        PlasmaComponents.MenuSeparator {}
+        MenuEntry { text: root.kind === "images" ? i18n("Copy Reference") : i18n("Copy Name"); glyph: "edit-copy"
+            onTriggered: clipboard.content = root.kind === "images" ? (itemMenu.item.ref || itemMenu.item.id) : itemMenu.item.name }
+        MenuEntry { text: i18n("Remove…"); glyph: "trash"; enabled: root.canRemove(itemMenu.item); onTriggered: root.requestRemove(itemMenu.item) }
+    }
+    KQuickControlsAddons.Clipboard { id: clipboard }
 }

@@ -26,8 +26,34 @@ Item {
     readonly property var sortedResults: controller.results.filter(function(r){return !root.officialOnly || r.official}).slice().sort(function(a,b){return root.searchOrder===0 ? Number(b.stars)-Number(a.stars) : root.searchOrder===1 ? Number(b.pulls||0)-Number(a.pulls||0) : String(a.name).localeCompare(String(b.name))})
     property int outputPanelHeight: 112
     property bool outputPanelExpanded: false
-    Connections { target: root.controller; function onBusyChanged() { if (root.controller.busy) root.outputPanelExpanded = true } }
+    /* Popup or dock narrower than the toolbars: buttons drop their labels. */
+    readonly property bool narrow: width < Kirigami.Units.gridUnit * 24
+    // Searches report into the results themselves; commands open the output.
+    Connections { target: root.controller; function onBusyChanged() { if (root.controller.busy && root.controller.activity !== "search") root.outputPanelExpanded = true } }
+    /* 2372530000 -> "2.4B": Number.toLocaleString() prints large counts in exponent form. */
+    function compactCount(value) {
+        const n = Number(value)
+        if (!isFinite(n)) return i18n("Unavailable")
+        const units = [[1e9, "B"], [1e6, "M"], [1e3, "k"]]
+        for (let i = 0; i < units.length; i++)
+            if (n >= units[i][0]) return (n / units[i][0]).toFixed(n >= units[i][0] * 10 ? 0 : 1) + units[i][1]
+        return String(Math.round(n))
+    }
     objectName: "deploymentPage"
+
+    /* A labelled form field: the label above, an optional hint below. */
+    component Field: ColumnLayout {
+        id: field
+        property string label: ""
+        property string hint: ""
+        default property alias content: slot.data
+        Layout.fillWidth: true
+        Layout.margins: Kirigami.Units.smallSpacing
+        spacing: 2
+        PlasmaComponents.Label { text: field.label; font: Kirigami.Theme.smallFont; color: Kirigami.Theme.disabledTextColor }
+        ColumnLayout { id: slot; Layout.fillWidth: true; spacing: 0 }
+        PlasmaComponents.Label { visible: field.hint !== ""; Layout.fillWidth: true; text: field.hint; font: Kirigami.Theme.smallFont; opacity: 0.7; wrapMode: Text.WrapAnywhere }
+    }
 
     function show(tab) { if (tab !== undefined) tabs.currentIndex = tab; root.visible = true }
     function close() { root.closeRequested() }
@@ -61,8 +87,8 @@ Item {
         spacing: 0
         Components.PageHeader {
             compact: root.embedded
-            title: i18n("Images and new containers")
-            subtitle: i18n("Selected engine: %1", root.backend.engineBinary)
+            title: i18n("Deploy")
+            subtitle: i18n("Find an image, configure a container and deploy it · %1", root.backend.engineBinary)
         }
         ColumnLayout {
             Layout.fillWidth: true
@@ -70,9 +96,9 @@ Item {
             Layout.margins: Kirigami.Units.smallSpacing
             spacing: Kirigami.Units.smallSpacing * 2
         Controls.TabBar {
-            id:tabs;objectName:"deploymentTabs";Layout.fillWidth:true
-            Components.SectionTabButton{text:i18n("Images")}
-            Components.SectionTabButton{text:i18n("Deploy")}
+            id:tabs;objectName:"deploymentTabs";Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing;background:null
+            Components.SectionTabButton{text:i18n("Find Image")}
+            Components.SectionTabButton{text:i18n("Configure")}
             Components.SectionTabButton{text:i18n("Import")}
             Components.SectionTabButton{text:i18n("Storage")}
         }
@@ -93,49 +119,98 @@ Item {
                         visible:!root.directExpanded
                         Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
                         Controls.TextField{id:query;Layout.fillWidth:true;placeholderText:i18n("Search Docker Hub…");onAccepted:root.controller.search(text)}
-                        Components.DockButton{variant:"primary";text:i18n("Search");glyph:"search";enabled:!root.controller.busy && query.text.trim()!=="";onClicked:root.controller.search(query.text)}
+                        Components.DockButton{variant:"primary";text:i18n("Search");glyph:"search";iconOnly:root.narrow;enabled:!root.controller.busy && query.text.trim()!=="";onClicked:root.controller.search(query.text)}
                     }
                     RowLayout {
                         visible:!root.directExpanded
                         Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
-                        Components.DockButton {variant:"flat";text:i18n("Popular");glyph:"trending-up";iconTone:"orange";PlasmaComponents.ToolTip.text:i18n("Browse Docker Hub results ranked by downloads. Sorting applies to the first 50 returned images.");PlasmaComponents.ToolTip.visible:hovered;enabled:!root.controller.busy;onClicked:{query.text="";root.searchOrder=1;root.controller.search("__popular__")}}
-                        Components.DockButton {variant:"flat";checkable:true;checked:root.officialOnly;text:i18n("Official only");glyph:"badge-check";iconTone:"emerald";onClicked:root.officialOnly=checked}
+                        Components.DockButton {variant:"flat";text:i18n("Popular");glyph:"trending-up";iconOnly:root.narrow;iconTone:"orange";PlasmaComponents.ToolTip.text:i18n("Browse Docker Hub results ranked by downloads. Sorting applies to the first 50 returned images.");PlasmaComponents.ToolTip.visible:hovered;enabled:!root.controller.busy;onClicked:{query.text="";root.searchOrder=1;root.controller.search("__popular__")}}
+                        Components.DockButton {variant:"flat";checkable:true;checked:root.officialOnly;iconOnly:root.narrow;text:i18n("Official only");glyph:"badge-check";iconTone:"emerald";onClicked:root.officialOnly=checked}
                         Item {Layout.fillWidth:true}
-                        PlasmaComponents.Label {text:i18n("Sort");font:Kirigami.Theme.smallFont;color:Kirigami.Theme.disabledTextColor}
-                        Controls.ComboBox {model:[i18n("Most stars"),i18n("Most downloads"),i18n("Name")];currentIndex:root.searchOrder;onActivated:root.searchOrder=currentIndex}
+                        PlasmaComponents.Label {visible:!root.narrow;text:i18n("Sort");font:Kirigami.Theme.smallFont;color:Kirigami.Theme.disabledTextColor}
+                        Controls.ComboBox {Layout.maximumWidth:Kirigami.Units.gridUnit*9;Layout.minimumWidth:Kirigami.Units.gridUnit*5;Layout.fillWidth:root.narrow;model:[i18n("Most stars"),i18n("Most downloads"),i18n("Name")];currentIndex:root.searchOrder;onActivated:root.searchOrder=currentIndex}
                     }
-                    ListView {
-                        id: imageResults
-                        visible:!root.directExpanded
-                        Layout.fillWidth:true;Layout.preferredHeight:Math.min(Kirigami.Units.gridUnit*11,Math.max(Kirigami.Units.gridUnit*5,count*Kirigami.Units.gridUnit*3.4));clip:true
-                        spacing:Kirigami.Units.smallSpacing
-                        model:root.sortedResults
-                        PlasmaComponents.Label {
-                            anchors.centerIn: parent
-                            width: Math.max(0,parent.width - 24)
-                            visible: imageResults.count === 0
-                            horizontalAlignment: Text.AlignHCenter
-                            wrapMode: Text.Wrap
-                            color: root.controller.failed ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.disabledTextColor
-                            text: root.controller.busy ? i18n("Searching…") : root.controller.failed ? root.controller.message
-                                : root.controller.searchPerformed ? i18n("No images match this search") : i18n("Search Docker Hub, or open “Use a specific image” below.")
-                        }
-                        delegate:Controls.ItemDelegate {
-                            id:result;required property var modelData;width:ListView.view.width
-                            background:Components.Card {interactive:true;hovered:result.hovered}
-                            contentItem:ColumnLayout {
-                                RowLayout {Layout.fillWidth:true;PlasmaComponents.Label {Layout.fillWidth:true;text:result.modelData.name;font.bold:true;color:Kirigami.Theme.linkColor;elide:Text.ElideRight}Components.Pill {visible:result.modelData.official===true;dense:true;variant:"outline";text:i18n("Official");tone:"ok";glyph:"badge-check"}}
-                                Flow {
-                                    Layout.fillWidth:true;spacing:8
-                                    PlasmaComponents.Label {text:"★ "+result.modelData.stars;color:Kirigami.Theme.neutralTextColor}
-                                    PlasmaComponents.Label {text:i18n("↓ %1 downloads",result.modelData.pulls===null||result.modelData.pulls===undefined?i18n("Unavailable"):Number(result.modelData.pulls).toLocaleString());color:Kirigami.Theme.positiveTextColor}
-                                    Components.ActionButton {text:i18n("Similar");glyph:"edit-find";onClicked:{query.text=result.modelData.name.split("/").pop();root.controller.search(query.text)}}
+                    PlasmaComponents.Label {
+                        objectName: "imageSearchStatus"
+                        visible: !root.directExpanded
+                        Layout.fillWidth: true
+                        Layout.topMargin: imageResults.count > 0 ? 0 : Kirigami.Units.gridUnit
+                        horizontalAlignment: imageResults.count > 0 ? Text.AlignLeft : Text.AlignHCenter
+                        wrapMode: Text.Wrap
+                        font: imageResults.count > 0 ? Kirigami.Theme.smallFont : Kirigami.Theme.defaultFont
+                        color: root.controller.failed && root.controller.activity === "search" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.disabledTextColor
+                        text: root.controller.busy && root.controller.activity === "search" ? i18n("Searching…")
+                            : root.controller.failed && root.controller.activity === "search" ? root.controller.message
+                            : imageResults.count > 0 ? i18np("%1 image · click one to set it up", "%1 images · click one to set it up", imageResults.count)
+                            : root.controller.searchPerformed ? i18n("No images match this search") : i18n("Search Docker Hub, or choose “A specific image” above.")
+                    }
+                    GridLayout {
+                        id: resultGrid
+                        objectName: "imageResults"
+                        visible: !root.directExpanded && imageResults.count > 0
+                        Layout.fillWidth: true
+                        // Two cards side by side once each has room for a name and its counts.
+                        columns: width >= Kirigami.Units.gridUnit * 28 ? 2 : 1
+                        columnSpacing: Kirigami.Units.smallSpacing
+                        rowSpacing: Kirigami.Units.smallSpacing
+                        uniformCellWidths: true
+                        Repeater {
+                            id: imageResults
+                            model: root.sortedResults
+                            delegate: Controls.ItemDelegate {
+                                id: result
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.preferredWidth: 1
+                                padding: Kirigami.Units.smallSpacing * 2
+                                background: Components.Card { interactive: true; hovered: result.hovered }
+                                PlasmaComponents.ToolTip.text: i18n("Set up a container from %1", result.modelData.name)
+                                PlasmaComponents.ToolTip.visible: hovered
+                                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                                contentItem: ColumnLayout {
+                                    spacing: Kirigami.Units.smallSpacing
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        // Same height with or without the Official badge.
+                                        Layout.minimumHeight: Kirigami.Units.gridUnit * 1.05
+                                        spacing: Kirigami.Units.smallSpacing
+                                        PlasmaComponents.Label { Layout.fillWidth: true; text: result.modelData.name; font.bold: true; color: Kirigami.Theme.linkColor; elide: Text.ElideMiddle }
+                                        Components.Pill { visible: result.modelData.official === true; dense: true; variant: "outline"; text: i18n("Official"); tone: "ok"; glyph: "badge-check" }
+                                    }
+                                    PlasmaComponents.Label {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        Layout.minimumHeight: lineMetrics.height * 2
+                                        verticalAlignment: Text.AlignTop
+                                        text: result.modelData.description || i18n("No description")
+                                        textFormat: Text.PlainText
+                                        maximumLineCount: 2
+                                        wrapMode: Text.Wrap
+                                        elide: Text.ElideRight
+                                        opacity: result.modelData.description ? Style.TEXT.strong : Style.TEXT.soft
+                                    }
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: Kirigami.Units.largeSpacing
+                                        PlasmaComponents.Label { text: "★ " + root.compactCount(result.modelData.stars); color: Kirigami.Theme.neutralTextColor; font: Kirigami.Theme.smallFont }
+                                        PlasmaComponents.Label {
+                                            text: result.modelData.pulls === null || result.modelData.pulls === undefined ? i18n("↓ unavailable") : "↓ " + root.compactCount(result.modelData.pulls)
+                                            color: Kirigami.Theme.positiveTextColor
+                                            font: Kirigami.Theme.smallFont
+                                            PlasmaComponents.ToolTip.text: i18n("%1 downloads", Number(result.modelData.pulls || 0).toLocaleString(Qt.locale(), "f", 0))
+                                            PlasmaComponents.ToolTip.visible: pullsHover.hovered
+                                            HoverHandler { id: pullsHover }
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Components.ActionButton { text: i18n("Similar"); glyph: "edit-find"; iconOnly: root.narrow; onClicked: { query.text = result.modelData.name.split("/").pop(); root.controller.search(query.text) } }
+                                    }
                                 }
-                                PlasmaComponents.Label {Layout.fillWidth:true;text:result.modelData.description;textFormat:Text.PlainText;maximumLineCount:2;wrapMode:Text.Wrap;elide:Text.ElideRight}
+                                onClicked: root.useImage("docker.io/" + modelData.name)
                             }
-                            onClicked:root.useImage("docker.io/"+modelData.name)
                         }
                     }
+                    FontMetrics { id: lineMetrics; font: Kirigami.Theme.defaultFont }
                     PlasmaComponents.Label {
                         visible:root.directExpanded
                         Layout.fillWidth:true
@@ -151,47 +226,109 @@ Item {
                         Components.DockButton{text:i18n("Configure…");glyph:"settings-2";enabled:directImage.text.trim()!=="";onClicked:root.useImage(directImage.text)}
                     }
                 }
+                // ---- Configure: the form, in the same cards as a container's details ----
                 ColumnLayout {
-                    visible:tabs.currentIndex===1;Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing*2
+                    visible:tabs.currentIndex===1;Layout.fillWidth:true;spacing:Kirigami.Units.largeSpacing
                     Kirigami.InlineMessage {Layout.fillWidth:true;visible:!root.controller.canDeploy;type:Kirigami.MessageType.Information;text:i18n("Project creation requires local Docker with Compose and write actions enabled. Image pulls remain available for other connected engines.")}
-                    Kirigami.FormLayout {
-                        Layout.fillWidth:true;wideMode:false
-                        Controls.TextField{id:projectName;objectName:"deploymentProjectName";Kirigami.FormData.label:i18n("Project name:");Layout.fillWidth:true;placeholderText:"my-service"}
-                        Controls.TextField{id:imageName;objectName:"deploymentImage";Kirigami.FormData.label:i18n("Image:");Layout.fillWidth:true;placeholderText:"nginx:alpine"}
-                        Controls.ComboBox {
-                            id:restart;Kirigami.FormData.label:i18n("Restart policy:");textRole:"label";valueRole:"value"
-                            model:root.restartPolicies
-                            Component.onCompleted:{var i=root.restartPolicies.findIndex(function(x){return x.value===root.backend.cfg.deploymentRestartPolicy});currentIndex=i<0?2:i}
+                    GridLayout {
+                        Layout.fillWidth:true
+                        columns: width >= Kirigami.Units.gridUnit * 34 ? 2 : 1
+                        columnSpacing: Kirigami.Units.largeSpacing
+                        rowSpacing: Kirigami.Units.largeSpacing
+                        uniformCellWidths: true
+                        Components.Card {
+                            Layout.fillWidth:true;Layout.fillHeight:true;Layout.preferredWidth:1
+                            prominentTitle:true;title:i18n("Container");titleGlyph:"box";titleTone:"blue"
+                            padding:Kirigami.Units.smallSpacing*2
+                            Field { label:i18n("Project name"); hint:i18n("Folder: %1/%2", root.controller.projectRoot, projectName.text || i18n("project-name"))
+                                Controls.TextField{id:projectName;objectName:"deploymentProjectName";Layout.fillWidth:true;placeholderText:"my-service"} }
+                            Field { label:i18n("Image")
+                                Controls.TextField{id:imageName;objectName:"deploymentImage";Layout.fillWidth:true;placeholderText:"nginx:alpine"} }
+                            Field { label:i18n("Restart policy")
+                                Controls.ComboBox {
+                                    id:restart;Layout.fillWidth:true;textRole:"label";valueRole:"value"
+                                    model:root.restartPolicies
+                                    Component.onCompleted:{var i=root.restartPolicies.findIndex(function(x){return x.value===root.backend.cfg.deploymentRestartPolicy});currentIndex=i<0?2:i}
+                                } }
+                            Field { label:i18n("Command"); hint:i18n("Optional; replaces the image's default command.")
+                                Controls.TextField{id:command;Layout.fillWidth:true;placeholderText:i18n("Executable and arguments")} }
                         }
-                        Controls.TextArea{id:ports;Kirigami.FormData.label:i18n("Ports:");Layout.fillWidth:true;placeholderText:"127.0.0.1:8080:80\n8443:443";wrapMode:Text.Wrap}
-                        Controls.TextArea{id:environment;Kirigami.FormData.label:i18n("Environment:");Layout.fillWidth:true;placeholderText:"TZ=Australia/Melbourne\nPUID=1000";wrapMode:Text.Wrap}
-                        Controls.TextArea{id:mounts;Kirigami.FormData.label:i18n("Mounts:");Layout.fillWidth:true;placeholderText:"/host/folder:/data\nmy-volume:/config:ro";wrapMode:Text.Wrap}
-                        Controls.CheckBox{id:managedData;Kirigami.FormData.label:i18n("Data folder:");text:i18n("Create a folder in my default storage directory")}
-                        Controls.TextField{id:dataTarget;visible:managedData.checked;Kirigami.FormData.label:i18n("Mount inside container:");text:"/data";Layout.fillWidth:true}
-                        Controls.TextField{id:network;Kirigami.FormData.label:i18n("Network:");text:root.backend.cfg.deploymentNetwork||"";placeholderText:i18n("Default Compose network");Layout.fillWidth:true}
-                        Controls.TextField{id:command;Kirigami.FormData.label:i18n("Container command:");Layout.fillWidth:true;placeholderText:i18n("Optional executable and arguments")}
-                        Controls.CheckBox{id:startNow;Kirigami.FormData.label:i18n("After creating:");text:i18n("Start the container");checked:true}
+                        Components.Card {
+                            Layout.fillWidth:true;Layout.fillHeight:true;Layout.preferredWidth:1
+                            prominentTitle:true;title:i18n("Network");titleGlyph:"network";titleTone:"violet"
+                            padding:Kirigami.Units.smallSpacing*2
+                            Field { label:i18n("Ports"); hint:i18n("One per line: [address:]host:container")
+                                Controls.TextArea{id:ports;Layout.fillWidth:true;Layout.preferredHeight:Kirigami.Units.gridUnit*4;placeholderText:"127.0.0.1:8080:80\n8443:443";wrapMode:Text.Wrap} }
+                            Field { label:i18n("Network"); hint:i18n("Custom networks must already exist.")
+                                Controls.TextField{id:network;text:root.backend.cfg.deploymentNetwork||"";placeholderText:i18n("Default Compose network");Layout.fillWidth:true} }
+                        }
+                        Components.Card {
+                            Layout.fillWidth:true;Layout.fillHeight:true;Layout.preferredWidth:1
+                            prominentTitle:true;title:i18n("Environment");titleGlyph:"sliders-horizontal";titleTone:"teal"
+                            padding:Kirigami.Units.smallSpacing*2
+                            Field { label:i18n("Variables"); hint:i18n("One NAME=value per line.")
+                                Controls.TextArea{id:environment;Layout.fillWidth:true;Layout.preferredHeight:Kirigami.Units.gridUnit*4;placeholderText:"TZ=Australia/Melbourne\nPUID=1000";wrapMode:Text.Wrap} }
+                        }
+                        Components.Card {
+                            Layout.fillWidth:true;Layout.fillHeight:true;Layout.preferredWidth:1
+                            prominentTitle:true;title:i18n("Storage");titleGlyph:"hard-drive";titleTone:"amber"
+                            padding:Kirigami.Units.smallSpacing*2
+                            Field { label:i18n("Mounts"); hint:i18n("One per line. Named volumes are created or reused.")
+                                Controls.TextArea{id:mounts;Layout.fillWidth:true;Layout.preferredHeight:Kirigami.Units.gridUnit*4;placeholderText:"/host/folder:/data\nmy-volume:/config:ro";wrapMode:Text.Wrap} }
+                            Controls.CheckBox{id:managedData;Layout.leftMargin:Kirigami.Units.largeSpacing;text:i18n("Create a data folder in my storage directory")}
+                            Field { visible:managedData.checked; label:i18n("Mount the data folder at")
+                                Controls.TextField{id:dataTarget;text:"/data";Layout.fillWidth:true} }
+                        }
                     }
-                    PlasmaComponents.Label {Layout.fillWidth:true;text:i18n("Project folder: %1/%2",root.controller.projectRoot,projectName.text||i18n("project-name"));wrapMode:Text.WrapAnywhere}
-                    PlasmaComponents.Label {Layout.fillWidth:true;text:i18n("One port, environment variable, or mount per line. Named volumes are created or reused. Custom networks must already exist. Existing project files are never overwritten.");wrapMode:Text.Wrap}
+                    RowLayout {
+                        Layout.fillWidth:true
+                        spacing:Kirigami.Units.largeSpacing
+                        Controls.CheckBox{id:startNow;text:i18n("Start the container after creating it");checked:true}
+                        PlasmaComponents.Label {Layout.fillWidth:true;text:i18n("Existing project files are never overwritten.");wrapMode:Text.Wrap;font:Kirigami.Theme.smallFont;color:Kirigami.Theme.disabledTextColor}
+                    }
                 }
-                ColumnLayout {
+                // ---- Import: a docker run command into the form ----
+                Components.Card {
                     visible:tabs.currentIndex===2;Layout.fillWidth:true
-                    PlasmaComponents.Label {Layout.fillWidth:true;text:i18n("Paste a docker run command to fill the deployment form. It is parsed into a Compose project and is never executed as a host shell command. Unsupported flags are reported.");wrapMode:Text.Wrap}
-                    Controls.TextArea{id:importText;objectName:"deploymentImport";Layout.fillWidth:true;Layout.preferredHeight:180;placeholderText:"docker run -d --name my-app -p 8080:80 nginx:alpine";wrapMode:Text.WrapAnywhere}
-                    Components.ActionButton{text:i18n("Import into form");glyph:"document-open";onClicked:root.importCommand()}
-                }
-                ColumnLayout {
-                    visible:tabs.currentIndex===3;Layout.fillWidth:true
-                    PlasmaComponents.Label {Layout.fillWidth:true;text:i18n("Create named volumes or networks on the selected engine. Docker manages volume storage; bind-mount folders are chosen in the deployment form.");wrapMode:Text.Wrap}
-                    Kirigami.FormLayout {
-                        Layout.fillWidth:true;wideMode:false
-                        Controls.TextField{id:volumeName;Kirigami.FormData.label:i18n("Named volume:");Layout.fillWidth:true;placeholderText:"app-data"}
-                        Components.ActionButton{text:i18n("Create volume");glyph:"drive-harddisk";enabled:!root.backend.readOnly&&!root.controller.busy&&volumeName.text.trim()!=="";onClicked:root.controller.createResource("volume",volumeName.text.trim())}
-                        Controls.TextField{id:networkName;Kirigami.FormData.label:i18n("Network:");Layout.fillWidth:true;placeholderText:"apps"}
-                        Components.ActionButton{text:i18n("Create network");glyph:"network-server";enabled:!root.backend.readOnly&&!root.controller.busy&&networkName.text.trim()!=="";onClicked:root.controller.createResource("network",networkName.text.trim())}
+                    prominentTitle:true;title:i18n("Import a docker run Command");titleGlyph:"square-terminal";titleTone:"cyan"
+                    padding:Kirigami.Units.smallSpacing*2
+                    PlasmaComponents.Label {Layout.fillWidth:true;Layout.margins:Kirigami.Units.smallSpacing;text:i18n("Paste a docker run command to fill the Configure form. It is parsed into a Compose project and never executed as a shell command. Unsupported flags are reported.");wrapMode:Text.Wrap;color:Kirigami.Theme.disabledTextColor}
+                    Controls.TextArea{id:importText;objectName:"deploymentImport";Layout.fillWidth:true;Layout.margins:Kirigami.Units.smallSpacing;Layout.preferredHeight:180;placeholderText:"docker run -d --name my-app -p 8080:80 nginx:alpine";wrapMode:Text.WrapAnywhere;font.family:Kirigami.Theme.fixedWidthFont.family}
+                    RowLayout {
+                        Layout.fillWidth:true;Layout.margins:Kirigami.Units.smallSpacing
+                        Item{Layout.fillWidth:true}
+                        Components.DockButton{variant:"primary";text:i18n("Fill the Form");glyph:"document-open";enabled:importText.text.trim()!=="";onClicked:root.importCommand()}
                     }
-                    PlasmaComponents.Label {Layout.fillWidth:true;text:i18n("Configure default project folders, bind-mount storage and registry under Settings → Storage. Image layers stay in the engine's storage location.");wrapMode:Text.Wrap}
+                }
+                // ---- Storage: named volumes and networks ----
+                ColumnLayout {
+                    visible:tabs.currentIndex===3;Layout.fillWidth:true;spacing:Kirigami.Units.largeSpacing
+                    GridLayout {
+                        Layout.fillWidth:true
+                        columns: width >= Kirigami.Units.gridUnit * 34 ? 2 : 1
+                        columnSpacing: Kirigami.Units.largeSpacing
+                        rowSpacing: Kirigami.Units.largeSpacing
+                        uniformCellWidths: true
+                        Components.Card {
+                            Layout.fillWidth:true;Layout.fillHeight:true;Layout.preferredWidth:1
+                            prominentTitle:true;title:i18n("Named Volume");titleGlyph:"database";titleTone:"amber"
+                            padding:Kirigami.Units.smallSpacing*2
+                            Field { label:i18n("Name"); hint:i18n("Docker keeps its contents in its own data directory.")
+                                RowLayout { Layout.fillWidth:true
+                                    Controls.TextField{id:volumeName;Layout.fillWidth:true;placeholderText:"app-data"}
+                                    Components.DockButton{text:i18n("Create");glyph:"list-add";enabled:!root.backend.readOnly&&!root.controller.busy&&volumeName.text.trim()!=="";onClicked:root.controller.createResource("volume",volumeName.text.trim())} } }
+                        }
+                        Components.Card {
+                            Layout.fillWidth:true;Layout.fillHeight:true;Layout.preferredWidth:1
+                            prominentTitle:true;title:i18n("Network");titleGlyph:"network";titleTone:"violet"
+                            padding:Kirigami.Units.smallSpacing*2
+                            Field { label:i18n("Name"); hint:i18n("Containers on the same network reach each other by name.")
+                                RowLayout { Layout.fillWidth:true
+                                    Controls.TextField{id:networkName;Layout.fillWidth:true;placeholderText:"apps"}
+                                    Components.DockButton{text:i18n("Create");glyph:"list-add";enabled:!root.backend.readOnly&&!root.controller.busy&&networkName.text.trim()!=="";onClicked:root.controller.createResource("network",networkName.text.trim())} } }
+                        }
+                    }
+                    PlasmaComponents.Label {Layout.fillWidth:true;text:i18n("Default project folders, bind-mount storage and the registry are set under Settings → Storage.");wrapMode:Text.Wrap;font:Kirigami.Theme.smallFont;color:Kirigami.Theme.disabledTextColor}
                 }
             }
         }
@@ -241,7 +378,7 @@ Item {
         }
         RowLayout {
             Layout.fillWidth:true
-            PlasmaComponents.BusyIndicator{visible:root.controller.busy;implicitWidth:22;implicitHeight:22}
+            PlasmaComponents.BusyIndicator{visible:root.controller.busy;running:visible;implicitWidth:22;implicitHeight:22}
             Item{Layout.fillWidth:true}
             Components.DockButton{variant:"primary";text:i18n("Review deployment…");glyph:"package-check";visible:tabs.currentIndex===1;enabled:root.controller.canDeploy&&!root.controller.busy;onClicked:root.review()}
         }

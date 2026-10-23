@@ -31,8 +31,10 @@ files=[p.name for p in icon_dir.iterdir() if p.suffix in ['.svg','.png','.webp']
 
 # Fictional demonstration data; no engine runner is connected.
 for i,r in enumerate(records):
- if 12<=i<16:r.update(id='configured:demo:'+r['name'],state='not-created',status='Not created',isRunning=False)
+ if 12<=i<16:r.update(id='configured:demo:'+r['name'],state='not-created',status='Undeployed',isRunning=False)
 config['toolbarStyle']=3
+# DOCKMOID_UI_SECTIONS=1 keeps the default state order, so the list shows its section headings.
+if os.environ.get('DOCKMOID_UI_SECTIONS'):config['sortRole']='sortKey'
 config_qml='\n'.join('property var '+key+': '+json.dumps(value) for key,value in config.items())
 qml='''import QtQuick
 import "'''+(project/'contents/ui/Backend').as_uri()+'''" as Backend
@@ -53,11 +55,13 @@ Rectangle {
  function grid(){popup.selectView(3)}
  function tick(){var r=backend.records;for(var i=0;i<r.length;i++){if(r[i].isRunning){r[i].cpuPct=(r[i].cpuPct*7+i)%9;r[i].cpu=r[i].cpuPct.toFixed(2)+'%';r[i].memPct=(r[i].memPct*5+i)%7;r[i].mem=r[i].memPct.toFixed(2)+'%'}}backend.syncModel();backend.recomputeTotals();backend.revision++}
  function typeSearch(t){popup.searchText=t}
- function showPage(name){popup.selectView(0);if(name==='doctor')popup.showDoctor(0);else if(name==='resources')popup.showResources();else if(name==='deploy')popup.showDeployment();else if(name==='activity')popup.showActivity();else if(name==='detail')popup.showDetail('000000000000',0);else if(name==='detail1')popup.showDetail('000000000009',0)}
+ function showPage(name){popup.selectView(0);if(name==='doctor')popup.showDoctor(0);else if(name==='resources')popup.showResources();else if(name==='deploy')popup.showDeployment();else if(name==='deploy-form')popup.showDeployment(1);else if(name==='deploy-results'){popup.showDeployment();backend.deployment.searchPerformed=true;backend.deployment.results=[{name:'linuxserver/sonarr',stars:1903,pulls:2372530000,official:false,description:'A Sonarr container, brought to you by LinuxServer.io.'},{name:'linuxserver/radarr',stars:1802,pulls:2372530000,official:false,description:'A Radarr container, brought to you by LinuxServer.io.'},{name:'nginx',stars:20500,pulls:1000000000,official:true,description:'Official build of Nginx.'},{name:'linuxserver/qbittorrent',stars:1687,pulls:346571000,official:false,description:''},{name:'example/very-long-repository-name-for-layout',stars:3,pulls:null,official:false,description:'A deliberately long description that should wrap onto a second line and then be elided after it so every card keeps the same height.'}]}else if(name==='activity')popup.showActivity();else if(name==='detail')popup.showDetail('000000000000',0);else if(name==='detail1')popup.showDetail('000000000009',0)}
  function presentation(mode,level){popup.selectView(mode);popup.selectDetail(level)}
  function level(){return popup.detailLevel}
  function mode(){return popup.viewMode}
  function minimal(){popup.selectView(0);popup.selectDetail(0)}
+ // DOCKMOID_UI_MENU=1 prints a container's menu as an indented tree.
+ function menuTree(id){var rec=backend.findRecord(id);var comp=Qt.createComponent("'''+(project/'contents/ui/components/ContainerActions.qml').as_uri()+'''");if(comp.status!==Component.Ready)return comp.errorString();var m=comp.createObject(root,{backend:backend,record:rec,dialogs:null});m.rebuild();var out=[];function walk(menu,depth){for(var i=0;i<menu.count;i++){var it=menu.itemAt(i);if(!it)continue;var sub=it.subMenu;var label=sub?sub.title+' >':(it.label!==undefined?it.label:(it.text||'---'));if(it.isSectionHeader)label='['+label+']';out.push('  '.repeat(depth)+label);if(sub)walk(sub,depth+1)}}walk(m,0);m.destroy();return out.join('\n')}
  function search(){popup.searchText='nav';popup.openSearch()}
  function clearSearch(){popup.searchText=''}
  Component.onCompleted: {
@@ -65,7 +69,9 @@ Rectangle {
   backend.engineActive=true;backend.engineKnown=true;backend.endpointHost='unix:///var/run/docker.sock';backend.composeAvailable=true;backend.buildxAvailable=true
   backend.iconLibraryDir='''+json.dumps(str(icon_dir))+''';backend.iconEntries=Icons.parseLibrary('''+json.dumps('\n'.join(files))+''');backend.iconCount=16000;backend.iconRevision++
   backend.activity=[{time:Date.now(),kind:'crashed',id:'000000000002',name:'lidarr',text:'lidarr exited with code 1'},{time:Date.now()-60000,kind:'restarting',id:'000000000001',name:'deemix',text:'deemix is restarting'},{time:Date.now()-180000,kind:'recovered',id:'000000000000',name:'caddy',text:'caddy is healthy again'},{time:Date.now()-900000,kind:'started',id:'000000000003',name:'navidrome',text:'navidrome started'},{time:Date.now()-1200000,kind:'stopped',id:'',name:'beets',text:'beets stopped'}]
-  backend.recomputeTotals();backend.syncModel();backend.revision++;backend.updateCount=3;backend.lastUpdatedMs=Date.now()
+  backend.resourceUpdatedAt={images:Date.now()+1e9,volumes:Date.now()+1e9,networks:Date.now()+1e9}
+  backend.resourceLists={images:[{id:'sha256:a1',ref:'caddy:2',repository:'caddy',tag:'2',size:'94.6MB',created:'2 weeks ago',containers:1},{id:'sha256:a2',ref:'amir20/dozzle:latest',repository:'amir20/dozzle',tag:'latest',size:'98.8MB',created:'10 days ago',containers:0},{id:'sha256:a3',ref:'ghcr.io/home-assistant/home-assistant:stable',repository:'ghcr.io/home-assistant/home-assistant',tag:'stable',size:'3.4GB',created:'12 days ago',containers:2}],volumes:[{name:'dozzle_data',driver:'local',size:'1.147kB',links:0},{name:'komodo_keys',driver:'local',size:'464B',links:2}],networks:[{name:'media_net',driver:'bridge',scope:'local'},{name:'host',driver:'host',scope:'local',builtin:true}]}
+  backend.applySort();backend.recomputeTotals();backend.syncModel();backend.revision++;backend.updateCount=3;backend.lastUpdatedMs=Date.now()
  }
 }'''
 
@@ -113,7 +119,7 @@ def check(index,w,m,l):
  if os.environ.get('DOCKMOID_UI_CAPTURE_DIR'):
   folder=pathlib.Path(os.environ['DOCKMOID_UI_CAPTURE_DIR']);folder.mkdir(parents=True,exist_ok=True);image.save(str(folder/f'w{w}-m{m}-l{l}.png'))
  checks.append([w,m,l]);step(index+1)
-PAGES=[(n,w) for n in (os.environ.get('DOCKMOID_UI_ONLY') or 'doctor,resources,deploy,detail,detail1,activity,dock-new,dock-resources,dock-doctor,dock-preview').split(',') for w in [1050,360]]
+PAGES=[(n,w) for n in (os.environ.get('DOCKMOID_UI_ONLY') or 'doctor,resources,deploy,deploy-results,deploy-form,detail,detail1,activity,dock-logs,dock-events,dock-compose,dock-preview').split(',') for w in [1050,360]]
 def pages(i):
  if i==len(PAGES):app.quit();return
  n,w=PAGES[i];view.resize(w,760)
@@ -166,9 +172,14 @@ def perf():
   QMetaObject.invokeMethod(root,'typeSearch',Q_ARG('QVariant',''))
  res['type_5_chars_ms']=round(timed(typing),1)
  import json;print('PERF',json.dumps(res));app.quit()
-if os.environ.get('DOCKMOID_UI_PERF'):QTimer.singleShot(1500,safe(perf))
+def menu_dump():
+ for rid in ['000000000000','000000000009']:
+  view.rootObject().enableCompose();print('--- menu for',rid);print(view.rootObject().menuTree(rid),flush=True)
+ app.quit()
+if os.environ.get('DOCKMOID_UI_MENU'):QTimer.singleShot(800,safe(menu_dump))
+elif os.environ.get('DOCKMOID_UI_PERF'):QTimer.singleShot(1500,safe(perf))
 else:QTimer.singleShot(500,safe(step))
 app.exec()
 errors=[m for m in messages if any(e in m for e in ['TypeError','ReferenceError','Cannot assign','Unable to assign','Required property','Binding loop'])]
 (out/'runtime.log').write_text('\n'.join(messages));print('Production QML demo cases:',len(checks),'failures:',failures,'errors:',errors)
-assert (os.environ.get('DOCKMOID_UI_PERF') or len(checks)==32) and not failures and not errors
+assert (os.environ.get('DOCKMOID_UI_PERF') or os.environ.get('DOCKMOID_UI_MENU') or len(checks)==32) and not failures and not errors

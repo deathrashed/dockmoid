@@ -120,6 +120,38 @@ Item {
                     maximum: plasmoid.configuration.resourceBarMax
                     barWidth: Kirigami.Units.gridUnit * 4
                 }
+                // Without live usage to show, the card says what state the container is in
+                // and where it comes from, instead of leaving the space empty.
+                ColumnLayout {
+                    visible: root.detailLevel === 1 && !(tile.isRunning && tile.cpu !== "" && plasmoid.configuration.showResourceBars)
+                    Layout.fillWidth: true
+                    Layout.topMargin: Kirigami.Units.smallSpacing / 2
+                    spacing: 1
+                    PlasmaComponents.Label {
+                        Layout.fillWidth: true
+                        text: tile.containerState === "not-created" ? i18n("Defined in Compose, no container yet")
+                            : tile.containerState === "created" ? i18n("Created, never started")
+                            : tile.status
+                        elide: Text.ElideRight
+                        font: Kirigami.Theme.smallFont
+                        opacity: Style.TEXT.strong
+                    }
+                    PlasmaComponents.Label {
+                        Layout.fillWidth: true
+                        text: tile.record.image || tile.image
+                        elide: Text.ElideMiddle
+                        font: Kirigami.Theme.smallFont
+                        color: Kirigami.Theme.disabledTextColor
+                    }
+                    PlasmaComponents.Label {
+                        visible: !!tile.project
+                        Layout.fillWidth: true
+                        text: i18n("Project · %1", tile.project)
+                        elide: Text.ElideRight
+                        font: Kirigami.Theme.smallFont
+                        color: Kirigami.Theme.disabledTextColor
+                    }
+                }
                 PlasmaComponents.Label {
                     visible: root.detailLevel >= 2 && !!tile.project
                     Layout.fillWidth: true

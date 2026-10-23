@@ -58,8 +58,8 @@ function isProblem(attention) {
 function glyphTone(attention, isRunning) {
     if (attention === "failed" || attention === "unhealthy") return "bad"
     if (attention === "paused" || attention === "restarting") return "warn"
-    if (attention === "not-created") return "magenta"
-    return isRunning ? "ok" : "yellow"
+    if (attention === "not-created") return "blue"
+    return isRunning ? "ok" : "rose"
 }
 
 /* Glyph name for a status line. mode: "always", "attention" or "none". */
@@ -68,7 +68,7 @@ function statusGlyph(attention, busy, isRunning, mode) {
     var byAttention = {failed: "circle-x", unhealthy: "dialog-warning", paused: "media-playback-pause", restarting: "view-refresh"}
     if (mode === "attention") return byAttention[attention] || ""
     if (busy) return "view-refresh"
-    if (attention === "not-created") return "power-circle"
+    if (attention === "not-created") return "circle-plus"
     return byAttention[attention] || (isRunning ? "circle-play" : "circle-stop")
 }
 
@@ -92,7 +92,7 @@ function badgeSpec(attention) {
     case "failed": return {key: "failed", tone: "bad", variant: "ghost", glyph: "circle-x", dot: false}
     case "paused": return {key: "paused", tone: "amber", variant: "ghost", glyph: "pause", dot: false}
     case "restarting": return {key: "restarting", tone: "amber", variant: "ghost", glyph: "rotate-cw", dot: false}
-    case "not-created": return {key: "not-created", tone: "magenta", variant: "outline", glyph: "power-circle", dot: false}
-    default: return {key: "stopped", tone: "yellow", variant: "outline", glyph: "", dot: false}
+    case "not-created": return {key: "not-created", tone: "blue", variant: "outline", glyph: "circle-plus", dot: false}
+    default: return {key: "stopped", tone: "rose", variant: "outline", glyph: "", dot: false}
     }
 }

@@ -96,7 +96,7 @@ Item {
                             statusDot: root.spec.dot
                             text: root.spec.key === "running" ? i18n("Running") : root.spec.key === "unhealthy" ? i18n("Unhealthy")
                                 : root.spec.key === "failed" ? i18n("Failed") : root.spec.key === "paused" ? i18n("Paused")
-                                : root.spec.key === "restarting" ? i18n("Restarting") : root.spec.key === "not-created" ? i18n("Not created") : i18n("Stopped")
+                                : root.spec.key === "restarting" ? i18n("Restarting") : root.spec.key === "not-created" ? i18n("Undeployed") : i18n("Stopped")
                         }
                         Pill {
                             visible: !!root.record && root.record.updateAvailable === true
@@ -126,7 +126,7 @@ Item {
                     visible: !!root.record && !root.backend.readOnly
                     variant: root.running ? "default" : "primary"
                     glyph: root.running ? "square" : "play"
-                    text: root.record && root.record.state === "not-created" ? i18n("Create and start") : root.running ? i18n("Stop") : i18n("Start")
+                    text: root.record && root.record.state === "not-created" ? i18n("Create and Start") : root.running ? i18n("Stop") : i18n("Start")
                     onClicked: root.running ? root.backend.stopContainer(root.record) : root.backend.startContainer(root.record)
                 }
                 DockButton {
@@ -136,7 +136,7 @@ Item {
                 }
                 DockButton {
                     visible: root.links.length > 0 && root.running
-                    glyph: "globe"; text: i18n("Open web UI")
+                    glyph: "globe"; text: i18n("Web")
                     onClicked: root.backend.openLink(root.links[0])
                 }
                 DockButton {
@@ -145,17 +145,70 @@ Item {
                 }
             }
 
-            // ---- the facts
-            Card {
+            // ---- the facts, and live usage beside them when there is room
+            GridLayout {
                 Layout.fillWidth: true
                 Layout.margins: Kirigami.Units.largeSpacing
                 Layout.topMargin: Kirigami.Units.smallSpacing
-                padding: Kirigami.Units.smallSpacing
-                FieldRow { Layout.fillWidth: true; glyph: "activity"; label: i18n("Status"); value: root.record ? (root.record.state === "not-created" ? i18n("Not created") : (root.record.status || root.record.state)) : "" }
-                FieldRow { Layout.fillWidth: true; glyph: "folder-kanban"; label: i18n("Project"); value: root.record ? [root.record.project, root.record.service].filter(Boolean).join(" / ") : "" }
-                FieldRow { Layout.fillWidth: true; glyph: "plug"; label: i18n("Ports"); value: root.record ? String(root.record.ports || "") : ""; wrap: true }
-                FieldRow { Layout.fillWidth: true; glyph: "hard-drive"; label: i18n("Mounts"); value: root.record ? String(root.record.mounts || "") : ""; wrap: true }
-                FieldRow { Layout.fillWidth: true; glyph: "gauge"; label: i18n("CPU / RAM"); value: root.record ? [root.record.cpu, root.record.mem].filter(Boolean).join(" / ") : "" }
+                columns: width >= Kirigami.Units.gridUnit * 34 && root.running ? 2 : 1
+                columnSpacing: Kirigami.Units.largeSpacing
+                rowSpacing: Kirigami.Units.largeSpacing
+                uniformCellWidths: true
+                Card {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: 1
+                    padding: Kirigami.Units.smallSpacing
+                    FieldRow { Layout.fillWidth: true; glyph: "activity"; label: i18n("Status"); value: root.record ? (root.record.state === "not-created" ? i18n("Undeployed") : (root.record.status || root.record.state)) : "" }
+                    FieldRow { Layout.fillWidth: true; glyph: "heart-pulse"; label: i18n("Health"); value: root.record && root.record.health !== "none" ? String(root.record.health || "") : "" }
+                    FieldRow { Layout.fillWidth: true; glyph: "folder-kanban"; label: i18n("Project"); value: root.record ? [root.record.project, root.record.service].filter(Boolean).join(" / ") : "" }
+                    FieldRow { Layout.fillWidth: true; glyph: "plug"; label: i18n("Ports"); value: root.record ? String(root.record.ports || "").replace(/,\s*/g, "\n") : ""; wrap: true }
+                    FieldRow { Layout.fillWidth: true; glyph: "network"; label: i18n("Networks"); value: root.record ? String(root.record.networks || "").replace(/,\s*/g, "\n") : ""; wrap: true }
+                    FieldRow { Layout.fillWidth: true; glyph: "hard-drive"; label: i18n("Mounts"); value: root.record ? String(root.record.mounts || "").replace(/,\s*/g, "\n") : ""; wrap: true }
+                }
+                Card {
+                    visible: root.running
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: 1
+                    padding: Kirigami.Units.smallSpacing * 2
+                    title: i18n("Usage")
+                    titleGlyph: "gauge"
+                    titleTone: "cyan"
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.largeSpacing
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            spacing: 2
+                            PlasmaComponents.Label { text: i18n("CPU %1", root.record ? root.record.cpu || "–" : ""); font: Kirigami.Theme.smallFont; color: Style.HUE.cyan }
+                            Sparkline {
+                                Layout.fillWidth: true
+                                implicitHeight: Kirigami.Units.gridUnit * 2
+                                samples: root.record && root.backend.revision >= 0 ? root.backend.historyFor(root.record.id).cpu : []
+                                color: Style.HUE.cyan
+                                floor: 10
+                            }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            spacing: 2
+                            PlasmaComponents.Label { text: i18n("Memory %1", root.record ? root.record.mem || "–" : ""); font: Kirigami.Theme.smallFont; color: Style.HUE.fuchsia }
+                            Sparkline {
+                                Layout.fillWidth: true
+                                implicitHeight: Kirigami.Units.gridUnit * 2
+                                samples: root.record && root.backend.revision >= 0 ? root.backend.historyFor(root.record.id).mem : []
+                                color: Style.HUE.fuchsia
+                                floor: 10
+                            }
+                        }
+                    }
+                    FieldRow { Layout.fillWidth: true; label: i18n("Memory used"); value: root.record ? String(root.record.memU || "") : "" }
+                    FieldRow { Layout.fillWidth: true; label: i18n("Net I/O"); value: root.record ? String(root.record.netio || "") : "" }
+                    FieldRow { Layout.fillWidth: true; label: i18n("Processes"); value: root.record ? String(root.record.pids || "") : "" }
+                }
             }
         }
     }

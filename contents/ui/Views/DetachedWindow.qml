@@ -58,8 +58,12 @@ Window {
             width: Kirigami.Units.iconSizes.smallMedium
             height: width
             source: "../../icons/dockmoid.png"
-            sourceSize: Qt.size(48, 48)
+            // Decode at the screen's real pixel size (HiDPI included) and
+            // filter the downscale, so the 1024 px artwork stays smooth.
+            sourceSize: Qt.size(width * 2 * Screen.devicePixelRatio, height * 2 * Screen.devicePixelRatio)
             fillMode: Image.PreserveAspectFit
+            smooth: true
+            mipmap: true
         }
         PlasmaComponents.Label {
             anchors.centerIn: parent

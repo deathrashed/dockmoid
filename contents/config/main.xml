@@ -51,8 +51,23 @@
   <entry name="idleCheckInterval" type="Int">
     <default>15</default>
   </entry>
+  <!-- Wait for change events with one sleeping helper instead of asking every
+       few seconds. Falls back to the checks above when it cannot run. -->
+  <entry name="waitForEvents" type="Bool">
+    <default>true</default>
+  </entry>
+  <!-- Seconds between full refreshes while the view is closed and change
+       events are working. -->
+  <entry name="idleUpdateInterval" type="Int">
+    <default>300</default>
+  </entry>
   <entry name="usageInterval" type="Int">
     <default>5</default>
+  </entry>
+  <!-- Seconds between usage samples on pages that only show the totals in the
+       status bar (New, Doctor, output). -->
+  <entry name="usageQuietInterval" type="Int">
+    <default>15</default>
   </entry>
   <entry name="logTailLines" type="Int">
     <default>500</default>
@@ -185,6 +200,15 @@
 </group>
 
 <group name="generalConfigPage">
+  <!-- Keep every Dockmoid widget (panel, system tray, desktop) on one set of
+       settings through a shared file. The push marker is set by the settings
+       page's "Copy these settings to all widgets" button. -->
+  <entry name="shareSettings" type="Bool">
+    <default>true</default>
+  </entry>
+  <entry name="sharedSettingsPushAt" type="String">
+    <default></default>
+  </entry>
   <entry name="fetchOnStartup" type="Bool">
     <default>true</default>
   </entry>
@@ -284,6 +308,11 @@
   </entry>
   <entry name="probeInterval" type="Int">
     <default>60</default>
+  </entry>
+  <!-- Seconds between probes while the view is closed, unless probe
+       notifications are on (then probeInterval is kept). -->
+  <entry name="probeIdleInterval" type="Int">
+    <default>300</default>
   </entry>
   <entry name="notifyOnProbe" type="Bool">
     <default>true</default>

@@ -59,7 +59,7 @@ Item {
             currentIndex:root.tab;onActivated:root.tab=currentIndex
         }
         Controls.TabBar {
-            visible:root.width>=640
+            visible:root.width>=640;spacing:Kirigami.Units.smallSpacing;background:null
             Layout.fillWidth:true
             currentIndex:root.tab;onCurrentIndexChanged:root.tab=currentIndex
             Components.SectionTabButton {text:i18n("Overview")}
@@ -79,7 +79,7 @@ Item {
                     Layout.fillWidth:true;visible:root.tab===0;spacing:Kirigami.Units.smallSpacing
                     Components.StatTile {clickable:false;glyph:"circle-play";value:backend.running;label:i18n("Running")}
                     Components.StatTile {clickable:false;glyph:"circle-pause";value:backend.stopped;label:i18n("Stopped")}
-                    Components.StatTile {clickable:false;glyph:"package-plus";value:backend.notCreated;label:i18n("Not created")}
+                    Components.StatTile {clickable:false;glyph:"circle-plus";value:backend.notCreated;label:i18n("Undeployed")}
                     Components.StatTile {clickable:false;glyph:"triangle-alert";value:backend.problemCount;label:i18n("Need attention")}
                 }
                 Controls.ComboBox {

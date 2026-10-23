@@ -74,3 +74,16 @@ console.log("parsers (extended) ok");
  P.applyStats(rows,stats);
  assert.equal(rows[0].cpu,'0.12%','full inventory IDs still join short stats IDs');
 }
+
+// Detail-page facts: zero Go times are "unknown", NONE health checks are hidden,
+// shell-form checks drop their CMD-SHELL marker and limits convert from bytes/nanoCPUs.
+{
+ const f=P.parseFacts(JSON.stringify({restarts:3,started:'2026-10-24T01:00:00Z',finished:'0001-01-01T00:00:00Z',exitCode:137,error:'',oom:true,memory:536870912,nanoCpus:1500000000,
+   networks:{web:{IPAddress:'172.18.0.5'},none:{IPAddress:''}},healthcheck:{Test:['CMD-SHELL','curl -f localhost'],Interval:30000000000},user:'1000',workdir:'/app'}));
+ assert.equal(f.restarts,3);assert.equal(f.finishedAt,0);assert.ok(f.startedAt>0);assert.equal(f.oomKilled,true);
+ assert.equal(f.memoryLimit,536870912);assert.equal(f.cpuLimit,1.5);
+ assert.deepEqual(JSON.parse(JSON.stringify(f.networks)),[{name:'web',ip:'172.18.0.5',ipv6:''}]);
+ assert.equal(f.healthCheck,'curl -f localhost');assert.equal(f.healthInterval,30);
+ assert.equal(P.parseFacts(JSON.stringify({healthcheck:{Test:['NONE']}})).healthCheck,'');
+ assert.equal(P.parseFacts(JSON.stringify({healthcheck:null})).healthCheck,'');
+}

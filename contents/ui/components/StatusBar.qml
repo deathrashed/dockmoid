@@ -57,10 +57,10 @@ Item {
             objectName: "footerCounts"
             spacing: root.compact ? 3 : Kirigami.Units.smallSpacing * 2
             Count { value: root.backend.running; glyph: "circle-play"; toneName: "ok"; description: i18n("%1 running containers · click to filter", String(value)); filterState: "running" }
-            Count { value: root.backend.stopped; glyph: "circle-stop"; toneName: "yellow"; description: i18n("%1 stopped containers · click to filter", String(value)); filterState: "stopped" }
-            Count { value: root.backend.notCreated; glyph: "power-circle"; toneName: "magenta"; description: i18n("%1 configured services not created · click to filter", String(value)); filterState: "not-created" }
-            Count { value: root.backend.total; glyph: "circle-ellipsis"; toneName: "blue"; description: i18n("%1 containers and configured services · show all", String(value)); filterState: "all" }
-            Count { value: root.backend.problemCount; glyph: "circle-alert"; toneName: "bad"; description: i18n("%1 containers need attention · click to filter", String(value)); attention: true }
+            Count { value: root.backend.stopped; glyph: "circle-stop"; toneName: "rose"; description: i18n("%1 stopped containers · click to filter", String(value)); filterState: "stopped" }
+            Count { value: root.backend.notCreated; glyph: "circle-plus"; toneName: "blue"; description: i18n("%1 Compose services pending deployment · click to filter", String(value)); filterState: "not-created" }
+            Count { value: root.backend.problemCount; glyph: "circle-alert"; toneName: "yellow"; description: i18n("%1 containers need attention · click to filter", String(value)); attention: true }
+            Count { value: root.backend.total; glyph: "circle-ellipsis"; toneName: "slate"; description: i18n("%1 containers and configured services · show all", String(value)); filterState: "all" }
         }
 
         Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
@@ -68,10 +68,27 @@ Item {
         RowLayout {
             id: meters
             objectName: "footerResourceMeters"
-            visible: root.backend.running > 0
-            spacing: root.compact ? 4 : Kirigami.Units.smallSpacing * 2
-            ResourceMeter { label: "CPU"; value: root.backend.cpuSum; maximum: 20; bold: true; compact: root.compact; barWidth: root.compact ? 12 : 36; numberColumnText: root.compact ? "00.00%" : "1000.00%" }
-            ResourceMeter { label: "RAM"; value: root.backend.memSum; maximum: 20; bold: true; compact: root.compact; barWidth: root.compact ? 12 : 36; numberColumnText: root.compact ? "00.00%" : "1000.00%" }
+            visible: root.backend.running > 0 && !root.compact
+            spacing: Kirigami.Units.smallSpacing * 2
+            ResourceMeter { label: "CPU"; value: root.backend.cpuSum; maximum: 20; bold: true; barWidth: 36; numberColumnText: "1000.00%" }
+            ResourceMeter { label: "RAM"; value: root.backend.memSum; maximum: 20; bold: true; barWidth: 36; numberColumnText: "1000.00%" }
+        }
+        // A narrow popup has no room for bars, so the totals are plain words.
+        RowLayout {
+            visible: root.backend.running > 0 && root.compact
+            spacing: Kirigami.Units.smallSpacing
+            PlasmaComponents.Label {
+                text: i18n("CPU %1%", root.backend.cpuSum.toFixed(1))
+                font: Kirigami.Theme.smallFont
+                color: Style.HUE.cyan
+            }
+            PlasmaComponents.Label { text: "·"; font: Kirigami.Theme.smallFont; color: Kirigami.Theme.disabledTextColor }
+            PlasmaComponents.Label {
+                text: i18n("RAM %1%", root.backend.memSum.toFixed(1))
+                font: Kirigami.Theme.smallFont
+                color: Style.HUE.fuchsia
+            }
+            Tip { text: i18n("CPU and memory used by all running containers") }
         }
     }
 }

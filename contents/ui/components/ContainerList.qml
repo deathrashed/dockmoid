@@ -20,6 +20,23 @@ PlasmaComponents.ScrollView {
     required property var dialogs
 
     property int detailLevel: 1
+    /* State group -> true when its section is folded; owned by the page. */
+    property var collapsedGroups: ({})
+    signal groupToggled(string group)
+
+    /* Rows per section after the active filters, for the section counts. */
+    readonly property var groupCounts: {
+        void root.proxy.count; void root.backend.revision
+        const source = root.backend.containerModel
+        const keep = root.proxy.filterRowCallback
+        const counts = {}
+        for (let i = 0; i < source.count; i++) {
+            if (keep && !keep(i)) continue
+            const group = source.get(i).stateGroup
+            counts[group] = (counts[group] || 0) + 1
+        }
+        return counts
+    }
 
     signal openDetail(string recordId)
     signal openOutput(string title, string content, bool live, string recordId)
@@ -47,9 +64,16 @@ PlasmaComponents.ScrollView {
             required property string section
             width: view.width
             group: section
+            count: root.groupCounts[section] || 0
+            collapsed: root.collapsedGroups[section] === true
+            onToggled: root.groupToggled(section)
         }
 
         delegate: ContainerRow {
+            // A folded section keeps its rows in the model, just out of sight.
+            readonly property bool folded: view.section.property !== "" && root.collapsedGroups[stateGroup] === true
+            height: folded ? 0 : implicitHeight
+            visible: !folded
             width: view.width
             backend: root.backend
             dialogs: root.dialogs

@@ -214,7 +214,18 @@ Item {
         if (pendingTasks === 0) {
             refreshing = false
             refreshed()
+            if (queuedRefresh !== null) {
+                const opts = queuedRefresh
+                queuedRefresh = null
+                Qt.callLater(function () { backend.refresh(opts) })
+            }
         }
+    }
+    /* A refresh asked for while one was running; it runs once that finishes. */
+    property var queuedRefresh: null
+    function requestRefresh(opts) {
+        if (refreshing) queuedRefresh = opts
+        else refresh(opts)
     }
 
     function run(cmd, tag, done, options) {
@@ -278,7 +289,7 @@ Item {
         }
         if (runner) runner.cancelAll()
         pendingTasks = 0; pendingActions = 0; refreshing = false
-        records = []; syncModel(); revision++
+        records = []; lastListOut = ""; syncModel(); revision++
         policyCache = ({}); statsCache = ({}); statsUpdatedMs = 0; statsInFlight=false; history = ({}); alertState = ({})
         configuredServices = []; discoveryAt = 0; discoveryError = ""
         probeState = ({}); updateState = ({}); updateQueue = []; updateRunning = false; updateCount = 0
@@ -287,6 +298,7 @@ Item {
         lastInfoMs = 0; lastDiskMs = 0; lastUpdatedMs = 0; lastLabelIds = ""; labelCache = ({})
         resourceLists = ({images: [], volumes: [], networks: []}); resourceUpdatedAt=({})
         resourcesBusy = false; lastFullMs = 0; lastEventSec = 0; eventsFailedMs = 0
+        dropEventWait(); eventWaitFailedMs = 0
         detectContextHost(); detectCapabilities(); reloadIconLibrary()
         loadUpdateCache()
         refresh({force: true, withStats: true})
@@ -379,8 +391,16 @@ Item {
     property int downTicks: 0
 
     /* Whether the cheap change check works with this engine and these settings. */
-    readonly property bool eventsUsable: eventsFailedMs === 0
-        || Date.now() - eventsFailedMs > 10 * 60 * 1000
+    /* A function, not a binding: Date.now() is not tracked, so a binding would
+       never notice that the ten minutes have passed. */
+    function eventsUsable() {
+        return eventsFailedMs === 0 || Date.now() - eventsFailedMs > 10 * 60 * 1000
+    }
+
+    /* Set by main.qml: whether the popup or detached window is showing. */
+    property bool viewOpen: false
+    /* Set by the view: whether per-container usage is on screen. */
+    property bool usageDetailShown: true
 
     /* Timer-driven tick. Does at most one small thing, and nothing at all while
        a previous cycle is still in flight. */
@@ -395,19 +415,94 @@ Item {
             return
         }
         downTicks = 0
-        var heartbeat = Math.max(5, cfg.updateInterval) * 1000
-        if (Date.now() - lastFullMs >= heartbeat) {
-            refresh({ "withStats": false })
+        // While closed and kept current by change events, the safety net can relax.
+        var seconds = !viewOpen && eventsUsable()
+            ? Math.max(cfg.updateInterval, cfg.idleUpdateInterval) : cfg.updateInterval
+        if (Date.now() - lastFullMs >= Math.max(5, seconds) * 1000) {
+            // A failed list read re-probes the engine, so no separate check first.
+            refresh({ "withStats": false, "skipDetect": true })
             return
         }
-        if (eventsUsable) checkForChanges()
+        if (eventWaitUsable()) startEventWait()
+        else if (eventsUsable()) checkForChanges()
+    }
+
+    /*
+     * One sleeping helper waits for the first change event instead of a new
+     * `events --until` query every few seconds. It ends after a few minutes, on
+     * an event or with the widget; a failure falls back to polling for a while.
+     */
+    property bool eventWaiting: false
+    property int eventWaitSerial: 0
+    property double eventWaitFailedMs: 0
+    function eventWaitUsable() {
+        return cfg.waitForEvents === true
+            && /\{until\}/.test(String(cfg.eventsCommand || ""))
+            && (eventWaitFailedMs === 0 || Date.now() - eventWaitFailedMs > 10 * 60 * 1000)
+    }
+
+    function eventWaitCommand() {
+        // Docker takes fractional seconds, so an event just before the list
+        // read is not replayed; Podman is given whole seconds.
+        var now = Date.now() / 1000
+        var since = lastEventSec > 0 ? lastEventSec : now
+        since = isPodman ? Math.floor(since) : since.toFixed(3)
+        var stream = expand(String(cfg.eventsCommand).replace(/\s*--until[= ]\{until\}/, ""), { "since": since })
+        const script = decodeURIComponent(String(Qt.resolvedUrl("../../scripts/wait_events.py")).replace(/^file:\/\//, ""))
+        // exec: the helper becomes the child of plasmashell, so it notices when that goes.
+        return "exec python3 -I " + shellQuote(script) + " 240 " + shellQuote(stream)
+    }
+
+    function startEventWait() {
+        if (eventWaiting || !runner || !engineActive) return
+        eventWaiting = true
+        var serial = ++eventWaitSerial
+        var epoch = generation
+        runner.spawn(eventWaitCommand(), function (code, out, err) {
+            if (serial !== backend.eventWaitSerial) return
+            backend.eventWaiting = false
+            if (epoch !== backend.generation) return
+            if (code !== 0) {
+                if (backend.cfg.debugCommands) console.log("[backend] event wait failed:", code, err)
+                // Poll for a while; if the daemon went away, the re-check says so
+                // and its return clears this again.
+                backend.eventWaitFailedMs = Date.now()
+                backend.refresh({ "force": true, "withStats": false })
+                return
+            }
+            if (String(out || "").trim() !== "") {
+                backend.refresh({ "withStats": false, "skipDetect": true })
+                // Let the burst settle (compose up starts several at once).
+                eventWaitRestart.restart()
+            } else if (backend.engineActive) {
+                backend.startEventWait()
+            }
+        })
+    }
+
+    onEngineActiveChanged: {
+        if (engineActive) eventWaitFailedMs = 0
+        else dropEventWait()
+    }
+
+    /* Forget a waiter that belongs to an old connection; it exits by itself. */
+    function dropEventWait() {
+        eventWaitSerial++
+        eventWaiting = false
+        eventWaitRestart.stop()
+    }
+
+    Timer {
+        id: eventWaitRestart
+        interval: 1500
+        onTriggered: if (backend.eventWaitUsable()) backend.startEventWait()
     }
 
     function poll() { tick() }
 
     function checkForChanges() {
         var until = Math.floor(Date.now() / 1000)
-        var since = lastEventSec > 0 ? lastEventSec : until
+        var since = lastEventSec > 0 ? Math.floor(lastEventSec) : until
         var cmd = expand(cfg.eventsCommand, { "since": since, "until": until })
         beginTask()
         run(cmd, "events", function (code, out) {
@@ -488,7 +583,7 @@ Item {
 
     function loadEverything(opts) {
         lastFullMs = Date.now()
-        lastEventSec = Math.floor(Date.now() / 1000)
+        lastEventSec = Date.now() / 1000
         fetchList()
         fetchInfo()
 
@@ -543,13 +638,16 @@ Item {
             })
         }).map(function(service) {
             const rec = Parsers.normalizeContainer({ID:"configured:" + service.project + ":" + service.service,
-                Names:service.name, Image:service.image, State:"not-created", Status:i18n("Not created")})
+                Names:service.name, Image:service.image, State:"not-created", Status:i18n("Undeployed")})
             rec.project=service.project;rec.service=service.service;rec.composeFiles=service.composeFiles;rec.composeWorkDir=service.composeWorkDir
             rec.composeProfile=(service.profiles || []).join(",")
             return rec
         })
         records = existing.concat(configured)
     }
+
+    /* The last list output; an identical read skips all re-processing. */
+    property string lastListOut: ""
 
     function fetchList() {
         beginTask()
@@ -561,10 +659,20 @@ Item {
             } else if (!Parsers.isValidRecords(out)) {
                 lastError = i18n("The container command did not return valid JSON")
                 dataStale = true
+            } else if (out === backend.lastListOut) {
+                // Nothing changed since the last read: keep the records, the
+                // model and every binding on them as they are.
+                dataStale = false
+                lastError = ""
+                lastUpdatedMs = Date.now()
+                if (updatesDue()) Qt.callLater(startUpdateCheck)
+                discoverConfiguredServices(false)
+                refreshRestartPoliciesIfNeeded()
             } else {
                 dataStale = false
                 lastError = ""
                 lastUpdatedMs = Date.now()
+                backend.lastListOut = out
                 records = Parsers.parseContainers(out)
                 enrichLabels()
                 mergeConfiguredServices()
@@ -601,7 +709,7 @@ Item {
                 Parsers.jsonRecords(out).forEach(function (r) { backend.labelCache[Parsers.shortId(r.Id)] = r })
                 backend.applyStructuredLabels(); backend.syncModel(); backend.revision++
                 if (backend.updatesDue()) backend.startUpdateCheck()
-            } else { backend.lastLabelIds = "" }
+            } else { backend.lastLabelIds = ""; backend.lastListOut = "" }
             backend.endTask()
         })
     }
@@ -780,7 +888,8 @@ Item {
         if (!Engines.supports("info", isPodman)) return
         var now = Date.now()
         if (!String(cfg.infoCommand || "").trim()) return
-        if (now - lastInfoMs < 60000) return
+        // Host details are only read while somebody can see them.
+        if (now - lastInfoMs < (viewOpen ? 60000 : 600000)) return
         lastInfoMs = now
         beginTask()
         run(expand(cfg.infoCommand, {}), "info", function (code, out, err) {
@@ -879,23 +988,28 @@ Item {
         var wanted = {}
         for (let i = 0; i < records.length; i++) wanted[records[i].id] = true
 
-        for (let k = model.count - 1; k >= 0; k--) {
-            if (!wanted[model.get(k).id]) model.remove(k)
+        // Ids in model order, kept in step with every change below, so finding
+        // a row is one native indexOf instead of a model.get() per candidate.
+        var order = new Array(model.count)
+        for (let k = 0; k < model.count; k++) order[k] = model.get(k).id
+
+        for (let k = order.length - 1; k >= 0; k--) {
+            if (!wanted[order[k]]) { model.remove(k); order.splice(k, 1) }
         }
 
         for (let j = 0; j < records.length; j++) {
             let row = copyRow(records[j])
-            let at = j < model.count && model.get(j).id === row.id ? j : -1
-            for (let m = j; at === -1 && m < model.count; m++) {
-                if (model.get(m).id === row.id) { at = m; break }
-            }
+            let at = order[j] === row.id ? j : order.indexOf(row.id, j)
             if (at === -1) {
                 model.insert(j, row)
-            } else if (at !== j) {
-                model.move(at, j, 1)
+                order.splice(j, 0, row.id)
+            } else {
+                if (at !== j) {
+                    model.move(at, j, 1)
+                    order.splice(at, 1)
+                    order.splice(j, 0, row.id)
+                }
                 if (rowChanged(model.get(j), row)) model.set(j, row)
-            } else if (rowChanged(model.get(j), row)) {
-                model.set(j, row)
             }
         }
     }
@@ -1714,6 +1828,7 @@ Item {
         var cmd = "n=0; for u in " + list + "; do (r=$(curl -s -o /dev/null -m 5 -w '%{http_code} %{time_total}' \"$u\" 2>/dev/null); printf '%s %s\\n' \"$u\" \"${r:-000 0}\") & n=$((n+1)); if [ $((n%4)) -eq 0 ]; then wait; fi; done; wait"
         run(cmd, "probes", function (code, out) {
             backend.probesRunning = false
+            backend.probedAtMs = Date.now()
             var res = Parsers.parseProbeResults(out)
             var before = backend.probeState
             backend.probeState = res
@@ -1736,11 +1851,24 @@ Item {
         if (lines.length > 0) notify(engineName, lines.join("\n"), "probe")
     }
 
+    /* Nobody sees probe results while the view is closed unless they notify,
+       so the panel colour is then kept current on the slower schedule. */
+    readonly property bool probesNotify: cfg.useNotifications === true && cfg.notifyOnProbe === true
     Timer {
-        interval: Math.max(15, backend.cfg.probeInterval) * 1000
+        id: probeTimer
+        interval: Math.max(15, backend.viewOpen || backend.probesNotify
+                               ? backend.cfg.probeInterval
+                               : Math.max(backend.cfg.probeInterval, backend.cfg.probeIdleInterval)) * 1000
         repeat: true
         running: backend.engineActive && backend.records.length > 0
         onTriggered: backend.runProbes()
+    }
+    property double probedAtMs: 0
+    onViewOpenChanged: {
+        // After a quiet spell the last results can be minutes old.
+        if (viewOpen && probeTimer.running
+                && Date.now() - probedAtMs > Math.max(15, cfg.probeInterval) * 1000)
+            Qt.callLater(runProbes)
     }
 
     // ===================================================== image updates ====
@@ -1912,6 +2040,107 @@ Item {
         })
     }
 
+    /*
+     * Read-only looks at one container, shown on the output page: processes,
+     * filesystem changes, port mappings, health-check history, recent events
+     * and a one-off usage sample. None of them changes anything.
+     */
+    function diagnosticTitle(what, rec) {
+        const name = rec ? rec.name : ""
+        return ({top: i18n("Processes — %1", name), diff: i18n("Filesystem Changes — %1", name),
+                 port: i18n("Port Mappings — %1", name), health: i18n("Health Checks — %1", name),
+                 events: i18n("Recent Events — %1", name), stats: i18n("Usage Snapshot — %1", name)})[what] || name
+    }
+    /* done(text), when given, receives the result instead of the output page. */
+    function diagnose(rec, what, requestId, requestGeneration, done) {
+        if (!rec) return
+        var epoch = requestGeneration === undefined ? generation : requestGeneration
+        if (epoch !== generation) return
+        if (!done) {
+            requestId = requestId || newOutputRequest("diagnostics", rec.id)
+            consumeOutputRequest(requestId)
+        }
+        const id = Parsers.shortId(rec.id)
+        const commands = {
+            top: engineBinary + " top " + id,
+            diff: engineBinary + " diff " + id,
+            port: engineBinary + " port " + id,
+            health: engineBinary + " inspect --format '{{json .State.Health}}' " + id,
+            events: engineBinary + " events --since 24h --until 0s --filter container=" + id
+                + " --format '{{.Time}} {{.Action}}'",
+            stats: engineBinary + " stats --no-stream " + id
+        }
+        const cmd = commands[what]
+        if (!cmd || !/^[a-f0-9]+$/.test(id)) return
+        const title = diagnosticTitle(what, rec)
+        run(cmd, "diagnostics-" + what, function (code, out, err) {
+            if (epoch !== backend.generation) return
+            var text = String(out || "").trim()
+            if (what === "health" && code === 0) text = text === "null" || text === "" ? i18n("This container has no health check.") : backend.prettyJson(text)
+            if (what === "events" && code === 0)
+                text = text.split("\n").filter(function (l) { return l.trim() !== "" }).map(function (l) {
+                    const parts = l.split(" "), when = new Date(Number(parts[0]) * 1000)
+                    return (isNaN(when.getTime()) ? parts[0] : when.toLocaleString(Qt.locale(), Locale.ShortFormat)) + "  " + parts.slice(1).join(" ")
+                }).join("\n") || i18n("No events in the last 24 hours.")
+            if (what === "diff" && code === 0 && text === "") text = i18n("No changes to the container's filesystem.")
+            if (code !== 0) text = backend.firstLine(err) || i18n("The command failed (exit %1).", code)
+            if (done) done(text || i18n("(no output)"))
+            else backend.correlatedOutputReady("diagnostics", rec.id, epoch, requestId, 0, title, text || i18n("(no output)"))
+        }, {timeout: 30000})
+    }
+
+    /*
+     * The facts the detail page shows beyond `ps`: restarts, last exit, start
+     * time, addresses, limits and the health check. One small inspect query;
+     * environment variables are deliberately left out.
+     */
+    function fetchFacts(rec, done) {
+        if (!rec || rec.state === "not-created") return
+        const id = Parsers.shortId(rec.id)
+        if (!/^[a-f0-9]+$/.test(id)) return
+        const format = '{"restarts":{{json .RestartCount}},"started":{{json .State.StartedAt}},"finished":{{json .State.FinishedAt}},'
+            + '"exitCode":{{json .State.ExitCode}},"error":{{json .State.Error}},"oom":{{json .State.OOMKilled}},'
+            + '"memory":{{json .HostConfig.Memory}},"nanoCpus":{{json .HostConfig.NanoCpus}},'
+            + '"networks":{{json .NetworkSettings.Networks}},"healthcheck":{{json (index .Config "Healthcheck")}},'
+            + '"user":{{json .Config.User}},"workdir":{{json .Config.WorkingDir}}}'
+        run(engineBinary + " inspect --format " + shellQuote(format) + " " + id, "inspect-facts", function (code, out) {
+            if (code !== 0) { done(null); return }
+            try { done(Parsers.parseFacts(out)) } catch (e) { done(null) }
+        })
+    }
+
+    /* The last lines of a container's log, for the inspector under the list. */
+    function tailLogs(rec, lines, done) {
+        if (!rec || rec.state === "not-created") { done(""); return }
+        const epoch = generation
+        run(expand(cfg.logsCommand, containerVars(rec, { "tail": Math.max(10, Math.min(5000, Number(lines) || 200)) })), "logs", function (code, out, err) {
+            if (epoch !== backend.generation) return
+            done((out || "") + (err ? (out ? "\n" : "") + err : ""))
+        })
+    }
+
+    /* A Compose file's text for the inspector; capped, and only a .yml/.yaml/.json path. */
+    function readComposeFile(path, done) {
+        path = String(path || "").split(",")[0].trim()
+        if (!/^\/.+\.(ya?ml|json)$/i.test(path)) { done(false, i18n("No Compose file is recorded for this container.")); return }
+        run("head -c 262144 " + shellQuote(path), "diagnostic-compose-file", function (code, out, err) {
+            done(code === 0, code === 0 ? String(out || "") : backend.firstLine(err) || i18n("The file could not be read."))
+        })
+    }
+
+    /* Restart without the usual grace period: a stuck container is stopped at once. */
+    function forceRestartContainer(rec) {
+        if (!rec || readOnly) return
+        const id = Parsers.shortId(rec.id)
+        if (!/^[a-f0-9]+$/.test(id) || !beginOperation(rec, i18n("Restarting…"))) return
+        muteContainer(rec.id)
+        run(engineBinary + " restart -t 0 " + id, "force-restart", function (code, out, err) {
+            backend.finishOperation(rec, code === 0, code === 0 ? i18n("Restarted") : backend.firstLine(err) || i18n("Action failed"))
+            backend.reportResult(rec.name, i18n("Container restarted"), i18n("Command failed"), code, out, err)
+            backend.refresh({ "withStats": false })
+        })
+    }
+
     function composeRun(rec, verb, label, done, requestId, requestGeneration) {
         var epoch = requestGeneration === undefined ? generation : requestGeneration
         if (epoch !== generation) return
@@ -1929,7 +2158,8 @@ Item {
             if (done) done(false, unavailable)
             return
         }
-        const tracked = ["up","stop","restart","recreate","update","update-service-running","update-service-stopped","create-service"].indexOf(verb) >= 0
+        const tracked = ["up","stop","restart","recreate","update","update-service-running","update-service-stopped","create-service",
+                         "start","pause","unpause","service-restart","service-recreate"].indexOf(verb) >= 0
         if (tracked && !beginOperation(rec, verb.indexOf("update") === 0 ? i18n("Pulling and recreating…") : i18n("Applying Compose action…"))) {
             if (done) done(false, i18n("An action is already running")); return
         }
@@ -1950,6 +2180,15 @@ Item {
                 restart: base + " restart", ps: base + " ps -a",
                 logs: base + " logs --no-color --tail " + Math.max(1, Math.min(10000, Number(backend.cfg.logTailLines) || 200)),
                 recreate: base + " up -d --force-recreate",
+                start: base + " start", pause: base + " pause", unpause: base + " unpause",
+                images: base + " images", top: base + " top",
+                // Validates without printing the resolved file, which can hold secrets.
+                config: base + " config --quiet && echo " + backend.shellQuote(i18n("The Compose configuration is valid.")),
+                "service-restart": Parsers.isSafeToken(rec.service) ? base + " restart " + rec.service : "",
+                "service-recreate": Parsers.isSafeToken(rec.service) ? base + " up -d --no-deps --force-recreate " + rec.service : "",
+                "service-pull": Parsers.isSafeToken(rec.service) ? base + " pull " + rec.service : "",
+                "service-logs": Parsers.isSafeToken(rec.service)
+                    ? base + " logs --no-color --tail " + Math.max(1, Math.min(10000, Number(backend.cfg.logTailLines) || 200)) + " " + rec.service : "",
                 update: base + " pull && " + base + " up -d",
                 "update-service-running": Parsers.isSafeToken(rec.service)
                     ? base + " pull " + rec.service + " && " + base + " up -d --no-deps --force-recreate " + rec.service : "",
@@ -1973,7 +2212,7 @@ Item {
                                               title, text || i18n("(no output)"))
                 if (tracked) backend.finishOperation(rec, code === 0, code === 0 ? (verb === "update-service-stopped" ? i18n("Updated · left stopped") : i18n("Completed")) : backend.firstLine(err) || i18n("Failed"))
                 backend.actionDone(label || rec.project, code === 0 ? i18n("Done") : backend.firstLine(err) || i18n("Failed — see the output"), code === 0)
-                if (code === 0) { backend.lastLabelIds = ""; backend.invalidateImage(rec.image) }
+                if (code === 0) { backend.lastLabelIds = ""; backend.lastListOut = ""; backend.invalidateImage(rec.image) }
                 if (done) done(code === 0, text)
                 backend.refresh({withStats: false})
             }, {timeout: 15 * 60 * 1000})
@@ -2048,6 +2287,46 @@ Item {
         run(cmd, "rm-" + kind, function (code, out, err) {
             backend.reportResult(label, i18n("Removed"), i18n("Could not remove"), code, out, err)
             backend.fetchResources(kind)
+        })
+    }
+
+    /* Inspect or layer history of an image, volume or network, as text. Read-only. */
+    function resourceInfo(kind, item, what, done) {
+        const id = String(item.id || "")
+        const safeId = /^(?:sha256:)?[0-9a-f]+$/.test(id)
+        var cmd = ""
+        if (kind === "images" && safeId) cmd = what === "history"
+            ? engineBinary + " history --format " + shellQuote("table {{.CreatedSince}}\t{{.Size}}\t{{.CreatedBy}}") + " " + id
+            : engineBinary + " image inspect " + id
+        else if (kind === "volumes" && item.name) cmd = engineBinary + " volume inspect " + shellQuote(item.name)
+        else if (kind === "networks" && safeId) cmd = engineBinary + " network inspect " + id
+        if (!cmd) { done(i18n("This resource cannot be inspected.")); return }
+        run(cmd, "diagnostic-resource-" + what, function (code, out, err) {
+            done(code === 0 ? (what === "history" ? String(out || "") : backend.prettyJson(out)) : backend.firstLine(err) || i18n("The command failed (exit %1).", code))
+        }, {timeout: 30000})
+    }
+
+    /* Pull the newest copy of an image by its reference. */
+    function pullImageRef(ref) {
+        if (readOnly || !/^[A-Za-z0-9][A-Za-z0-9._\/:@-]*$/.test(String(ref || ""))) return
+        actionDone(ref, i18n("Pulling…"), true)
+        run(engineBinary + " pull " + shellQuote(ref), "pull-image", function (code, out, err) {
+            backend.reportResult(ref, i18n("Image is up to date"), i18n("Pull failed"), code, out, err)
+            backend.fetchResources("images", true)
+            backend.invalidateImage(ref)
+        }, {timeout: 15 * 60 * 1000})
+    }
+
+    /* Attach a container to a network, or detach it. */
+    function networkConnect(network, rec, connect) {
+        if (readOnly || !rec || !network) return
+        const id = Parsers.shortId(rec.id)
+        if (!/^[a-f0-9]+$/.test(id) || !Parsers.isSafeToken(network.name)) return
+        run(engineBinary + " network " + (connect ? "connect " : "disconnect ") + network.name + " " + id, "network-" + (connect ? "connect" : "disconnect"), function (code, out, err) {
+            backend.reportResult(rec.name, connect ? i18n("Connected to %1", network.name) : i18n("Disconnected from %1", network.name),
+                                 i18n("Network change failed"), code, out, err)
+            backend.fetchResources("networks", true)
+            backend.refresh({ "withStats": false })
         })
     }
 

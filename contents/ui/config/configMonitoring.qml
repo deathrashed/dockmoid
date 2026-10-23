@@ -35,6 +35,7 @@ KCM.SimpleKCM {
     property int cfg_alertSecondsDefault
     property string cfg_probesDefault
     property int cfg_probeIntervalDefault
+    property int cfg_probeIdleIntervalDefault
     property bool cfg_notifyOnProbeDefault
     property bool cfg_checkImageUpdatesDefault
     property int cfg_updateCheckHoursDefault
@@ -47,6 +48,7 @@ KCM.SimpleKCM {
     property alias cfg_alertSeconds: alertSeconds.value
     property alias cfg_probes: probes.value
     property alias cfg_probeInterval: probeInterval.value
+    property alias cfg_probeIdleInterval: probeIdleInterval.value
     property alias cfg_notifyOnProbe: notifyOnProbe.checked
     property alias cfg_checkImageUpdates: checkUpdates.checked
     property alias cfg_updateCheckHours: updateHours.value
@@ -139,6 +141,17 @@ KCM.SimpleKCM {
             textFromValue: function (v) { return i18np("%1 second", "%1 seconds", v) }
             valueFromText: function (t) { return parseInt(t) || 60 }
         }
+        RowLayout {
+            Kirigami.FormData.label: i18n("…while the popup is closed:")
+            Controls.SpinBox {
+                id: probeIdleInterval
+                enabled: !notifyOnProbe.checked
+                from: 15; to: 3600; editable: true
+                textFromValue: function (v) { return i18np("%1 second", "%1 seconds", v) }
+                valueFromText: function (t) { return parseInt(t) || 300 }
+            }
+            QuestionHelp { helpText: i18n("Keeps the panel colour current without checking as often while nobody is looking. Not used when probe notifications are on: then pages are checked at the rate above.") }
+        }
         Controls.CheckBox {
             id: notifyOnProbe
             text: i18n("notify when a page stops or starts answering")
@@ -175,7 +188,7 @@ KCM.SimpleKCM {
             }
             QuestionHelp { helpText: i18n("Needs docker buildx (included with current Docker). Images built locally, or shown only as an id, are skipped.") }
         }
-        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_alertCpu = page.cfg_alertCpuDefault; page.cfg_alertMem = page.cfg_alertMemDefault; page.cfg_alertSeconds = page.cfg_alertSecondsDefault; page.cfg_probes = page.cfg_probesDefault; page.cfg_probeInterval = page.cfg_probeIntervalDefault; page.cfg_notifyOnProbe = page.cfg_notifyOnProbeDefault; page.cfg_checkImageUpdates = page.cfg_checkImageUpdatesDefault; page.cfg_updateCheckHours = page.cfg_updateCheckHoursDefault; page.cfg_notifyOnUpdate = page.cfg_notifyOnUpdateDefault; page.cfg_historySamples = page.cfg_historySamplesDefault } }
+        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_alertCpu = page.cfg_alertCpuDefault; page.cfg_alertMem = page.cfg_alertMemDefault; page.cfg_alertSeconds = page.cfg_alertSecondsDefault; page.cfg_probes = page.cfg_probesDefault; page.cfg_probeInterval = page.cfg_probeIntervalDefault; page.cfg_probeIdleInterval = page.cfg_probeIdleIntervalDefault; page.cfg_notifyOnProbe = page.cfg_notifyOnProbeDefault; page.cfg_checkImageUpdates = page.cfg_checkImageUpdatesDefault; page.cfg_updateCheckHours = page.cfg_updateCheckHoursDefault; page.cfg_notifyOnUpdate = page.cfg_notifyOnUpdateDefault; page.cfg_historySamples = page.cfg_historySamplesDefault } }
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true

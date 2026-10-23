@@ -98,15 +98,33 @@ Item {
                 text: root.title
                 elide: Text.ElideRight
             }
-            RowLayout {
+            // Flows, so badges wrap under each other on a narrow page instead
+            // of running underneath the action buttons; the subtitle follows them.
+            Flow {
+                id: badgeLine
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 visible: badgeRow.children.length > 0 || root.subtitle !== ""
                 spacing: Kirigami.Units.smallSpacing
-                RowLayout { id: badgeRow; spacing: Kirigami.Units.smallSpacing }
+                Flow {
+                    id: badgeRow
+                    visible: children.length > 0
+                    spacing: Kirigami.Units.smallSpacing
+                    /* One line's worth of badges; narrower only when that does not fit. */
+                    readonly property real naturalWidth: {
+                        let total = 0
+                        for (let i = 0; i < children.length; i++)
+                            if (children[i].visible) total += children[i].implicitWidth + (total > 0 ? spacing : 0)
+                        return total
+                    }
+                    width: Math.min(naturalWidth, badgeLine.width)
+                }
                 PlasmaComponents.Label {
                     visible: root.subtitle !== ""
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
+                    width: Math.min(implicitWidth, badgeLine.width)
+                    // Centred on a badge's line (Pill is 1.3 grid units tall).
+                    height: badgeRow.visible ? Math.max(implicitHeight, Kirigami.Units.gridUnit * 1.3) : implicitHeight
+                    verticalAlignment: Text.AlignVCenter
                     text: root.subtitle
                     font: Kirigami.Theme.smallFont
                     color: Kirigami.Theme.disabledTextColor

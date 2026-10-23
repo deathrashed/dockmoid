@@ -41,12 +41,18 @@ KCM.SimpleKCM {
         ]
     }
     property bool cfg_fetchOnStartupDefault
+    property bool cfg_shareSettingsDefault
+    property string cfg_sharedSettingsPushAt
+    property string cfg_sharedSettingsPushAtDefault
     property bool cfg_refreshOnExpandDefault
     property bool cfg_statsWhenCollapsedDefault
     property int cfg_updateIntervalDefault
     property int cfg_changeCheckIntervalDefault
     property int cfg_idleCheckIntervalDefault
     property int cfg_usageIntervalDefault
+    property int cfg_usageQuietIntervalDefault
+    property bool cfg_waitForEventsDefault
+    property int cfg_idleUpdateIntervalDefault
     property int cfg_restartPolicyIntervalDefault
     property bool cfg_confirmDestructiveDefault
     property bool cfg_readOnlyDefault
@@ -55,12 +61,16 @@ KCM.SimpleKCM {
 
 
     property alias cfg_fetchOnStartup: fetchOnStartup.checked
+    property alias cfg_shareSettings: shareSettings.checked
     property alias cfg_refreshOnExpand: refreshOnExpand.checked
     property alias cfg_statsWhenCollapsed: statsWhenCollapsed.checked
     property alias cfg_updateInterval: updateInterval.value
     property alias cfg_changeCheckInterval: changeCheck.value
     property alias cfg_idleCheckInterval: idleCheck.value
     property alias cfg_usageInterval: usageInterval.value
+    property alias cfg_usageQuietInterval: usageQuietInterval.value
+    property alias cfg_waitForEvents: waitForEvents.checked
+    property alias cfg_idleUpdateInterval: idleUpdateInterval.value
     property alias cfg_restartPolicyInterval: policyInterval.value
     property alias cfg_confirmDestructive: confirmDestructive.checked
     property alias cfg_readOnly: readOnly.checked
@@ -96,8 +106,41 @@ KCM.SimpleKCM {
             text: i18n("every time the popup is opened")
         }
 
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Several widgets")
+        }
 
-        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_fetchOnStartup = page.cfg_fetchOnStartupDefault; page.cfg_refreshOnExpand = page.cfg_refreshOnExpandDefault; page.cfg_statsWhenCollapsed = page.cfg_statsWhenCollapsedDefault; page.cfg_updateInterval = page.cfg_updateIntervalDefault; page.cfg_changeCheckInterval = page.cfg_changeCheckIntervalDefault; page.cfg_idleCheckInterval = page.cfg_idleCheckIntervalDefault; page.cfg_usageInterval = page.cfg_usageIntervalDefault; page.cfg_restartPolicyInterval = page.cfg_restartPolicyIntervalDefault; page.cfg_confirmDestructive = page.cfg_confirmDestructiveDefault; page.cfg_readOnly = page.cfg_readOnlyDefault; page.cfg_showDiskUsage = page.cfg_showDiskUsageDefault; page.cfg_debugCommands = page.cfg_debugCommandsDefault } }
+        RowLayout {
+            Kirigami.FormData.label: i18n("Settings:")
+            Controls.CheckBox {
+                id: shareSettings
+                text: i18n("share with my other Dockmoid widgets")
+            }
+            QuestionHelp { helpText: i18n("Plasma keeps separate settings for each widget, so a panel widget and the copy in the system tray can differ. With this on, a change made in either one reaches the other the next time it opens. Popup size and list layout stay with each widget.") }
+        }
+
+        RowLayout {
+            Controls.Button {
+                id: pushShared
+                enabled: shareSettings.checked
+                text: i18n("Copy These Settings to All Widgets")
+                icon.name: "document-share"
+                onClicked: { page.cfg_sharedSettingsPushAt = String(Date.now()); pushedHint.visible = true }
+            }
+        }
+        Controls.Label {
+            id: pushedHint
+            visible: false
+            text: i18n("Press Apply or OK; the other widgets take these settings the next time they open.")
+            wrapMode: Text.Wrap
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 22
+            font: Kirigami.Theme.smallFont
+            opacity: 0.8
+        }
+
+
+        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_fetchOnStartup = page.cfg_fetchOnStartupDefault; page.cfg_shareSettings = page.cfg_shareSettingsDefault; page.cfg_refreshOnExpand = page.cfg_refreshOnExpandDefault; page.cfg_statsWhenCollapsed = page.cfg_statsWhenCollapsedDefault; page.cfg_updateInterval = page.cfg_updateIntervalDefault; page.cfg_changeCheckInterval = page.cfg_changeCheckIntervalDefault; page.cfg_idleCheckInterval = page.cfg_idleCheckIntervalDefault; page.cfg_usageInterval = page.cfg_usageIntervalDefault; page.cfg_usageQuietInterval = page.cfg_usageQuietIntervalDefault; page.cfg_waitForEvents = page.cfg_waitForEventsDefault; page.cfg_idleUpdateInterval = page.cfg_idleUpdateIntervalDefault; page.cfg_restartPolicyInterval = page.cfg_restartPolicyIntervalDefault; page.cfg_confirmDestructive = page.cfg_confirmDestructiveDefault; page.cfg_readOnly = page.cfg_readOnlyDefault; page.cfg_showDiskUsage = page.cfg_showDiskUsageDefault; page.cfg_debugCommands = page.cfg_debugCommandsDefault } }
 
         }
 
@@ -113,7 +156,16 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
-            Kirigami.FormData.label: i18n("Look for changes every:")
+            Kirigami.FormData.label: i18n("Change events:")
+            Controls.CheckBox {
+                id: waitForEvents
+                text: i18n("wait for them instead of asking repeatedly")
+            }
+            QuestionHelp { helpText: i18n("One sleeping helper (python3) listens for container changes, so the list updates the moment something happens and nothing runs in between. When it cannot run, Dockmoid asks on the schedule below instead.") }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: waitForEvents.checked ? i18n("Otherwise look every:") : i18n("Look for changes every:")
             Controls.SpinBox {
                 id: changeCheck
 
@@ -144,6 +196,17 @@ KCM.SimpleKCM {
             QuestionHelp { helpText: i18n("A safety net in case a change notification was missed, and the only schedule used if your engine does not support them.") }
         }
 
+        RowLayout {
+            Kirigami.FormData.label: i18n("…and while it is closed:")
+            Controls.SpinBox {
+                id: idleUpdateInterval
+                from: 5; to: 3600; editable: true
+                textFromValue: function (v) { return page.seconds(v) }
+                valueFromText: function (t) { return parseInt(t) || 300 }
+            }
+            QuestionHelp { helpText: i18n("Used while the popup is closed and change events are working; never shorter than the value above.") }
+        }
+
         Controls.SpinBox {
             id: policyInterval
             Kirigami.FormData.label: i18n("Re-read autostart settings every:")
@@ -163,6 +226,17 @@ KCM.SimpleKCM {
             from: 1; to: 3600; editable: true
             textFromValue: function (v) { return page.seconds(v) }
             valueFromText: function (t) { return parseInt(t) || 5 }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("…on pages without usage:")
+            Controls.SpinBox {
+                id: usageQuietInterval
+                from: 1; to: 3600; editable: true
+                textFromValue: function (v) { return page.seconds(v) }
+                valueFromText: function (t) { return parseInt(t) || 15 }
+            }
+            QuestionHelp { helpText: i18n("Deploy, Doctor, Resources and output pages only show the totals in the status bar, so they can be sampled less often.") }
         }
 
         RowLayout {
@@ -187,7 +261,7 @@ KCM.SimpleKCM {
 
 
 
-        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_fetchOnStartup = page.cfg_fetchOnStartupDefault; page.cfg_refreshOnExpand = page.cfg_refreshOnExpandDefault; page.cfg_statsWhenCollapsed = page.cfg_statsWhenCollapsedDefault; page.cfg_updateInterval = page.cfg_updateIntervalDefault; page.cfg_changeCheckInterval = page.cfg_changeCheckIntervalDefault; page.cfg_idleCheckInterval = page.cfg_idleCheckIntervalDefault; page.cfg_usageInterval = page.cfg_usageIntervalDefault; page.cfg_restartPolicyInterval = page.cfg_restartPolicyIntervalDefault; page.cfg_confirmDestructive = page.cfg_confirmDestructiveDefault; page.cfg_readOnly = page.cfg_readOnlyDefault; page.cfg_showDiskUsage = page.cfg_showDiskUsageDefault; page.cfg_debugCommands = page.cfg_debugCommandsDefault } }
+        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_fetchOnStartup = page.cfg_fetchOnStartupDefault; page.cfg_shareSettings = page.cfg_shareSettingsDefault; page.cfg_refreshOnExpand = page.cfg_refreshOnExpandDefault; page.cfg_statsWhenCollapsed = page.cfg_statsWhenCollapsedDefault; page.cfg_updateInterval = page.cfg_updateIntervalDefault; page.cfg_changeCheckInterval = page.cfg_changeCheckIntervalDefault; page.cfg_idleCheckInterval = page.cfg_idleCheckIntervalDefault; page.cfg_usageInterval = page.cfg_usageIntervalDefault; page.cfg_usageQuietInterval = page.cfg_usageQuietIntervalDefault; page.cfg_waitForEvents = page.cfg_waitForEventsDefault; page.cfg_idleUpdateInterval = page.cfg_idleUpdateIntervalDefault; page.cfg_restartPolicyInterval = page.cfg_restartPolicyIntervalDefault; page.cfg_confirmDestructive = page.cfg_confirmDestructiveDefault; page.cfg_readOnly = page.cfg_readOnlyDefault; page.cfg_showDiskUsage = page.cfg_showDiskUsageDefault; page.cfg_debugCommands = page.cfg_debugCommandsDefault } }
 
         }
 
@@ -238,7 +312,7 @@ KCM.SimpleKCM {
         }
 
 
-        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_fetchOnStartup = page.cfg_fetchOnStartupDefault; page.cfg_refreshOnExpand = page.cfg_refreshOnExpandDefault; page.cfg_statsWhenCollapsed = page.cfg_statsWhenCollapsedDefault; page.cfg_updateInterval = page.cfg_updateIntervalDefault; page.cfg_changeCheckInterval = page.cfg_changeCheckIntervalDefault; page.cfg_idleCheckInterval = page.cfg_idleCheckIntervalDefault; page.cfg_usageInterval = page.cfg_usageIntervalDefault; page.cfg_restartPolicyInterval = page.cfg_restartPolicyIntervalDefault; page.cfg_confirmDestructive = page.cfg_confirmDestructiveDefault; page.cfg_readOnly = page.cfg_readOnlyDefault; page.cfg_showDiskUsage = page.cfg_showDiskUsageDefault; page.cfg_debugCommands = page.cfg_debugCommandsDefault } }
+        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_fetchOnStartup = page.cfg_fetchOnStartupDefault; page.cfg_shareSettings = page.cfg_shareSettingsDefault; page.cfg_refreshOnExpand = page.cfg_refreshOnExpandDefault; page.cfg_statsWhenCollapsed = page.cfg_statsWhenCollapsedDefault; page.cfg_updateInterval = page.cfg_updateIntervalDefault; page.cfg_changeCheckInterval = page.cfg_changeCheckIntervalDefault; page.cfg_idleCheckInterval = page.cfg_idleCheckIntervalDefault; page.cfg_usageInterval = page.cfg_usageIntervalDefault; page.cfg_usageQuietInterval = page.cfg_usageQuietIntervalDefault; page.cfg_waitForEvents = page.cfg_waitForEventsDefault; page.cfg_idleUpdateInterval = page.cfg_idleUpdateIntervalDefault; page.cfg_restartPolicyInterval = page.cfg_restartPolicyIntervalDefault; page.cfg_confirmDestructive = page.cfg_confirmDestructiveDefault; page.cfg_readOnly = page.cfg_readOnlyDefault; page.cfg_showDiskUsage = page.cfg_showDiskUsageDefault; page.cfg_debugCommands = page.cfg_debugCommandsDefault } }
 
         }
     }

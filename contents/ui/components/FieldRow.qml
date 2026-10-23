@@ -31,6 +31,11 @@ Item {
     readonly property string fullValue: copyValue !== "" ? copyValue : value
 
     visible: hasValue
+    /* Text sits on the centre line of the copy/reveal buttons, so a label, its
+       value and its buttons line up instead of the value drifting lower. */
+    readonly property real textInset: root.copyable || root.revealable
+        ? Math.max(0, (copyButton.implicitHeight - lineMetrics.height) / 2) : 0
+    FontMetrics { id: lineMetrics; font: Kirigami.Theme.defaultFont }
     implicitHeight: hasValue ? layout.implicitHeight + Kirigami.Units.smallSpacing : 0
     implicitWidth: layout.implicitWidth
 
@@ -51,6 +56,7 @@ Item {
             Layout.fillWidth: false
             Layout.preferredWidth: Kirigami.Units.gridUnit * 7
             Layout.alignment: Qt.AlignTop
+            Layout.topMargin: root.textInset
             spacing: Kirigami.Units.smallSpacing
             ActionIcon {
                 visible: root.glyph !== ""
@@ -72,6 +78,8 @@ Item {
         PlasmaComponents.Label {
             id: valueLabel
             Layout.fillWidth: true
+            Layout.alignment: Qt.AlignTop
+            Layout.topMargin: root.textInset
             Layout.minimumWidth: 0
             text: root.revealed ? root.fullValue : root.value
             elide: root.wrap ? Text.ElideNone : Text.ElideMiddle
@@ -81,6 +89,8 @@ Item {
         }
 
         ActionToolButton {
+            Layout.alignment: Qt.AlignTop
+            implicitHeight: Kirigami.Units.gridUnit * 1.35
             visible: root.revealable
             glyph: "view-visible"
             text: root.revealed ? i18n("Hide full value") : i18n("Reveal full value")
@@ -89,6 +99,8 @@ Item {
 
         ActionToolButton {
             id: copyButton
+            // Compact, so rows with a copy button are barely taller than rows without.
+            implicitHeight: Kirigami.Units.gridUnit * 1.35
             Layout.preferredWidth: implicitWidth
             Layout.alignment: Qt.AlignTop
             visible: root.copyable

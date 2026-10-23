@@ -41,6 +41,12 @@ PlasmaComponents.Button {
     implicitWidth: control.iconOnly ? implicitHeight
         : Math.max(implicitBackgroundWidth + leftInset + rightInset, implicitContentWidth + leftPadding + rightPadding)
 
+    /* Room between the frame and the artwork, so the icon never touches the
+       outline and the label never runs into the right edge. */
+    leftPadding: control.iconOnly ? Kirigami.Units.smallSpacing : Kirigami.Units.largeSpacing
+    rightPadding: control.iconOnly ? Kirigami.Units.smallSpacing : Kirigami.Units.largeSpacing + Kirigami.Units.smallSpacing / 2
+    spacing: Kirigami.Units.smallSpacing * 1.5
+
     flat: control.iconOnly || control.variant === "flat"
     display: control.iconOnly ? PlasmaComponents.AbstractButton.IconOnly : PlasmaComponents.AbstractButton.TextBesideIcon
     icon.name: ""
@@ -68,20 +74,28 @@ PlasmaComponents.Button {
             : Qt.alpha(Qt.darker(Kirigami.Theme.highlightColor, 1.4), 0.8)
     }
 
-    contentItem: RowLayout {
-        spacing: control.iconOnly ? 0 : control.spacing
-        ActionIcon {
-            glyph: control.glyph
-            color: control.enabled ? (control.iconTone !== "" ? (Style.HUE[control.iconTone] !== undefined ? Style.HUE[control.iconTone] : control.activeColor) : control.activeColor) : Kirigami.Theme.disabledTextColor
-            Layout.alignment: Qt.AlignCenter
-            implicitWidth: control.glyphSize
-            implicitHeight: control.glyphSize
-        }
-        PlasmaComponents.Label {
-            visible: !control.iconOnly
-            text: control.Kirigami.MnemonicData.richTextLabel
-            font: control.font
-            color: control.enabled ? control.activeColor : Kirigami.Theme.disabledTextColor
+    // Centred as a group, so a button stretched by a layout keeps its
+    // icon and label together in the middle instead of against the left edge.
+    contentItem: Item {
+        implicitWidth: contentRow.implicitWidth
+        implicitHeight: contentRow.implicitHeight
+        RowLayout {
+            id: contentRow
+            anchors.centerIn: parent
+            spacing: control.iconOnly ? 0 : control.spacing
+            ActionIcon {
+                glyph: control.glyph
+                color: control.enabled ? (control.iconTone !== "" ? (Style.HUE[control.iconTone] !== undefined ? Style.HUE[control.iconTone] : control.activeColor) : control.activeColor) : Kirigami.Theme.disabledTextColor
+                Layout.alignment: Qt.AlignCenter
+                implicitWidth: control.glyphSize
+                implicitHeight: control.glyphSize
+            }
+            PlasmaComponents.Label {
+                visible: !control.iconOnly
+                text: control.Kirigami.MnemonicData.richTextLabel
+                font: control.font
+                color: control.enabled ? control.activeColor : Kirigami.Theme.disabledTextColor
+            }
         }
     }
 

@@ -48,6 +48,14 @@ PlasmaExtras.Representation {
     Timer { id: searchDebounce; interval: 140; onTriggered: root.searchApplied = root.searchText }
     /* View, Detail, Filter, Sort and Search only act on the container list. */
     readonly property bool onHome: stack.depth <= 1
+    /* Per-container usage shows on the list and on a container's page; other
+       pages only show the status-bar totals, so the backend samples less often. */
+    Binding {
+        target: root.backend
+        property: "usageDetailShown"
+        value: root.onHome || stack.currentItem instanceof DetailPage
+        restoreMode: Binding.RestoreNone
+    }
     /* Show only what needs attention: unhealthy, restarting, crashed or paused. */
     property bool problemsOnly: false
     readonly property int activeFilterCount: Number(stateFilter !== "all") + Number(problemsOnly) + Number(searchText.trim() !== "")
@@ -55,19 +63,19 @@ PlasmaExtras.Representation {
     property string stateFilter: "all"
     readonly property string messageText: root.backend.actionError || root.backend.lastError || (root.backend.readOnly ? i18n("Read-only monitoring mode") : "")
     readonly property var stateChoices: [
-        {key:"all",name:i18n("All containers"),icon:"circle-ellipsis",count:backend.total},
+        {key:"all",name:i18n("All Containers"),icon:"circle-ellipsis",count:backend.total},
         {key:"running",name:i18n("Running"),icon:"circle-play",count:backend.running},
         {key:"stopped",name:i18n("Stopped"),icon:"circle-stop",count:backend.stopped},
-        {key:"not-created",name:i18n("Not created"),icon:"power-circle",count:backend.notCreated},
-        {key:"attention",name:i18n("Needs attention"),icon:"circle-alert",count:backend.problemCount},
-        {key:"updates",name:i18n("Updates available"),icon:"cloud-download",count:backend.updateCount},
+        {key:"not-created",name:i18n("Pending Deployment"),icon:"circle-plus",count:backend.notCreated},
+        {key:"attention",name:i18n("Needs Attention"),icon:"circle-alert",count:backend.problemCount},
+        {key:"updates",name:i18n("Updates Available"),icon:"cloud-download",count:backend.updateCount},
         {key:"paused",name:i18n("Paused"),icon:"pause"},
         {key:"restarting",name:i18n("Restarting"),icon:"rotate-cw"},
-        {key:"created",name:i18n("Not started"),icon:"square"},
+        {key:"created",name:i18n("Not Started"),icon:"square"},
         {key:"unhealthy",name:i18n("Unhealthy"),icon:"heart-pulse"},
         {key:"failed",name:i18n("Failed"),icon:"circle-x"}
     ]
-    readonly property string stateFilterLabel: root.problemsOnly ? i18n("Needs attention")
+    readonly property string stateFilterLabel: root.problemsOnly ? i18n("Needs Attention")
         : (stateChoices.find(function(s){return s.key===root.stateFilter}) || stateChoices[0]).name
 
     readonly property int toolbarStyle: Math.max(0, Math.min(3, Number(cfg.toolbarStyle) || 0))
@@ -75,12 +83,12 @@ PlasmaExtras.Representation {
     // Hidden controls remain available in More, with zero menu-row height.
     readonly property var toolbarSlots: {
         const widths = {view:viewButton.idealWidth, detail:detailButton.idealWidth,
-            filter:filterButton.idealWidth + (root.activeFilterCount > 0 ? clearFilterButton.implicitWidth + Kirigami.Units.smallSpacing / 2 : 0), sort:sortButton.idealWidth, search:searchButton.idealWidth,
-            new:newButton.idealWidth, resources:resourcesButton.idealWidth,
+            activity:activityButton.idealWidth, new:newButton.idealWidth, resources:resourcesButton.idealWidth,
             doctor:doctorButton.idealWidth, maintain:maintainButton.idealWidth,
             refresh:refreshButton.idealWidth, detach:detachButton.idealWidth, more:toolsButton.idealWidth}
-        const groups = [["view","detail"],["filter","sort","search"],
-            ["new","resources","doctor","maintain"],["refresh","detach","more"]]
+        // Filter, Sort and Search sit in the bar under the list, next to what they change.
+        const groups = [["view","detail"],[],
+            ["new","resources","doctor","activity","maintain"],["refresh","detach","more"]]
         const gap = Kirigami.Units.smallSpacing / 2
         function requiredWidth(keys) {
             let total = Kirigami.Units.smallSpacing * 2
@@ -96,16 +104,18 @@ PlasmaExtras.Representation {
             return total
         }
         let keep = ["view","more"]
-        ;["filter","sort","search","doctor","detach","refresh","new","detail","resources","maintain"].forEach(function(key) {
+        ;["doctor","detach","refresh","new","detail","resources","activity","maintain"].forEach(function(key) {
             const next = keep.concat([key])
             if (requiredWidth(next) <= headerRow.width) keep = next
         })
         return keep
     }
     readonly property bool directDetail: toolbarSlots.indexOf("detail") >= 0
-    readonly property bool directFilter: toolbarSlots.indexOf("filter") >= 0
-    readonly property bool directSort: toolbarSlots.indexOf("sort") >= 0
-    readonly property bool directSearch: toolbarSlots.indexOf("search") >= 0
+    /* Always shown in the bar under the list, so never needed in More. */
+    readonly property bool directFilter: true
+    readonly property bool directSort: true
+    readonly property bool directSearch: true
+    readonly property bool directActivity: toolbarSlots.indexOf("activity") >= 0
     readonly property bool directRefresh: toolbarSlots.indexOf("refresh") >= 0
     readonly property bool directNew: toolbarSlots.indexOf("new") >= 0
     readonly property bool directResources: toolbarSlots.indexOf("resources") >= 0
@@ -174,8 +184,9 @@ PlasmaExtras.Representation {
 
     // ======================================================== actions ====
 
+    /* Always available: a click during a background read runs right after it. */
     function refreshNow() {
-        root.backend.refresh({
+        root.backend.requestRefresh({
             "force": true,
             "withStats": true,
             "withDisk": root.cfg.showDiskUsage
@@ -190,7 +201,7 @@ PlasmaExtras.Representation {
         })
         if (page) {
             page.openDetail.connect(function(id) { root.showDetail(id) })
-            page.deploymentRequested.connect(function(tab) { root.showDeployment(tab) })
+            page.deploymentRequested.connect(function(tab, image) { root.showDeployment(tab, image) })
         }
     }
 
@@ -209,14 +220,17 @@ PlasmaExtras.Representation {
         if (root.cfg.sortRole !== role) root.cfg.sortAscending = role !== "cpuPct" && role !== "memPct"
         root.cfg.sortRole = role
     }
+    /* Ctrl+F: the search field in the bar under the list. */
     function openSearch() {
         toolsMenu.close()
-        if (searchPopup.opened) searchPopup.close()
-        else searchPopup.open()
+        if (stack.depth > 1) stack.pop(stack.get(0))
+        homePage.focusSearch()
     }
-    function showDeployment(initialTab) {
+    function showDeployment(initialTab, image) {
         const page = stack.push(Qt.resolvedUrl("DeploymentPage.qml"), {backend:root.backend,initialTab:initialTab || 0})
         if (page) page.closeRequested.connect(function() { stack.pop() })
+        // From Resources: start the Configure form from this image.
+        if (page && image) (page as DeploymentPage).useImage(image)
     }
     function showDoctor(tab,cleanup) {
         if (stack.currentItem && stack.currentItem.objectName === "doctorPage") {
@@ -232,7 +246,14 @@ PlasmaExtras.Representation {
             if (tab===1 && index>=0) page.selectedIndex=index
         }
     }
+    /* Entries newer than the last visit to Activity, for its badge. */
+    property double activitySeenAt: 0
+    readonly property int unseenActivity: {
+        const seen = root.activitySeenAt
+        return (root.backend.activity || []).filter(function (a) { return a.time > seen }).length
+    }
     function showActivity() {
+        root.activitySeenAt = Date.now()
         const page = stack.push(Qt.resolvedUrl("ActivityPage.qml"), {backend: root.backend})
         if (page) page.openDetail.connect(function(id) { root.showDetail(id) })
     }
@@ -245,8 +266,8 @@ PlasmaExtras.Representation {
         id: searchPopup
         objectName: "containerSearchPopup"
         parent: root
-        x: Math.max(Kirigami.Units.smallSpacing, Math.min((root.directSearch ? searchButton : toolsButton).mapToItem(root, 0, 0).x, root.width - width - Kirigami.Units.smallSpacing))
-        y: (root.directSearch ? searchButton : toolsButton).mapToItem(root, 0, 0).y + toolsButton.height + Kirigami.Units.smallSpacing
+        x: Math.max(Kirigami.Units.smallSpacing, Math.min(toolsButton.mapToItem(root, 0, 0).x, root.width - width - Kirigami.Units.smallSpacing))
+        y: toolsButton.mapToItem(root, 0, 0).y + toolsButton.height + Kirigami.Units.smallSpacing
         width: Math.min(root.width - Kirigami.Units.smallSpacing * 2, Kirigami.Units.gridUnit * 24)
         focus: true
         closePolicy: QQC2.Popup.CloseOnEscape | QQC2.Popup.CloseOnPressOutside
@@ -305,18 +326,18 @@ PlasmaExtras.Representation {
             objectName: "maintenanceMenu"
             delegate: Components.ActionMenuDelegate {width:parent?parent.width:implicitWidth}
             Components.ActionMenuDelegate {text:i18n("Updates");enabled:false}
-            Components.ActionMenuDelegate {text:i18n("Check for updates");icon.source:Qt.resolvedUrl(ActionIcons.path("package-search"));enabled:root.backend.engineActive&&root.backend.buildxAvailable&&!root.backend.updateRunning;onTriggered:root.checkUpdates()}
-            Components.ActionMenuDelegate {text:i18n("Review updates…");icon.source:Qt.resolvedUrl(ActionIcons.path("package-check"));enabled:root.backend.engineActive&&!root.backend.batchUpdating;onTriggered:root.openReviewUpdates()}
-            Components.ActionMenuDelegate {text:i18n("Pull images…");icon.source:Qt.resolvedUrl(ActionIcons.path("system-download"));enabled:root.backend.engineActive&&!root.backend.readOnly;onTriggered:root.showDoctor(1)}
+            Components.ActionMenuDelegate {text:i18n("Check for Updates");icon.source:Qt.resolvedUrl(ActionIcons.path("package-search"));enabled:root.backend.engineActive&&root.backend.buildxAvailable&&!root.backend.updateRunning;onTriggered:root.checkUpdates()}
+            Components.ActionMenuDelegate {text:i18n("Review Updates…");icon.source:Qt.resolvedUrl(ActionIcons.path("package-check"));enabled:root.backend.engineActive&&!root.backend.batchUpdating;onTriggered:root.openReviewUpdates()}
+            Components.ActionMenuDelegate {text:i18n("Pull Images…");icon.source:Qt.resolvedUrl(ActionIcons.path("system-download"));enabled:root.backend.engineActive&&!root.backend.readOnly;onTriggered:root.showDoctor(1)}
             PlasmaComponents.MenuSeparator {}
             Components.ActionMenuDelegate {text:i18n("Diagnostics");enabled:false}
-            Components.ActionMenuDelegate {text:i18n("Check engine connection");icon.source:Qt.resolvedUrl(ActionIcons.path("view-refresh"));onTriggered:{root.refreshNow();root.showDoctor(0)}}
-            Components.ActionMenuDelegate {text:i18n("Inspect unhealthy services");icon.source:Qt.resolvedUrl(ActionIcons.path("dialog-warning"));onTriggered:root.showDoctor(1)}
+            Components.ActionMenuDelegate {text:i18n("Check Engine Connection");icon.source:Qt.resolvedUrl(ActionIcons.path("view-refresh"));onTriggered:{root.refreshNow();root.showDoctor(0)}}
+            Components.ActionMenuDelegate {text:i18n("Inspect Unhealthy Services");icon.source:Qt.resolvedUrl(ActionIcons.path("dialog-warning"));onTriggered:root.showDoctor(1)}
             PlasmaComponents.MenuSeparator {}
             Components.ActionMenuDelegate {text:i18n("Cleanup");enabled:false}
-            Components.ActionMenuDelegate {text:i18n("Clean dangling images…");icon.source:Qt.resolvedUrl(ActionIcons.path("edit-delete"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:root.showDoctor(3,"images")}
-            Components.ActionMenuDelegate {text:i18n("Clean build cache…");icon.source:Qt.resolvedUrl(ActionIcons.path("edit-delete"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:root.showDoctor(3,"cache")}
-            Components.ActionMenuDelegate {text:i18n("Review other cleanup…");icon.source:Qt.resolvedUrl(ActionIcons.path("configure"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:dialogs.confirmPrune()}
+            Components.ActionMenuDelegate {text:i18n("Remove Dangling Images…");icon.source:Qt.resolvedUrl(ActionIcons.path("edit-delete"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:root.showDoctor(3,"images")}
+            Components.ActionMenuDelegate {text:i18n("Clear Build Cache…");icon.source:Qt.resolvedUrl(ActionIcons.path("edit-delete"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:root.showDoctor(3,"cache")}
+            Components.ActionMenuDelegate {text:i18n("More Cleanup Options…");icon.source:Qt.resolvedUrl(ActionIcons.path("configure"));enabled:root.backend.engineActive&&!root.backend.readOnly&&!root.backend.isPodman;onTriggered:dialogs.confirmPrune()}
         }
         }
     }
@@ -428,7 +449,7 @@ PlasmaExtras.Representation {
             QQC2.Dialog {
                 id: reviewDialog
                 objectName: "updateReviewDialog"
-                title: i18n("Review image updates")
+                title: i18n("Review Image Updates")
                 modal: true
                 anchors.centerIn: parent
                 width: Math.min(root.width - 24, Kirigami.Units.gridUnit * 36)
@@ -502,7 +523,7 @@ PlasmaExtras.Representation {
     }
     QQC2.Dialog {
         id: saveViewDialog
-        title: i18n("Save current view")
+        title: i18n("Save Current View")
         anchors.centerIn: parent
         modal: true
         standardButtons: QQC2.Dialog.Ok | QQC2.Dialog.Cancel
@@ -669,55 +690,6 @@ PlasmaExtras.Representation {
                             onClicked: detailMenu.popup(this, 0, height)
                         }
                     }
-                    Components.ToolbarSeparator { visible: root.onHome && (root.directFilter || root.directSort || root.directSearch) }
-                    RowLayout {
-                        visible: root.onHome && (root.directFilter || root.directSort || root.directSearch)
-                        spacing: Kirigami.Units.smallSpacing / 2
-                        Components.ToolbarButton {
-                            id: filterButton
-                            menuIndicator: true
-                            presentation: root.toolbarStyle
-                            visible: root.directFilter
-                            glyph: "view-filter"
-                            label: i18n("Filter")
-                            text: i18n("Filter: %1", root.stateFilterLabel)
-                            checkable: true
-                            checked: root.activeFilterCount > 0
-                            badgeText: root.activeFilterCount > 0 ? String(root.activeFilterCount) : ""
-                            menuOpen: stateMenu.opened
-                            onClicked: stateMenu.popup(this, 0, height)
-                        }
-                        Components.ToolbarButton {
-                            id: sortButton
-                            menuIndicator: true
-                            menuOpen: toolbarSortMenu.opened
-                            presentation: root.toolbarStyle
-                            visible: root.directSort
-                            glyph: "view-sort-ascending"
-                            label: i18n("Sort")
-                            text: i18n("Sort containers")
-                            onClicked: toolbarSortMenu.popup(this, 0, height)
-                        }
-                        Components.ActionToolButton {
-                            id: clearFilterButton
-                            visible: root.directFilter && root.activeFilterCount > 0
-                            glyph: "edit-clear"
-                            text: i18n("Clear all filters")
-                            onClicked: root.clearFilters()
-                        }
-                        Components.ToolbarButton {
-                            id: searchButton
-                            menuOpen: searchPopup.opened
-                            presentation: root.toolbarStyle
-                            visible: root.directSearch
-                            glyph: "edit-find"
-                            label: i18n("Search")
-                            text: i18n("Search containers")
-                            checkable: true
-                            checked: searchPopup.opened || root.searchText !== ""
-                            onClicked: root.openSearch()
-                        }
-                    }
                 }
                 Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
                 RowLayout {
@@ -741,14 +713,14 @@ PlasmaExtras.Representation {
                         Accessible.name: i18n("Connected to %1", root.backend.contextName !== "" ? root.backend.contextName : i18n("a remote host"))
                     }
                     RowLayout {
-                        visible: root.directNew || root.directResources || root.directDoctor || root.directMaintain
+                        visible: root.directNew || root.directResources || root.directDoctor || root.directActivity || root.directMaintain
                         spacing: Kirigami.Units.smallSpacing / 2
                         Components.ToolbarButton {
                             id: newButton
                             presentation: root.toolbarStyle
-                            label: i18n("New")
-                            text: i18n("Images and new containers…")
-                            glyph: "list-add"
+                            label: i18n("Deploy")
+                            text: i18n("Find images on Docker Hub and deploy containers")
+                            glyph: "package-plus"
                             visible: root.directNew
                             enabled: root.backend.engineActive && !root.backend.readOnly
                             onClicked: root.showDeployment()
@@ -773,6 +745,16 @@ PlasmaExtras.Representation {
                             onClicked: root.showDoctor(0)
                         }
                         Components.ToolbarButton {
+                            id: activityButton
+                            presentation: root.toolbarStyle
+                            label: i18n("Activity")
+                            text: i18n("Crashes, health changes and actions, newest first")
+                            glyph: "bell-ring"
+                            visible: root.directActivity
+                            badgeText: root.unseenActivity > 0 ? (root.unseenActivity > 99 ? "99+" : String(root.unseenActivity)) : ""
+                            onClicked: root.showActivity()
+                        }
+                        Components.ToolbarButton {
                             id: maintainButton
                             presentation: root.toolbarStyle
                             label: i18n("Maintain")
@@ -784,7 +766,7 @@ PlasmaExtras.Representation {
                             onClicked: maintainMenu.popup(this,0,height)
                         }
                     }
-                    Components.ToolbarSeparator { visible: root.directNew || root.directResources || root.directDoctor || root.directMaintain }
+                    Components.ToolbarSeparator { visible: root.directNew || root.directResources || root.directDoctor || root.directActivity || root.directMaintain }
                     RowLayout {
                         spacing: Kirigami.Units.smallSpacing / 2
                         Components.ToolbarButton {
@@ -794,7 +776,6 @@ PlasmaExtras.Representation {
                             label: i18n("Refresh")
                             text: root.updatedText()
                             visible: root.directRefresh
-                            enabled: !root.backend.refreshing
                             onClicked: root.refreshNow()
                         }
                         Components.ToolbarButton {
@@ -849,14 +830,13 @@ PlasmaExtras.Representation {
                                     visible: !root.directRefresh
                                     text: i18n("Refresh")
                                     icon.source: Qt.resolvedUrl(ActionIcons.path("view-refresh"))
-                                    enabled: !root.backend.refreshing
-                                    onTriggered: root.refreshNow()
+                                            onTriggered: root.refreshNow()
                                 }
                                 Components.ActionMenuDelegate {
                                     visible: !root.directNew
                                     icon.name: ""
                                     icon.source: Qt.resolvedUrl(ActionIcons.path("list-add"))
-                                    text: i18n("Images and new containers…")
+                                    text: i18n("Deploy…")
                                     enabled: root.backend.engineActive && !root.backend.readOnly
                                     onTriggered: root.showDeployment()
                                 }
@@ -912,7 +892,7 @@ PlasmaExtras.Representation {
                                 PlasmaComponents.Menu {
                                     id: savedViewMenu
                                     delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
-                                    title: i18n("Saved views")
+                                    title: i18n("Saved Views")
                                     icon.name: ""
                                     icon.source: Qt.resolvedUrl(ActionIcons.path("bookmark"))
                                     Instantiator {
@@ -929,12 +909,12 @@ PlasmaExtras.Representation {
                                         visible: Profiles.parseViews(root.cfg.savedViews).length > 0
                                         height: visible ? implicitHeight : 0
                                     }
-                                    Components.ActionMenuDelegate { text: i18n("Save this view…"); onTriggered: saveViewDialog.open() }
-                                    Components.ActionMenuDelegate { text: i18n("Clear saved views…"); onTriggered: dialogs.confirm(i18n("Clear saved views?"), i18n("Only saved view shortcuts are removed."), function() { root.cfg.savedViews = "[]" }) }
+                                    Components.ActionMenuDelegate { text: i18n("Save This View…"); onTriggered: saveViewDialog.open() }
+                                    Components.ActionMenuDelegate { text: i18n("Clear Saved Views…"); onTriggered: dialogs.confirm(i18n("Clear saved views?"), i18n("Only saved view shortcuts are removed."), function() { root.cfg.savedViews = "[]" }) }
                                 }
                                 PlasmaComponents.Menu {
                                     id: toolbarStyleMenu
-                                    title: i18n("Toolbar labels")
+                                    title: i18n("Toolbar Labels")
                                     icon.source: Qt.resolvedUrl(ActionIcons.path("view-list-text"))
                                     delegate: Components.ActionMenuDelegate {}
                                     Instantiator {
@@ -995,17 +975,18 @@ PlasmaExtras.Representation {
                                     onTriggered: confirmStopEngine.open()
                                 }
                                 Components.ActionMenuDelegate {
-                                    text: i18n("Activity log")
+                                    visible: !root.directActivity
+                                    text: i18n("Activity")
                                     icon.source: Qt.resolvedUrl(ActionIcons.path("bell-ring"))
                                     onTriggered: root.showActivity()
                                 }
                                 PlasmaComponents.Menu {
                                     id: previewMenu
-                                    title: i18n("Preview pane follows")
+                                    title: i18n("Inspector Follows")
                                     icon.source: Qt.resolvedUrl(ActionIcons.path("view-visible"))
                                     delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
                                     Components.ActionMenuDelegate { text: i18n("Selection"); checkable: true; checked: homePage ? homePage.previewMode() === "selection" : true; onTriggered: if (homePage) homePage.setDock("previewMode", "selection") }
-                                    Components.ActionMenuDelegate { text: i18n("Mouse hover"); checkable: true; checked: homePage ? homePage.previewMode() === "hover" : false; onTriggered: if (homePage) homePage.setDock("previewMode", "hover") }
+                                    Components.ActionMenuDelegate { text: i18n("Mouse Hover"); checkable: true; checked: homePage ? homePage.previewMode() === "hover" : false; onTriggered: if (homePage) homePage.setDock("previewMode", "hover") }
                                     Components.ActionMenuDelegate { text: i18n("Nothing"); checkable: true; checked: homePage ? homePage.previewMode() === "off" : false; onTriggered: if (homePage) homePage.setDock("previewMode", "off") }
                                 }
                                 Components.ActionMenuDelegate {
@@ -1078,6 +1059,10 @@ PlasmaExtras.Representation {
 
             initialItem: HomePage {
                 id: homePage
+                stateFilterLabel: root.stateFilterLabel
+                onFilterMenuRequested: function (anchor) { stateMenu.popup(anchor, 0, anchor.height) }
+                onSortMenuRequested: function (anchor) { toolbarSortMenu.popup(anchor, 0, anchor.height) }
+                onSearchEdited: function (text) { root.searchText = text }
                 backend: root.backend
                 proxy: proxy
                 dialogs: dialogs

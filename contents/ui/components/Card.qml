@@ -27,6 +27,14 @@ Rectangle {
     property bool interactive: false
     property bool hovered: false
     property bool selected: false
+    /* A titled card can fold away its body; the title row becomes the toggle. */
+    property bool collapsible: false
+    property bool expanded: true
+    /* Small text at the right of the title row, e.g. a count or a summary. */
+    property string titleHint: ""
+    /* A section heading in full-size text over a tinted band, rather than the
+       quiet small-caps label used inside tiles. */
+    property bool prominentTitle: false
     default property alias content: body.data
     property real padding: Kirigami.Units.largeSpacing
     readonly property color stripe: root.tone !== "" ? root.toneColor(root.tone) : root.accent
@@ -38,6 +46,11 @@ Rectangle {
         return f
     }
     readonly property bool hasAccent: root.stripe.a > 0
+    readonly property font headingFont: {
+        const f = Kirigami.Theme.defaultFont
+        f.bold = true
+        return f
+    }
 
     radius: Kirigami.Units.smallSpacing * 1.5
     color: root.washTone !== "" ? Qt.alpha(root.toneColor(root.washTone), root.selected ? Style.WASH.selected : (root.interactive && root.hovered) ? Style.WASH.hover : Style.WASH.rest)
@@ -77,6 +90,25 @@ Rectangle {
     }
 
 
+    /* The band and coloured rule behind a prominent title. */
+    Rectangle {
+        visible: root.prominentTitle && root.title !== ""
+        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 1 }
+        height: titleRow.height + root.padding + (root.expanded || !root.collapsible ? Kirigami.Units.smallSpacing : root.padding - 1)
+        topLeftRadius: root.radius - 1
+        topRightRadius: root.radius - 1
+        bottomLeftRadius: root.expanded || !root.collapsible ? 0 : root.radius - 1
+        bottomRightRadius: bottomLeftRadius
+        // One neutral band for every section; the colour is in the icon and the rule.
+        color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface2)
+        Rectangle {
+            visible: root.expanded || !root.collapsible
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+            height: 1.5
+            color: Qt.alpha(root.toneColor(root.titleTone), Style.WASH_BORDER.hover)
+        }
+    }
+
     ColumnLayout {
         id: column
         anchors.fill: parent
@@ -85,28 +117,57 @@ Rectangle {
         spacing: Kirigami.Units.smallSpacing
 
         RowLayout {
+            id: titleRow
             visible: root.title !== ""
             Layout.fillWidth: true
+            Layout.bottomMargin: root.prominentTitle && (root.expanded || !root.collapsible) ? Kirigami.Units.smallSpacing : 0
             spacing: Kirigami.Units.smallSpacing
+            TapHandler {
+                enabled: root.collapsible
+                onTapped: root.expanded = !root.expanded
+            }
+            HoverHandler {
+                enabled: root.collapsible
+                cursorShape: Qt.PointingHandCursor
+            }
             ActionIcon {
                 visible: root.titleGlyph !== ""
                 glyph: root.titleGlyph
                 color: root.toneColor(root.titleTone)
-                implicitWidth: Kirigami.Units.iconSizes.small
+                implicitWidth: root.prominentTitle ? Kirigami.Units.iconSizes.smallMedium : Kirigami.Units.iconSizes.small
                 implicitHeight: implicitWidth
             }
             PlasmaComponents.Label {
                 Layout.fillWidth: true
                 text: root.title
-                font: root.titleFont
+                font: root.prominentTitle ? root.headingFont : root.titleFont
+                color: root.prominentTitle ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
+                elide: Text.ElideRight
+            }
+            PlasmaComponents.Label {
+                visible: root.titleHint !== "" && (!root.expanded || !root.collapsible)
+                text: root.titleHint
+                font: Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
                 elide: Text.ElideRight
+                Layout.maximumWidth: column.width / 2
+            }
+            ActionIcon {
+                visible: root.collapsible
+                glyph: root.expanded ? "chevron-down" : "go-next"
+                color: Kirigami.Theme.disabledTextColor
+                implicitWidth: Kirigami.Units.iconSizes.small
+                implicitHeight: implicitWidth
             }
         }
         ColumnLayout {
             id: body
+            visible: !root.collapsible || root.expanded
             Layout.fillWidth: true
             spacing: 0
         }
+        // A card stretched taller than its content (side by side in a grid)
+        // keeps the content under its title instead of centring it.
+        Item { Layout.fillHeight: true; visible: !root.collapsible || root.expanded }
     }
 }

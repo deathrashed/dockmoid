@@ -54,6 +54,7 @@ PlasmoidItem {
     Backend.DockerBackend {
         id: dockerBackend
         runner: commandRunner
+        viewOpen: main.viewOpen
 
         onEngineStateChanged: function (active) {
             main.lastStatusMessage = active
@@ -68,6 +69,14 @@ PlasmoidItem {
         }
     }
 
+    Backend.SharedSettings {
+        id: sharedSettings
+        cfg: main.cfg
+        runner: commandRunner
+        backend: dockerBackend
+        instanceId: String(Plasmoid.id)
+    }
+
     // ========================================================= timers ====
 
     Timer {
@@ -79,7 +88,7 @@ PlasmoidItem {
         repeat: true
         running: true
         triggeredOnStart: false
-        onTriggered: dockerBackend.tick()
+        onTriggered: { sharedSettings.check(); dockerBackend.tick() }
     }
 
     /*
@@ -88,7 +97,10 @@ PlasmoidItem {
      */
     Timer {
         id: statsTimer
-        interval: Math.max(1, main.cfg.usageInterval) * 1000
+        // Pages that only show the status-bar totals sample less often.
+        interval: Math.max(1, main.viewOpen && !dockerBackend.usageDetailShown
+                              ? Math.max(main.cfg.usageInterval, main.cfg.usageQuietInterval)
+                              : main.cfg.usageInterval) * 1000
         repeat: true
         running: main.viewOpen || main.cfg.statsWhenCollapsed
         triggeredOnStart: false
@@ -103,6 +115,7 @@ PlasmoidItem {
     }
 
     function onViewOpened() {
+        sharedSettings.pull()
         if (!main.cfg.refreshOnExpand) return
         dockerBackend.refresh({
             "force": !dockerBackend.engineActive,
@@ -148,6 +161,7 @@ PlasmoidItem {
         main.lastStatusMessage = i18n("Checking %1…", dockerBackend.engineName)
         main.installNotificationSupport()
         main.installThemeIcon()
+        sharedSettings.start()
         if (main.cfg.fetchOnStartup) startupTimer.start()
     }
 

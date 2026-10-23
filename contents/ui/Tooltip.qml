@@ -64,7 +64,9 @@ ColumnLayout {
         spacing: Kirigami.Units.smallSpacing * 2
         Image {
             source: "../icons/dockmoid.png"
-            sourceSize: Qt.size(64, 64)
+            sourceSize: Qt.size(64 * Screen.devicePixelRatio, 64 * Screen.devicePixelRatio)
+            smooth: true
+            mipmap: true
             Layout.preferredWidth: 32
             Layout.preferredHeight: 32
             fillMode: Image.PreserveAspectFit
