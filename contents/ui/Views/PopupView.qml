@@ -129,7 +129,7 @@ PlasmaExtras.Representation {
         {mode:2, icon:"view-list-tree", label:i18n("Groups")}
     ]
     readonly property var sortChoices: [
-        {role:"sortKey", label:i18n("Pinned, then running")},
+        {role:"sortKey", label:i18n("By State, in Sections")},
         {role:"name", label:i18n("Name")}, {role:"cpuPct", label:i18n("CPU")},
         {role:"memPct", label:i18n("Memory")}, {role:"project", label:i18n("Project")}
     ]

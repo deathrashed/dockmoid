@@ -34,6 +34,11 @@ Item {
 
     /* Panel label: a "3~12" badge, or just the running count. */
     readonly property string badgeText: {
+        // 5: no badge; 6: only the number of containers needing attention.
+        if (root.cfg.badgeStyle === 5)
+            return ""
+        if (root.cfg.badgeStyle === 6)
+            return root.backend.problemCount > 0 ? " ! " + root.backend.problemCount + " " : ""
         if (root.cfg.badgeStyle === 1)
             return " " + root.backend.running + root.cfg.separator + root.backend.total + " "
         if (root.cfg.badgeStyle === 2)
@@ -281,7 +286,7 @@ Item {
                 right: container.right
             }
             text: root.badgeText
-            visible: (root.displayStyle === 0 || root.displayStyle === 1 || root.displayStyle === 5) && !root.isPanelVertical && !root.cfg.mainDot
+            visible: (root.displayStyle === 0 || root.displayStyle === 1 || root.displayStyle === 5) && !root.isPanelVertical && !root.cfg.mainDot && root.badgeText !== ""
             icon: icon
             wrapText: root.cfg.wrapText
             widthFit: root.cfg.widthFit
@@ -294,7 +299,7 @@ Item {
                 right: container.right
             }
             text: root.badgeText
-            visible: (root.displayStyle === 0 || root.displayStyle === 1 || root.displayStyle === 5) && root.isPanelVertical && !root.cfg.mainDot
+            visible: (root.displayStyle === 0 || root.displayStyle === 1 || root.displayStyle === 5) && root.isPanelVertical && !root.cfg.mainDot && root.badgeText !== ""
             icon: icon
             wrapText: root.cfg.wrapText
             widthFit: root.cfg.widthFit

@@ -165,8 +165,11 @@ KCM.SimpleKCM {
                 delimiter: "|"
                 headers: [i18n("Label"), i18n("Icon name"), i18n("Scope"), i18n("Command")]
                 example: i18n("No launchers configured.")
+                // Command is the long column; the others share what is left.
+                columnWeights: [2, 2, 1.5, 5]
 
                 Layout.fillWidth: true
+                Layout.preferredWidth: Math.max(Kirigami.Units.gridUnit * 24, Math.min(Kirigami.Units.gridUnit * 40, page.width - Kirigami.Units.gridUnit * 14))
                 Layout.minimumWidth: 0
             }
             QuestionHelp { helpText: i18n("Scope “container” needs a running container and fills in {id} and {shell}; scope “project” needs a Compose folder and fills in {dir}. Launchers whose program is not installed are hidden automatically. Comments and malformed lines remain in the advanced text view.") }

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Settings → Appearance → Panel: pick the panel style from live preview tiles, see it in all four
+  states (all well, paused, problem, Docker down), with labelled colour swatches that are always
+  visible. One "Badge shows" choice replaces the old style/checkbox/dot mix and adds "Nothing" and
+  "Problems only". Empty rows ("State colour goes to:", "Dot:") are gone.
+- Settings → Appearance → Popup gains the inspector: open or closed, which tab it opens on, and
+  whether it follows the selection, the mouse or nothing.
+- Advanced command fields and the launcher editor are wide enough to read a whole command.
+
 - The panel under the list is now an inspector for the selected container: Overview (with live CPU and
   memory graphs), Logs (a live tail), Events (Dockmoid's alerts plus the engine's last 24 hours) and
   Compose (the file, with Validate and Edit). Filter, Sort and Search moved into its bar; Doctor,

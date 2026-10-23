@@ -454,7 +454,8 @@ Terminal here|utilities-terminal|project|konsole --workdir {dir}]]></default>
   <entry name="separator" type="String">
     <default>~</default>
   </entry>
-  <!-- 0 follows separateResult for existing profiles. -->
+  <!-- 0 follows separateResult for existing profiles; 1 running/total, 2 running,
+       3 percent, 4 "N running", 5 none, 6 problem count only when above zero. -->
   <entry name="badgeStyle" type="Int">
     <default>0</default>
   </entry>

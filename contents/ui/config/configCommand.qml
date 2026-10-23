@@ -18,6 +18,8 @@ import "../Backend" as Backend
  */
 KCM.SimpleKCM {
     id: page
+    /* Commands are long; give each field room to show one in full. */
+    readonly property real fieldWidth: Math.max(Kirigami.Units.gridUnit * 16, Math.min(Kirigami.Units.gridUnit * 34, page.width - Kirigami.Units.gridUnit * 16))
 
     property int currentTab: 0
 
@@ -381,7 +383,7 @@ KCM.SimpleKCM {
                     }
                 }
 
-                Controls.TextField {
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     id: engineCommand
@@ -422,7 +424,7 @@ Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClic
             wideMode: false
             RowLayout {
                 Kirigami.FormData.label: i18n("Is Docker running: ")
-                Controls.TextField {
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     id: checkActive
@@ -433,26 +435,26 @@ Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClic
             }
             RowLayout {
                 Kirigami.FormData.label: i18n("List containers: ")
-                Controls.TextField { Layout.fillWidth: true; Layout.minimumWidth: 0; id: list }
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth; Layout.fillWidth: true; Layout.minimumWidth: 0; id: list }
                 QuestionHelp {
                     helpText: i18n("The list and usage commands must emit JSON: one object per line for Docker 23 and newer, or a single array for Podman.")
                 }
             }
             RowLayout {
                 Kirigami.FormData.label: i18n("Container usage: ")
-                Controls.TextField { Layout.fillWidth: true; Layout.minimumWidth: 0; id: usage }
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth; Layout.fillWidth: true; Layout.minimumWidth: 0; id: usage }
                 QuestionHelp {
                     helpText: i18n("Like the list command, this must emit JSON: one object per line for Docker 23 and newer, or a single array for Podman.")
                 }
             }
             RowLayout {
                 Kirigami.FormData.label: i18n("Engine summary: ")
-                Controls.TextField { Layout.fillWidth: true; Layout.minimumWidth: 0; id: info }
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth; Layout.fillWidth: true; Layout.minimumWidth: 0; id: info }
                 QuestionHelp {
                     helpText: i18n("Print pipe-separated values in the order shown by this command's format; print nothing to omit the summary.")
                 }
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: systemDf
@@ -460,18 +462,18 @@ Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClic
             }
             RowLayout {
                 Kirigami.FormData.label: i18n("Look for changes: ")
-                Controls.TextField { Layout.fillWidth: true; Layout.minimumWidth: 0; id: eventsCommand }
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth; Layout.fillWidth: true; Layout.minimumWidth: 0; id: eventsCommand }
                 QuestionHelp {
-                    helpText: i18n("This command receives {since} and {until} as Unix timestamps and prints one line for each relevant event. If it fails, Dockmoid falls back to interval polling.")
+                    helpText: i18n("This command receives {since} and {until} as Unix timestamps and prints one line for each relevant event. When General → Refresh → Change events is on, the same command runs without {until} as one long-running listener. If it fails, Dockmoid falls back to interval polling.")
                 }
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: policyRead
                 Kirigami.FormData.label: i18n("Read autostart settings: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: policySet
@@ -495,55 +497,55 @@ Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClic
         Kirigami.FormLayout {
             Layout.fillWidth: true
             wideMode: false
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: startOne
                 Kirigami.FormData.label: i18n("Start: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: stopOne
                 Kirigami.FormData.label: i18n("Stop: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: restartOne
                 Kirigami.FormData.label: i18n("Restart: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: killOne
                 Kirigami.FormData.label: i18n("Kill: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: pauseOne
                 Kirigami.FormData.label: i18n("Pause: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: unpauseOne
                 Kirigami.FormData.label: i18n("Unpause: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: removeOne
                 Kirigami.FormData.label: i18n("Remove: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: renameOne
                 Kirigami.FormData.label: i18n("Rename: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: pullImage
@@ -564,13 +566,13 @@ Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClic
         Kirigami.FormLayout {
             Layout.fillWidth: true
             wideMode: false
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: groupStart
                 Kirigami.FormData.label: i18n("Start a project: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: groupStop
@@ -578,7 +580,7 @@ Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClic
             }
             RowLayout {
                 Kirigami.FormData.label: i18n("Restart a project: ")
-                Controls.TextField { Layout.fillWidth: true; Layout.minimumWidth: 0; id: groupRestart }
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth; Layout.fillWidth: true; Layout.minimumWidth: 0; id: groupRestart }
                 QuestionHelp {
                     helpText: i18n("Project actions run on every container with the Compose project label through the Docker CLI, so the Compose plugin is not required. They are disabled while the list is filtered to avoid affecting containers you cannot see.")
                 }
@@ -601,19 +603,19 @@ Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClic
         Kirigami.FormLayout {
             Layout.fillWidth: true
             wideMode: false
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: logs
                 Kirigami.FormData.label: i18n("Read logs: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: logsFollow
                 Kirigami.FormData.label: i18n("Follow logs: ")
             }
-                        Controls.TextField {
+                        Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: inspect
@@ -629,37 +631,37 @@ Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClic
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: i18n("Images, volumes, networks, Compose")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0; id: imagesCmd; Kirigami.FormData.label: i18n("List images: ") }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0; id: volumesCmd; Kirigami.FormData.label: i18n("List volumes: ") }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0; id: networksCmd; Kirigami.FormData.label: i18n("List networks: ") }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0; id: rmImage; Kirigami.FormData.label: i18n("Remove an image: ") }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0; id: rmVolume; Kirigami.FormData.label: i18n("Remove a volume: ") }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0; id: rmNetwork; Kirigami.FormData.label: i18n("Remove a network: ") }
             RowLayout {
                 Kirigami.FormData.label: i18n("Compose command: ")
-                Controls.TextField { Layout.fillWidth: true; Layout.minimumWidth: 0; id: composeCmd }
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth; Layout.fillWidth: true; Layout.minimumWidth: 0; id: composeCmd }
                 QuestionHelp { helpText: i18n("Use “docker-compose” if you have only the old standalone Compose tool.") }
             }
             RowLayout {
                 Kirigami.FormData.label: i18n("Check an image for updates: ")
-                Controls.TextField { Layout.fillWidth: true; Layout.minimumWidth: 0; id: updateCmd }
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth; Layout.fillWidth: true; Layout.minimumWidth: 0; id: updateCmd }
                 QuestionHelp { helpText: i18n("Print “local digests|remote digest”. The default command requires docker buildx.") }
             }
             RowLayout {
                 Kirigami.FormData.label: i18n("List hosts (contexts): ")
-                Controls.TextField { Layout.fillWidth: true; Layout.minimumWidth: 0; id: contextCmd }
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth; Layout.fillWidth: true; Layout.minimumWidth: 0; id: contextCmd }
                 QuestionHelp { helpText: i18n("Hosts are Docker contexts, created with “docker context create”. Use a context to connect to another machine over SSH.") }
             }
         }
@@ -679,18 +681,18 @@ Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClic
             wideMode: false
             RowLayout {
                 Kirigami.FormData.label: i18n("Start the service: ")
-                Controls.TextField { Layout.fillWidth: true; Layout.minimumWidth: 0; id: startService }
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth; Layout.fillWidth: true; Layout.minimumWidth: 0; id: startService }
                 QuestionHelp {
                     helpText: i18n("System Docker services require elevated privileges, so the default uses pkexec and asks for your password. Rootless Docker, Podman and Colima need no elevation; select a preset above.")
                 }
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: stopService
                 Kirigami.FormData.label: i18n("Stop the service: ")
             }
-            Controls.TextField {
+            Controls.TextField { Layout.preferredWidth: page.fieldWidth
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 id: stopSocket
@@ -698,7 +700,7 @@ Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClic
             }
             RowLayout {
                 Kirigami.FormData.label: i18n("Prune: ")
-                Controls.TextField { Layout.fillWidth: true; Layout.minimumWidth: 0; id: prune; enabled: false; text: "{engine} image prune -f && {engine} builder prune -f" }
+                Controls.TextField { Layout.preferredWidth: page.fieldWidth; Layout.fillWidth: true; Layout.minimumWidth: 0; id: prune; enabled: false; text: "{engine} image prune -f && {engine} builder prune -f" }
                 QuestionHelp {
                     helpText: i18n("Cleanup uses fixed image and build-cache commands to preserve containers and volumes. Remove stopped containers is a separate unchecked option; legacy custom system-prune commands are not used.")
                 }

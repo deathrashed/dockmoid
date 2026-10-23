@@ -97,7 +97,7 @@ KCM.SimpleKCM {
     property alias cfg_defaultGridDetailLevel: gridDetail.currentIndex
     property alias cfg_defaultTableDetailLevel: tableDetail.currentIndex
     property alias cfg_resourceBarMax: resourceScale.value
-    property alias cfg_panelStyle: panelStyle.currentIndex
+    property int cfg_panelStyle
     property alias cfg_rowIconSize: rowIconSize.value
     property alias cfg_hideWhenInactive: hideWhenInactive.checked
     property alias cfg_middleClickAction: middleClick.currentIndex
@@ -109,10 +109,10 @@ KCM.SimpleKCM {
     property alias cfg_statePausedColor: pausedColor.color
     property alias cfg_iconColor: iconColor.color
     property alias cfg_iconUseCustomColor: iconUseCustomColor.checked
-    property alias cfg_separateResult: separateResult.checked
-    property alias cfg_badgeStyle: badgeStyle.currentIndex
+    property bool cfg_separateResult
+    property int cfg_badgeStyle
     property alias cfg_separator: separator.text
-    property alias cfg_mainDot: mainDot.checked
+    property bool cfg_mainDot
     property alias cfg_mainDotColor: mainDotColor.color
     property alias cfg_mainDotUseCustomColor: mainDotUseCustomColor.checked
     property alias cfg_mainDotPosition: mainDotPosition.currentIndex
@@ -121,6 +121,22 @@ KCM.SimpleKCM {
     property alias cfg_toolbarStyle: toolbarStyle.currentIndex
     property alias cfg_popupWidth: popupWidth.value
     property alias cfg_popupHeight: popupHeight.value
+
+    /* The inspector under the list keeps its state in this JSON (key "dock"). */
+    property string cfg_serviceSectionSettings: "{}"
+    function dockValue(key, fallback) {
+        try { const all = JSON.parse(page.cfg_serviceSectionSettings || "{}"); const dock = all.dock || {}; return dock[key] === undefined ? fallback : dock[key] }
+        catch (e) { return fallback }
+    }
+    function setDockValue(key, value) {
+        let all = {}
+        try { all = JSON.parse(page.cfg_serviceSectionSettings || "{}") || {} } catch (e) {}
+        all.dock = all.dock || {}
+        all.dock[key] = value
+        page.cfg_serviceSectionSettings = JSON.stringify(all)
+    }
+    readonly property var inspectorPages: ["preview", "logs", "events", "compose"]
+    readonly property var inspectorFollows: ["selection", "hover", "off"]
 
     property string cfg_serviceIconDirectory: ""
     property bool cfg_coloredServiceIcons: true
@@ -137,7 +153,39 @@ KCM.SimpleKCM {
     onCfg_customIconsChanged: if (iconSettings && iconSettings.cfg_customIcons !== cfg_customIcons) iconSettings.cfg_customIcons = cfg_customIcons
     onCfg_customIconFilesChanged: if (iconSettings && iconSettings.cfg_customIconFiles !== cfg_customIconFiles) iconSettings.cfg_customIconFiles = cfg_customIconFiles
 
-    readonly property bool iconPanelStyle: panelStyle.currentIndex === 0 || panelStyle.currentIndex === 1 || panelStyle.currentIndex === 5
+    readonly property bool iconPanelStyle: page.cfg_panelStyle === 0 || page.cfg_panelStyle === 1 || page.cfg_panelStyle === 5
+
+    /* One "Badge shows" choice in place of a style, a checkbox and a dot toggle. */
+    readonly property var badgeChoices: [i18n("Nothing"), i18n("Running count"), i18n("Running / total"),
+        i18n("Percent running"), i18n("“3 running”"), i18n("Problems only, when there are any"), i18n("A status dot")]
+    readonly property int badgeChoice: page.cfg_mainDot ? 6
+        : page.cfg_badgeStyle === 5 ? 0 : page.cfg_badgeStyle === 2 ? 1 : page.cfg_badgeStyle === 1 ? 2
+        : page.cfg_badgeStyle === 3 ? 3 : page.cfg_badgeStyle === 4 ? 4 : page.cfg_badgeStyle === 6 ? 5
+        : (page.cfg_separateResult ? 2 : 1)
+    function setBadgeChoice(choice) {
+        page.cfg_mainDot = choice === 6
+        page.cfg_separateResult = false
+        if (choice !== 6) page.cfg_badgeStyle = [5, 2, 1, 3, 4, 6][choice]
+    }
+    readonly property var panelStyles: [
+        {name: i18n("Ring gauge"), hint: i18n("Fills with running containers")},
+        {name: i18n("Whale"), hint: i18n("The logo in the state colour")},
+        {name: i18n("Running count"), hint: i18n("A large number")},
+        {name: i18n("Running / total"), hint: i18n("Both numbers")},
+        {name: i18n("Count and segments"), hint: i18n("Number over a 10-step meter")},
+        {name: i18n("Whale and bar"), hint: i18n("Logo over a progress bar")},
+        {name: i18n("Ring, alerts only"), hint: i18n("Quiet until something is wrong")}
+    ]
+    /* Sample engines for the preview: all well, something wrong, Docker down. */
+    component SampleBackend: QtObject {
+        property bool engineKnown: true
+        property bool engineActive: true
+        property int running: 3
+        property int total: 5
+        property int unhealthy: 0
+        property int problemCount: 0
+        property int pausedCount: 0
+    }
     readonly property var panelPreviewConfiguration: ({
         panelStyle: page.cfg_panelStyle,
         badgeStyle: page.cfg_badgeStyle,
@@ -221,6 +269,32 @@ KCM.SimpleKCM {
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Inspector under the list")
+        }
+        RowLayout {
+            Kirigami.FormData.label: i18n("Show it:")
+            Controls.CheckBox {
+                text: i18n("open")
+                checked: page.dockValue("expanded", true) === true
+                onToggled: page.setDockValue("expanded", checked)
+            }
+            QuestionHelp { helpText: i18n("The pane under the container list shows the selected container's overview, live log, events and Compose file. Its bar also holds Filter, Sort and Search, so it stays visible even when closed.") }
+        }
+        Controls.ComboBox {
+            Kirigami.FormData.label: i18n("Opens on:")
+            model: [i18n("Overview"), i18n("Logs"), i18n("Events"), i18n("Compose")]
+            currentIndex: Math.max(0, page.inspectorPages.indexOf(String(page.dockValue("page", "preview"))))
+            onActivated: function (index) { page.setDockValue("page", page.inspectorPages[index]) }
+        }
+        Controls.ComboBox {
+            Kirigami.FormData.label: i18n("Follows:")
+            model: [i18n("The selected container"), i18n("The container under the mouse"), i18n("Nothing")]
+            currentIndex: Math.max(0, page.inspectorFollows.indexOf(String(page.dockValue("previewMode", "selection"))))
+            onActivated: function (index) { page.setDockValue("previewMode", page.inspectorFollows[index]) }
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
             Kirigami.FormData.label: i18n("Popup window")
         }
         Controls.SpinBox {
@@ -292,192 +366,206 @@ KCM.SimpleKCM {
 
         Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_defaultViewMode = page.cfg_defaultViewModeDefault; page.cfg_defaultDetailLevel = page.cfg_defaultDetailLevelDefault; page.cfg_showHeader = page.cfg_showHeaderDefault; page.cfg_showStatusBar = page.cfg_showStatusBarDefault; page.cfg_showActivityBar = page.cfg_showActivityBarDefault; page.cfg_showHealth = page.cfg_showHealthDefault; page.cfg_showRestartPolicy = page.cfg_showRestartPolicyDefault; page.cfg_showResourceBars = page.cfg_showResourceBarsDefault; page.cfg_rowIconSize = page.cfg_rowIconSizeDefault; page.cfg_resourceBarMax = page.cfg_resourceBarMaxDefault; page.cfg_defaultGridDetailLevel = page.cfg_defaultGridDetailLevelDefault; page.cfg_defaultTableDetailLevel = page.cfg_defaultTableDetailLevelDefault; page.cfg_toolbarStyle = page.cfg_toolbarStyleDefault; page.cfg_popupWidth = page.cfg_popupWidthDefault; page.cfg_popupHeight = page.cfg_popupHeightDefault } }
         }
-        Kirigami.FormLayout { Layout.fillWidth: true; Layout.maximumWidth: Kirigami.Units.gridUnit * 42; Layout.alignment: Qt.AlignHCenter; wideMode: width >= Kirigami.Units.gridUnit * 26; visible: page.currentTab === 1
-        Kirigami.Separator {
-            Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Panel icon")
-        }
+        // ---- Panel: style tiles, a three-state preview, then colours, badge and clicks ----
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 42
+            Layout.alignment: Qt.AlignHCenter
+            Layout.margins: Kirigami.Units.largeSpacing
+            visible: page.currentTab === 1
+            spacing: Kirigami.Units.largeSpacing
 
-        Controls.CheckBox {
-            id: hideWhenInactive
-            Kirigami.FormData.label: i18n("Hide:")
-            text: i18n("when Docker is not running")
-        }
-
-        Controls.ComboBox {
-            id: middleClick
-            Kirigami.FormData.label: i18n("Middle click:")
-            model: [i18n("Refresh now"), i18n("Attach or detach the window"),
-                    i18n("Restart unhealthy containers"), i18n("Do nothing")]
-        }
-
-        Controls.ComboBox {
-            id: panelStyle
-            Kirigami.FormData.label: i18n("Display style:")
-            model: [i18n("Ring gauge"), i18n("Whale icon"), i18n("Running count"), i18n("Running / total"), i18n("Count with segments"), i18n("Whale with progress bar"), i18n("Ring with attention")]
-        }
-        RowLayout {
-            Controls.Frame {
+            Kirigami.Heading { level: 4; text: i18n("Style") }
+            GridLayout {
                 Layout.fillWidth: true
-                Kirigami.FormData.isSection: true
-                RowLayout {
-                    anchors.fill: parent
-                    Widget.Compact {
-                        Layout.preferredWidth: 64
-                        Layout.preferredHeight: 56
-                        previewMode: true
-                        configuration: page.panelPreviewConfiguration
-                        applet: null
-                        backend: QtObject {
-                            property bool engineKnown: true
-                            property bool engineActive: true
-                            property int running: 3
-                            property int total: 5
-                            property int unhealthy: 0
-                            property int problemCount: 0
-                            property int pausedCount: 0
+                columns: Math.max(2, Math.min(4, Math.floor(width / (Kirigami.Units.gridUnit * 9))))
+                columnSpacing: Kirigami.Units.smallSpacing
+                rowSpacing: Kirigami.Units.smallSpacing
+                Repeater {
+                    model: page.panelStyles
+                    delegate: Controls.ItemDelegate {
+                        id: styleTile
+                        required property int index
+                        required property var modelData
+                        objectName: "panelStyleTile"
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 1
+                        checkable: true
+                        checked: page.cfg_panelStyle === index
+                        onClicked: page.cfg_panelStyle = index
+                        Accessible.name: modelData.name
+                        background: Rectangle {
+                            radius: Kirigami.Units.smallSpacing * 1.5
+                            color: styleTile.checked ? Qt.alpha(Kirigami.Theme.highlightColor, 0.18)
+                                : styleTile.hovered ? Qt.alpha(Kirigami.Theme.textColor, 0.07) : Qt.alpha(Kirigami.Theme.textColor, 0.04)
+                            border.width: styleTile.checked ? 2 : 1
+                            border.color: styleTile.checked ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.12)
+                        }
+                        contentItem: ColumnLayout {
+                            spacing: Kirigami.Units.smallSpacing
+                            Widget.Compact {
+                                Layout.alignment: Qt.AlignHCenter
+                                Layout.preferredWidth: Kirigami.Units.iconSizes.large
+                                Layout.preferredHeight: Kirigami.Units.iconSizes.large
+                                previewMode: true
+                                configuration: Object.assign({}, page.panelPreviewConfiguration, {panelStyle: styleTile.index})
+                                applet: null
+                                backend: SampleBackend {}
+                            }
+                            Controls.Label { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: styleTile.modelData.name; font.bold: styleTile.checked; elide: Text.ElideRight }
+                            Controls.Label { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: styleTile.modelData.hint; font: Kirigami.Theme.smallFont; opacity: 0.7; wrapMode: Text.Wrap }
                         }
                     }
-                    Controls.Label { Layout.fillWidth: true; text: i18n("Live panel preview\n3 running · 2 stopped"); wrapMode: Text.Wrap }
                 }
             }
-            QuestionHelp { helpText: i18n("Use an icon, a clear number, or a running-container meter. Colours still show connection and health problems. Hover for full counts and usage.") }
-            QuestionHelp { visible: panelStyle.currentIndex === 6; helpText: i18n("The ring stays clean during normal operation. A warning appears only when Docker is down or a container is paused or unhealthy.") }
-        }
-        Controls.ComboBox {
-            id: indicator
-            visible: panelStyle.currentIndex === 0
-            Kirigami.FormData.label: i18n("Ring:")
-            model: [i18n("Fills like a gauge"), i18n("One solid colour"), i18n("Never changes")]
-        }
 
-        RowLayout {
-            Kirigami.FormData.label: i18n("State colour goes to:")
-            Controls.ComboBox {
-                id: indicatorTarget
-                visible: panelStyle.currentIndex === 0
-
-                model: [i18n("The ring"), i18n("The whale"), i18n("Both")]
-            }
-            QuestionHelp { helpText: i18n("Blue while things run normally, amber when something is paused, red when something is wrong. A paused or unhealthy stack fills the whole ring. With “The whale”, the ring stays your logo colour and only shows how many are running. The logo dims when Docker is down or nothing runs.") }
-        }
-
-        RowLayout {
-            Kirigami.FormData.label: i18n("State colours:")
-            RowLayout {
-
-                enabled: true
-                Controls.CheckBox {
-                    id: customStates
-                    text: i18n("custom")
-                }
-                KQuickControls.ColorButton {
-                    id: okColor
-                    enabled: customStates.checked
-                    Controls.ToolTip.text: i18n("All well"); Controls.ToolTip.visible: hovered
-                }
-                KQuickControls.ColorButton {
-                    id: pausedColor
-                    enabled: customStates.checked
-                    Controls.ToolTip.text: i18n("Something paused"); Controls.ToolTip.visible: hovered
-                }
-                KQuickControls.ColorButton {
-                    id: badColor
-                    enabled: customStates.checked
-                    Controls.ToolTip.text: i18n("Something wrong"); Controls.ToolTip.visible: hovered
-                }
-            }
-            QuestionHelp { helpText: i18n("Left to right: running, paused, needs attention. Disable custom colours to use Dockmoid blue and theme warning colours.") }
-        }
-
-        RowLayout {
-            Kirigami.FormData.label: i18n("Logo colour:")
-            RowLayout {
-
-                Controls.CheckBox {
-                    id: iconUseCustomColor
-                    text: i18n("use")
-                }
-                KQuickControls.ColorButton {
-                    id: iconColor
-                    enabled: iconUseCustomColor.checked
-                }
-            }
-            QuestionHelp { helpText: i18n("The logo and track follow your theme text colour. Override it here; status colours are configured above.") }
-        }
-
-        Kirigami.Separator {
-            visible: page.iconPanelStyle
-            Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Panel label")
-        }
-
-        Controls.ComboBox {
-            id: badgeStyle
-            visible: page.iconPanelStyle && !mainDot.checked
-            Kirigami.FormData.label: i18n("Badge:")
-            model: [i18n("Custom counts"), i18n("Running / total"),
-                    i18n("Running count"), i18n("Percent running"), i18n("Running label")]
-        }
-        Controls.CheckBox {
-            id: separateResult
-            visible: page.iconPanelStyle && !mainDot.checked && badgeStyle.currentIndex === 0
-            text: i18n("show running and total")
-        }
-
-        Controls.TextField {
+            Kirigami.Heading { level: 4; text: i18n("How it looks in each state") }
+            Controls.Frame {
                 Layout.fillWidth: true
-                Layout.minimumWidth: 0
-            id: separator
-            Kirigami.FormData.label: i18n("Separator:")
-            visible: page.iconPanelStyle && !mainDot.checked && badgeStyle.currentIndex === 0 && separateResult.checked
-            maximumLength: 3
-        }
-
-        Controls.CheckBox {
-            id: mainDot
-            visible: page.iconPanelStyle
-            text: i18n("Show a status dot instead of a badge")
-            onCheckedChanged: if (checked) separateResult.checked = false
-        }
-
-        RowLayout {
-            Kirigami.FormData.label: i18n("Dot:")
-            RowLayout {
-
-                visible: page.iconPanelStyle && mainDot.checked
-                Controls.CheckBox {
-                    id: mainDotUseCustomColor
-                    text: i18n("custom colour")
+                RowLayout {
+                    anchors.fill: parent
+                    spacing: Kirigami.Units.gridUnit
+                    Repeater {
+                        model: [
+                            {label: i18n("All well"), detail: i18n("3 of 5 running"), active: true, problems: 0, paused: 0},
+                            {label: i18n("Paused"), detail: i18n("1 paused"), active: true, problems: 1, paused: 1},
+                            {label: i18n("Problem"), detail: i18n("1 unhealthy"), active: true, problems: 1, paused: 0},
+                            {label: i18n("Docker down"), detail: i18n("engine stopped"), active: false, problems: 0, paused: 0}
+                        ]
+                        delegate: ColumnLayout {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: 2
+                            Widget.Compact {
+                                Layout.alignment: Qt.AlignHCenter
+                                Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                                Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                                previewMode: true
+                                configuration: page.panelPreviewConfiguration
+                                applet: null
+                                backend: SampleBackend { engineActive: modelData.active; problemCount: modelData.problems; pausedCount: modelData.paused; unhealthy: modelData.problems - modelData.paused }
+                            }
+                            Controls.Label { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: modelData.label; font.bold: true }
+                            Controls.Label { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: modelData.detail; font: Kirigami.Theme.smallFont; opacity: 0.7 }
+                        }
+                    }
                 }
-                KQuickControls.ColorButton {
-                    id: mainDotColor
-                    enabled: mainDotUseCustomColor.checked
+            }
+
+            Kirigami.FormLayout {
+                Layout.fillWidth: true
+                wideMode: width >= Kirigami.Units.gridUnit * 26
+
+                Kirigami.Separator { Kirigami.FormData.isSection: true; Kirigami.FormData.label: i18n("Colours") }
+                RowLayout {
+                    Kirigami.FormData.label: i18n("State colours:")
+                    Controls.CheckBox { id: customStates; text: i18n("use my own") }
+                    QuestionHelp { helpText: i18n("Without your own colours: Dockmoid blue while things run, your theme's warning colour when something is paused, and its error colour when something needs attention.") }
+                }
+                RowLayout {
+                    spacing: Kirigami.Units.largeSpacing
+                    // Always shown in colour; picking one switches to your own colours.
+                    ColumnLayout { spacing: 0
+                        KQuickControls.ColorButton { id: okColor; onAccepted: customStates.checked = true; Controls.ToolTip.text: i18n("All well"); Controls.ToolTip.visible: hovered }
+                        Controls.Label { Layout.alignment: Qt.AlignHCenter; text: i18n("Running"); font: Kirigami.Theme.smallFont; opacity: customStates.checked ? 1 : 0.6 } }
+                    ColumnLayout { spacing: 0
+                        KQuickControls.ColorButton { id: pausedColor; onAccepted: customStates.checked = true; Controls.ToolTip.text: i18n("Something paused"); Controls.ToolTip.visible: hovered }
+                        Controls.Label { Layout.alignment: Qt.AlignHCenter; text: i18n("Paused"); font: Kirigami.Theme.smallFont; opacity: customStates.checked ? 1 : 0.6 } }
+                    ColumnLayout { spacing: 0
+                        KQuickControls.ColorButton { id: badColor; onAccepted: customStates.checked = true; Controls.ToolTip.text: i18n("Something wrong"); Controls.ToolTip.visible: hovered }
+                        Controls.Label { Layout.alignment: Qt.AlignHCenter; text: i18n("Problem"); font: Kirigami.Theme.smallFont; opacity: customStates.checked ? 1 : 0.6 } }
+                }
+                RowLayout {
+                    Kirigami.FormData.label: i18n("Logo colour:")
+                    Controls.CheckBox { id: iconUseCustomColor; text: i18n("use my own") }
+                    KQuickControls.ColorButton { id: iconColor; onAccepted: iconUseCustomColor.checked = true }
+                    QuestionHelp { helpText: i18n("Otherwise the logo follows your theme's text colour.") }
+                }
+
+                Kirigami.Separator {
+                    visible: page.cfg_panelStyle === 0
+                    Kirigami.FormData.isSection: true
+                    Kirigami.FormData.label: i18n("Ring")
                 }
                 Controls.ComboBox {
-                    id: mainDotPosition
-                    model: [i18n("Top right"), i18n("Top left"), i18n("Bottom right"), i18n("Bottom left")]
+                    id: indicator
+                    visible: page.cfg_panelStyle === 0
+                    Kirigami.FormData.label: i18n("The ring:")
+                    model: [i18n("Fills like a gauge"), i18n("Is one solid colour"), i18n("Never changes")]
                 }
-            }
-            QuestionHelp {
-                visible: page.iconPanelStyle && mainDot.checked
-                helpText: i18n("The dot only shows while at least one container is running.")
-            }
-        }
+                RowLayout {
+                    visible: page.cfg_panelStyle === 0
+                    Kirigami.FormData.label: i18n("State colour on:")
+                    Controls.ComboBox {
+                        id: indicatorTarget
+                        model: [i18n("The ring"), i18n("The whale"), i18n("Both")]
+                    }
+                    QuestionHelp { helpText: i18n("With “The whale”, the ring keeps your logo colour and only shows how many are running.") }
+                }
 
-        Controls.CheckBox {
-            id: wrapText
-            visible: page.iconPanelStyle && !mainDot.checked
-            Kirigami.FormData.label: i18n("Badge text:")
-            text: i18n("wrap")
-            onCheckedChanged: if (checked) widthFit.checked = false
-        }
-        Controls.CheckBox {
-            id: widthFit
-            visible: page.iconPanelStyle && !mainDot.checked
-            text: i18n("fit the full label")
-            onCheckedChanged: if (checked) wrapText.checked = false
-        }Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_panelStyle = page.cfg_panelStyleDefault; page.cfg_hideWhenInactive = page.cfg_hideWhenInactiveDefault; page.cfg_middleClickAction = page.cfg_middleClickActionDefault; page.cfg_panelIndicator = page.cfg_panelIndicatorDefault; page.cfg_indicatorTarget = page.cfg_indicatorTargetDefault; page.cfg_customStateColors = page.cfg_customStateColorsDefault; page.cfg_stateOkColor = page.cfg_stateOkColorDefault; page.cfg_statePausedColor = page.cfg_statePausedColorDefault; page.cfg_stateBadColor = page.cfg_stateBadColorDefault; page.cfg_iconUseCustomColor = page.cfg_iconUseCustomColorDefault; page.cfg_iconColor = page.cfg_iconColorDefault; page.cfg_separateResult = page.cfg_separateResultDefault; page.cfg_badgeStyle = page.cfg_badgeStyleDefault; page.cfg_separator = page.cfg_separatorDefault; page.cfg_mainDot = page.cfg_mainDotDefault; page.cfg_mainDotUseCustomColor = page.cfg_mainDotUseCustomColorDefault; page.cfg_mainDotColor = page.cfg_mainDotColorDefault; page.cfg_mainDotPosition = page.cfg_mainDotPositionDefault; page.cfg_wrapText = page.cfg_wrapTextDefault; page.cfg_widthFit = page.cfg_widthFitDefault } }
+                Kirigami.Separator {
+                    visible: page.iconPanelStyle
+                    Kirigami.FormData.isSection: true
+                    Kirigami.FormData.label: i18n("Badge")
+                }
+                Controls.ComboBox {
+                    id: badgeChoiceBox
+                    objectName: "badgeChoice"
+                    visible: page.iconPanelStyle
+                    Kirigami.FormData.label: i18n("Shows:")
+                    model: page.badgeChoices
+                    currentIndex: page.badgeChoice
+                    onActivated: function (index) { page.setBadgeChoice(index) }
+                }
+                Controls.TextField {
+                    id: separator
+                    visible: page.iconPanelStyle && page.badgeChoice === 2
+                    Kirigami.FormData.label: i18n("Between the numbers:")
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 4
+                    Layout.maximumWidth: Kirigami.Units.gridUnit * 4
+                    maximumLength: 3
+                }
+                RowLayout {
+                    visible: page.iconPanelStyle && page.badgeChoice === 6
+                    Kirigami.FormData.label: i18n("Dot:")
+                    Controls.ComboBox {
+                        id: mainDotPosition
+                        model: [i18n("Top right"), i18n("Top left"), i18n("Bottom right"), i18n("Bottom left")]
+                    }
+                    Controls.CheckBox { id: mainDotUseCustomColor; text: i18n("own colour") }
+                    KQuickControls.ColorButton { id: mainDotColor; onAccepted: mainDotUseCustomColor.checked = true }
+                    QuestionHelp { helpText: i18n("The dot only shows while at least one container is running, in the state colour unless you choose one.") }
+                }
+                Controls.CheckBox {
+                    id: wrapText
+                    visible: page.iconPanelStyle && page.badgeChoice > 0 && page.badgeChoice < 6
+                    Kirigami.FormData.label: i18n("Badge text:")
+                    text: i18n("wrap onto two lines")
+                    onCheckedChanged: if (checked) widthFit.checked = false
+                }
+                Controls.CheckBox {
+                    id: widthFit
+                    visible: page.iconPanelStyle && page.badgeChoice > 0 && page.badgeChoice < 6
+                    text: i18n("widen the icon to fit it")
+                    onCheckedChanged: if (checked) wrapText.checked = false
+                }
+
+                Kirigami.Separator { Kirigami.FormData.isSection: true; Kirigami.FormData.label: i18n("Behaviour") }
+                Controls.CheckBox {
+                    id: hideWhenInactive
+                    Kirigami.FormData.label: i18n("Hide the icon:")
+                    text: i18n("while Docker is not running")
+                }
+                Controls.ComboBox {
+                    id: middleClick
+                    Kirigami.FormData.label: i18n("Middle click:")
+                    model: [i18n("Refresh now"), i18n("Attach or detach the window"),
+                            i18n("Restart unhealthy containers"), i18n("Do nothing")]
+                }
+
+                Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_panelStyle = page.cfg_panelStyleDefault; page.cfg_hideWhenInactive = page.cfg_hideWhenInactiveDefault; page.cfg_middleClickAction = page.cfg_middleClickActionDefault; page.cfg_panelIndicator = page.cfg_panelIndicatorDefault; page.cfg_indicatorTarget = page.cfg_indicatorTargetDefault; page.cfg_customStateColors = page.cfg_customStateColorsDefault; page.cfg_stateOkColor = page.cfg_stateOkColorDefault; page.cfg_statePausedColor = page.cfg_statePausedColorDefault; page.cfg_stateBadColor = page.cfg_stateBadColorDefault; page.cfg_iconUseCustomColor = page.cfg_iconUseCustomColorDefault; page.cfg_iconColor = page.cfg_iconColorDefault; page.cfg_separateResult = page.cfg_separateResultDefault; page.cfg_badgeStyle = page.cfg_badgeStyleDefault; page.cfg_separator = page.cfg_separatorDefault; page.cfg_mainDot = page.cfg_mainDotDefault; page.cfg_mainDotUseCustomColor = page.cfg_mainDotUseCustomColorDefault; page.cfg_mainDotColor = page.cfg_mainDotColorDefault; page.cfg_mainDotPosition = page.cfg_mainDotPositionDefault; page.cfg_wrapText = page.cfg_wrapTextDefault; page.cfg_widthFit = page.cfg_widthFitDefault } }
+            }
         }
 
         Loader {

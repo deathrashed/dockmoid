@@ -12,6 +12,8 @@ ColumnLayout {
     property string value: ""
     property string title: ""
     property string delimiter: "="
+    /* Relative widths of the columns, one per header; equal when empty. */
+    property var columnWeights: []
     property var headers: [i18n("Match"), i18n("Value")]
     property string example: ""
     property string kind: "keyValue" // keyValue, probe, launcher
@@ -140,6 +142,7 @@ ColumnLayout {
                             readonly property int columnIndex: index
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
+                            Layout.preferredWidth: (root.columnWeights[columnIndex] || 1) * Kirigami.Units.gridUnit * 3
                             placeholderText: root.headers[columnIndex]
                             text: rowDelegate.rule.fields[columnIndex] || ""
                             onTextEdited: root.setField(rowDelegate.rowIndex, columnIndex, text)
