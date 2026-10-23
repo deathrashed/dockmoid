@@ -48,3 +48,16 @@ assert.equal(presentation.panelStyle,4);
 
 const filtered=c.parseViews('[{"name":"Stopped","mode":3,"state":"stopped"},{"name":"Old","mode":0}]');
 assert.equal(filtered[0].state,'stopped');assert.equal(filtered[1].state,'all');
+
+// Every filter the state menu offers survives Save This View → restore.
+const popup=require('node:fs').readFileSync(require('node:path').join(__dirname,'../contents/ui/Views/PopupView.qml'),'utf8');
+const choices=popup.slice(popup.indexOf('stateChoices: ['),popup.indexOf(']',popup.indexOf('stateChoices: ['))).match(/key:"([^"]+)"/g).map(k=>k.slice(5,-1));
+assert.ok(choices.length>=10,'state choices found');
+for(const key of choices){
+ if(key==='attention')continue;
+ assert.equal(c.parseViews(JSON.stringify([{name:key,mode:0,state:key}]))[0].state,key,'saved view keeps '+key);
+}
+// Needs Attention is saved as the problems flag; an older "attention" state still restores it.
+const attention=c.parseViews('[{"name":"a","mode":0,"state":"attention"}]')[0];
+assert.equal(attention.problems,true);assert.equal(attention.state,'all');
+assert.equal(c.parseViews('[{"name":"x","mode":0,"state":"bogus"}]')[0].state,'all');

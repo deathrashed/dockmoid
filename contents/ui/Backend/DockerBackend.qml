@@ -2165,8 +2165,13 @@ Item {
     }
 
     /* A Compose file's text for the inspector; capped, and only a .yml/.yaml/.json path. */
+    /*
+     * The file is read on this machine, so a remote engine's label path would
+     * name whatever local file happens to share its spelling. Refuse instead.
+     */
     function readComposeFile(path, done) {
         path = String(path || "").split(",")[0].trim()
+        if (remoteEngine) { done(false, i18n("This Compose file is on the remote host %1 and cannot be read from here.", endpointHost)); return }
         if (!/^\/.+\.(ya?ml|json)$/i.test(path)) { done(false, i18n("No Compose file is recorded for this container.")); return }
         run("head -c 262144 " + shellQuote(path), "diagnostic-compose-file", function (code, out, err) {
             done(code === 0, code === 0 ? String(out || "") : backend.firstLine(err) || i18n("The file could not be read."))

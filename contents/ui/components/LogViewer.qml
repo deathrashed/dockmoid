@@ -153,6 +153,7 @@ Item {
             PlasmaExtras.SearchField {
                 id: filterField
                 Layout.fillWidth: true
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 5
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 16
                 placeholderText: i18n("Filter lines")
                 onTextChanged: root.needle = text
@@ -187,24 +188,48 @@ Item {
                 PlasmaComponents.ToolTip { text: errorsButton.text }
             }
 
-            PlasmaComponents.ComboBox {
-                id: timestampModeBox
+            /*
+             * Timestamp options live in one menu rather than two combo boxes:
+             * at tray-popup width those pushed the other tools off the edge,
+             * and their content-sized widths fed back into the row's layout.
+             */
+            PlasmaComponents.ToolButton {
+                id: timestampButton
                 visible: root.logMode
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 8
-                model: [i18n("Timestamp hidden"), i18n("Original UTC"), i18n("Local time")]
-                currentIndex: root.timestampMode
-                onActivated: function (index) { plasmoid.configuration.logTimestampMode = index }
-                PlasmaComponents.ToolTip { text: i18n("Timestamp display") }
+                display: PlasmaComponents.AbstractButton.IconOnly
+                icon.name: "view-calendar-time-spent"
+                text: i18n("Timestamps")
+                checked: timestampMenu.opened || root.timestampMode !== 0
+                onClicked: timestampMenu.popup(timestampButton, 0, timestampButton.height)
+                PlasmaComponents.ToolTip { text: timestampButton.text }
             }
-
-            PlasmaComponents.ComboBox {
-                id: timestampPrecisionBox
-                visible: root.logMode && root.timestampMode !== 0
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 7
-                model: [i18n("Seconds"), i18n("Milliseconds"), i18n("Full precision")]
-                currentIndex: root.timestampPrecision
-                onActivated: function (index) { plasmoid.configuration.logTimestampPrecision = index }
-                PlasmaComponents.ToolTip { text: i18n("Timestamp precision") }
+            PlasmaComponents.Menu {
+                id: timestampMenu
+                Repeater {
+                    model: [i18n("Hide Timestamps"), i18n("Original UTC"), i18n("Local Time")]
+                    delegate: PlasmaComponents.MenuItem {
+                        required property int index
+                        required property string modelData
+                        text: modelData
+                        checkable: true
+                        checked: root.timestampMode === index
+                        autoExclusive: true
+                        onTriggered: plasmoid.configuration.logTimestampMode = index
+                    }
+                }
+                PlasmaComponents.MenuSeparator { visible: root.timestampMode !== 0; height: visible ? implicitHeight : 0 }
+                Repeater {
+                    model: root.timestampMode !== 0 ? [i18n("Seconds"), i18n("Milliseconds"), i18n("Full Precision")] : []
+                    delegate: PlasmaComponents.MenuItem {
+                        required property int index
+                        required property string modelData
+                        text: modelData
+                        checkable: true
+                        checked: root.timestampPrecision === index
+                        autoExclusive: true
+                        onTriggered: plasmoid.configuration.logTimestampPrecision = index
+                    }
+                }
             }
 
             PlasmaComponents.ToolButton {

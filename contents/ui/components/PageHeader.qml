@@ -10,7 +10,9 @@ import "../../lib/style.js" as Style
  *
  * Optional `leading` content (an icon tile), a title with `badges` beside it,
  * a quiet subtitle, and `actions` on the right. Pages put their own controls
- * in the default slot, so headers look alike but stay specific.
+ * in the default slot, so headers look alike but stay specific. With
+ * `stackActions` the actions get a row of their own under the title, so on a
+ * narrow page status badges and buttons never share (and overlap on) a line.
  */
 Item {
     id: root
@@ -22,6 +24,7 @@ Item {
     property string glyph: ""
     /* Tighter, for a page shown inside the dock. */
     property bool compact: false
+    property bool stackActions: false
     property alias leading: leadingRow.data
     property alias badges: badgeRow.data
     default property alias actions: actionRow.data
@@ -58,15 +61,21 @@ Item {
         color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
     }
 
-    RowLayout {
+    GridLayout {
         id: line
         anchors.fill: parent
         anchors.leftMargin: Kirigami.Units.largeSpacing
         anchors.rightMargin: Kirigami.Units.largeSpacing
-        spacing: Kirigami.Units.largeSpacing
+        anchors.topMargin: root.stackActions ? Kirigami.Units.smallSpacing : 0
+        anchors.bottomMargin: root.stackActions ? Kirigami.Units.smallSpacing : 0
+        columns: 4
+        columnSpacing: Kirigami.Units.largeSpacing
+        rowSpacing: Kirigami.Units.smallSpacing
 
         Rectangle {
             visible: root.glyph !== ""
+            Layout.row: 0
+            Layout.column: 0
             Layout.alignment: Qt.AlignVCenter
             implicitWidth: Kirigami.Units.iconSizes.medium + Kirigami.Units.smallSpacing * 2
             implicitHeight: implicitWidth
@@ -84,9 +93,13 @@ Item {
         RowLayout {
             id: leadingRow
             visible: children.length > 0
+            Layout.row: 0
+            Layout.column: 1
             Layout.alignment: Qt.AlignVCenter
         }
         ColumnLayout {
+            Layout.row: 0
+            Layout.column: 2
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             Layout.alignment: Qt.AlignVCenter
@@ -134,7 +147,10 @@ Item {
         }
         RowLayout {
             id: actionRow
-            Layout.alignment: Qt.AlignVCenter
+            Layout.row: root.stackActions ? 1 : 0
+            Layout.column: root.stackActions ? 0 : 3
+            Layout.columnSpan: root.stackActions ? 4 : 1
+            Layout.alignment: root.stackActions ? Qt.AlignLeft | Qt.AlignVCenter : Qt.AlignVCenter
             spacing: Kirigami.Units.smallSpacing
         }
     }

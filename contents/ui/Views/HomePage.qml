@@ -38,7 +38,7 @@ Item {
     function focusSearch() { searchField.forceActiveFocus(); searchField.selectAll() }
     signal createRequested()
     signal resourcesRequested()
-    signal openDetail(string recordId)
+    signal openDetail(string recordId, int tab)
     signal openOutput(string title, string content, bool live, string recordId)
 
     readonly property var cfg: plasmoid.configuration
@@ -92,8 +92,8 @@ Item {
         {key: "events", label: i18n("Events"), glyph: "bell-ring"},
         {key: "compose", label: i18n("Compose"), glyph: "file-code"}
     ]
-    Component { id: previewPage; Components.ServicePreview { backend: root.backend; onOpenDetail: function(id) { root.openDetail(id) } } }
-    Component { id: logsPage; InspectorLogs { backend: root.backend; onOpenDetail: function(id, tab) { root.openDetail(id) } } }
+    Component { id: previewPage; Components.ServicePreview { backend: root.backend; onOpenDetail: function(id) { root.openDetail(id, 0) } } }
+    Component { id: logsPage; InspectorLogs { backend: root.backend; onOpenDetail: function(id, tab) { root.openDetail(id, tab) } } }
     Component { id: eventsPage; InspectorEvents { backend: root.backend } }
     Component { id: composePage; InspectorCompose { backend: root.backend } }
     readonly property var dockComponent: dockPage === "logs" ? logsPage : dockPage === "events" ? eventsPage
@@ -110,7 +110,7 @@ Item {
                 if (next[group]) delete next[group]; else next[group] = true
                 root.updateSetting("collapsed", next)
             }
-            onOpenDetail: function(recordId) { root.openDetail(recordId) }
+            onOpenDetail: function(recordId) { root.openDetail(recordId, 0) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
     }
@@ -118,7 +118,7 @@ Item {
         id: minimalComponent
         Components.ContainerChips {
             backend: root.backend; proxy: root.proxy; dialogs: root.dialogs
-            onOpenDetail: function(recordId) { root.openDetail(recordId) }
+            onOpenDetail: function(recordId) { root.openDetail(recordId, 0) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
     }
@@ -126,7 +126,7 @@ Item {
         id: tableComponent
         Components.ContainerTable {
             detailLevel: root.detailLevel; backend: root.backend; proxy: root.proxy; dialogs: root.dialogs
-            onOpenDetail: function(recordId) { root.openDetail(recordId) }
+            onOpenDetail: function(recordId) { root.openDetail(recordId, 0) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
     }
@@ -135,7 +135,7 @@ Item {
         Components.ComposeGroupView {
             backend: root.backend; dialogs: root.dialogs; searchText: root.searchText
             rowFilter: root.rowFilter; detailLevel: root.detailLevel
-            onOpenDetail: function(recordId) { root.openDetail(recordId) }
+            onOpenDetail: function(recordId) { root.openDetail(recordId, 0) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
     }
@@ -143,7 +143,7 @@ Item {
         id: gridComponent
         Components.ContainerGrid {
             detailLevel: root.detailLevel; backend: root.backend; proxy: root.proxy; dialogs: root.dialogs
-            onOpenDetail: function(recordId) { root.openDetail(recordId) }
+            onOpenDetail: function(recordId) { root.openDetail(recordId, 0) }
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
     }

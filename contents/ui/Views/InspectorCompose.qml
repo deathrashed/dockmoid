@@ -11,7 +11,12 @@ Item {
     required property var backend
 
     readonly property var record: { const revision = backend.revision; return backend.findRecord(backend.previewRecordId) }
-    readonly property string path: record ? String(record.composeFiles || "").split(",")[0].trim() : ""
+    /* A project with overrides records every file; show which one is open. */
+    readonly property var files: record ? String(record.composeFiles || "").split(",").map(function (f) { return f.trim() }).filter(function (f) { return f !== "" }) : []
+    property int fileIndex: 0
+    readonly property string path: files.length > 0 ? files[Math.min(fileIndex, files.length - 1)] : ""
+    onRecordChanged: if (record && record.id !== shownId) { shownId = record.id; fileIndex = 0 }
+    property string shownId: ""
     property string text: ""
     property string message: ""
     property bool messageOk: true
@@ -52,16 +57,26 @@ Item {
             Components.DockButton {
                 glyph: "document-edit"
                 text: i18n("Edit…")
-                visible: !root.backend.readOnly
+                visible: !root.backend.readOnly && !root.backend.remoteEngine
                 onClicked: root.backend.editCompose(root.record)
             }
             Components.ActionToolButton { glyph: "view-refresh"; text: i18n("Reload file"); onClicked: root.reload() }
+        }
+        Components.SizedComboBox {
+            Layout.fillWidth: true
+            Layout.leftMargin: Kirigami.Units.largeSpacing
+            Layout.rightMargin: Kirigami.Units.largeSpacing
+            visible: root.files.length > 1
+            model: root.files
+            currentIndex: Math.min(root.fileIndex, root.files.length - 1)
+            onActivated: function (index) { root.fileIndex = index }
         }
         PlasmaComponents.Label {
             Layout.fillWidth: true
             Layout.leftMargin: Kirigami.Units.largeSpacing
             Layout.rightMargin: Kirigami.Units.largeSpacing
-            text: root.path
+            visible: root.files.length <= 1 || root.backend.remoteEngine
+            text: root.backend.remoteEngine ? i18n("%1 on %2", root.path, root.backend.endpointHost) : root.path
             elide: Text.ElideMiddle
             font: Kirigami.Theme.smallFont
             color: Kirigami.Theme.disabledTextColor

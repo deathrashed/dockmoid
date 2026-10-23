@@ -477,9 +477,9 @@ Item {
                 onTextChanged: if (root.searchText !== text) root.searchText = text
                 Keys.onEscapePressed: clear()
             }
-            PlasmaComponents.ComboBox {
+            Components.SizedComboBox {
                 id: sortBox
-                Layout.preferredWidth: Kirigami.Units.gridUnit * (root.narrow ? 6 : 8)
+                preferredTextWidth: Kirigami.Units.gridUnit * (root.narrow ? 6 : 8)
                 model: root.sortOptions
                 textRole: "label"
                 valueRole: "key"

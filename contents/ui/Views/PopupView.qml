@@ -1074,7 +1074,7 @@ PlasmaExtras.Representation {
                 onClearFiltersRequested: root.clearFilters()
                 onCreateRequested: root.showDeployment()
                 onResourcesRequested:root.showResources()
-                onOpenDetail: function (recordId) { root.showDetail(recordId) }
+                onOpenDetail: function (recordId, tab) { root.showDetail(recordId, tab) }
                 onOpenOutput: function (title, text, isLive, recordId) {
                     root.showOutput(title, text, isLive, recordId)
                 }

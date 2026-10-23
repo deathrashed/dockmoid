@@ -90,6 +90,11 @@ Item {
             logsRequestId = backend.newOutputRequest("logs", recordId)
             inspectRequestId = backend.newOutputRequest("inspect", recordId)
         }
+        // Opened straight on a tab (Full Logs, Doctor): onTabChanged ran before
+        // the request ids existed, so load that tab now.
+        if (root.isNotCreated) root.tab = 0
+        else if (tab === 1) root.refreshLogs()
+        else if (tab === 2) root.refreshInspect()
     }
 
     function runCommand(command) {
@@ -179,6 +184,7 @@ Item {
 
         // -------------------------------------------------- header -------
         Components.PageHeader {
+            stackActions: root.narrow
             title: root.hasRecord ? root.record.name : i18n("Container is gone")
             subtitle: root.hasRecord ? String(root.record.image || "").replace(/@sha256:([0-9a-f]{12})[0-9a-f]+/i, "@sha256:$1…") : ""
             leading: Components.ServiceIcon {
@@ -563,8 +569,9 @@ Item {
                                 visible: root.record.restartPolicy !== ""
                                 spacing: Kirigami.Units.smallSpacing
                                 PlasmaComponents.Label { Layout.preferredWidth: Kirigami.Units.gridUnit * 7; text: i18n("Autostart"); color: Kirigami.Theme.disabledTextColor }
-                                PlasmaComponents.ComboBox {
+                                Components.SizedComboBox {
                                     enabled: !root.backend.readOnly && !root.backend.isPodman
+                                    preferredTextWidth: Kirigami.Units.gridUnit * 6
                                     Layout.fillWidth: true
                                     readonly property var policies: ["no", "on-failure", "unless-stopped", "always"]
                                     model: policies.map(function (p) { return root.backend.policyLabel(p) })

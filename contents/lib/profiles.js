@@ -69,11 +69,13 @@ function prepareExport(data, currentProfile, allowCommands) {
     result = parse(JSON.stringify(result), !!allowCommands);
     return {data: result, includedCurrent: includedCurrent};
 }
+/* Every filter the state menu offers; "attention" is stored as problems. */
+var VIEW_STATES = ["all", "running", "stopped", "not-created", "updates", "paused", "restarting", "created", "unhealthy", "failed"];
 function parseViews(text) {
     try {
         var list = JSON.parse(String(text || "[]"));
         if (!Array.isArray(list)) return [];
         return list.filter(function (v) { return v && typeof v.name === "string" && [0, 1, 2, 3].indexOf(v.mode) >= 0; })
-            .slice(0, 30).map(function (v) { return {name: v.name.slice(0, 80), search: String(v.search || ""), mode: v.mode, state: ["all","running","stopped","paused","restarting","created","unhealthy"].indexOf(v.state) >= 0 ? v.state : "all", detailLevel: [0, 1, 2, 3].indexOf(v.detailLevel) >= 0 ? v.detailLevel : 1, problems: !!v.problems}; });
+            .slice(0, 30).map(function (v) { return {name: v.name.slice(0, 80), search: String(v.search || ""), mode: v.mode, state: VIEW_STATES.indexOf(v.state) >= 0 ? v.state : "all", detailLevel: [0, 1, 2, 3].indexOf(v.detailLevel) >= 0 ? v.detailLevel : 1, problems: !!v.problems || v.state === "attention"}; });
     } catch (e) { return []; }
 }

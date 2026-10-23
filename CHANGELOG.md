@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Fixed: Full Logs in the inspector opened the detail page on Overview; it now opens on Logs and
+  loads them straight away.
+- Fixed: saved views with Pending Deployment, Updates Available or Failed came back as All
+  Containers.
+- Fixed: on a remote engine the inspector's Compose tab read a local file with the same path. It
+  now says the file is on the remote host; Edit is hidden there. Projects with override files can
+  switch between them.
+- Narrow popups: log timestamp options moved into one menu so the log toolbar fits, and the detail
+  header puts its action buttons on their own row under the status badges. Removed the combo-box
+  sizing loops in Logs, Details and Resources.
+
 - Container actions follow one rule set (lib/actions.js) in the menu, list rows, grid, table, detail
   header and inspector. Fixed: a paused container offered Restart, which then did nothing; the
   start/stop button showed Start on a paused container. A crash-looping container can now be
