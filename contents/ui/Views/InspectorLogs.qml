@@ -12,25 +12,15 @@ Item {
     signal openDetail(string recordId, int tab)
 
     readonly property var record: { const revision = backend.revision; return backend.findRecord(backend.previewRecordId) }
-    property string text: ""
-    property string shownId: ""
 
-    function refresh() {
-        const rec = root.record
-        if (!rec) { root.text = ""; return }
-        const id = rec.id
-        root.backend.tailLogs(rec, Math.min(500, Number(plasmoid.configuration.logTailLines) || 200), function (out) {
-            if (root.record && root.record.id === id) root.text = out
-        })
-    }
-    onRecordChanged: if ((record ? record.id : "") !== shownId) { shownId = record ? record.id : ""; text = ""; refresh() }
-
-    // Follows the log while it is on screen, at the usage sampling pace.
-    Timer {
-        interval: Math.max(3, plasmoid.configuration.usageInterval) * 1000
-        repeat: true
-        running: root.visible && !!root.record && root.record.isRunning === true
-        onTriggered: root.refresh()
+    // The tail of the selected container, followed while this tab is on screen.
+    Components.LogSession {
+        id: session
+        backend: root.backend
+        recordId: root.record ? root.record.id : ""
+        active: root.visible
+        tail: Math.min(500, Number(root.backend.cfg.logTailLines) || 200)
+        interval: Math.max(3, Number(root.backend.cfg.usageInterval) || 5) * 1000
     }
 
     InspectorEmpty { anchors.fill: parent; visible: !root.record; text: i18n("Select a container to follow its log here.") }
@@ -52,7 +42,7 @@ Item {
         Components.LogViewer {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            text: root.text
+            text: session.text
             logMode: true
             emptyText: root.record && root.record.state === "not-created" ? i18n("This service has no container yet.") : i18n("No log output yet.")
         }

@@ -50,6 +50,10 @@ KCM.SimpleKCM {
     property alias cfg_probeInterval: probeInterval.value
     property alias cfg_probeIdleInterval: probeIdleInterval.value
     property alias cfg_notifyOnProbe: notifyOnProbe.checked
+    property int cfg_logWatchMinutesDefault
+    property bool cfg_notifyOnLogIssueDefault
+    property alias cfg_logWatchMinutes: logWatchMinutes.value
+    property alias cfg_notifyOnLogIssue: notifyOnLogIssue.checked
     property alias cfg_checkImageUpdates: checkUpdates.checked
     property alias cfg_updateCheckHours: updateHours.value
     property alias cfg_notifyOnUpdate: notifyOnUpdate.checked
@@ -159,6 +163,26 @@ KCM.SimpleKCM {
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Log watch")
+        }
+        RowLayout {
+            Kirigami.FormData.label: i18n("Check logs every:")
+            Controls.SpinBox {
+                id: logWatchMinutes
+                from: 0; to: 1440; editable: true
+                textFromValue: function (v) { return v === 0 ? i18n("never") : i18np("%1 minute", "%1 minutes", v) }
+                valueFromText: function (t) { return parseInt(t) || 0 }
+            }
+            QuestionHelp { helpText: i18n("Reads the newest lines of a few running containers and looks for error loops and repeated failures, so a problem that only shows in the logs is noticed. It reads a small tail, a few containers at a time. Never reads a whole log.") }
+        }
+        Controls.CheckBox {
+            id: notifyOnLogIssue
+            enabled: logWatchMinutes.value > 0
+            text: i18n("notify about a new error loop in a container's logs")
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
             Kirigami.FormData.label: i18n("Image updates")
         }
 
@@ -188,7 +212,7 @@ KCM.SimpleKCM {
             }
             QuestionHelp { helpText: i18n("Needs docker buildx (included with current Docker). Images built locally, or shown only as an id, are skipped.") }
         }
-        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_alertCpu = page.cfg_alertCpuDefault; page.cfg_alertMem = page.cfg_alertMemDefault; page.cfg_alertSeconds = page.cfg_alertSecondsDefault; page.cfg_probes = page.cfg_probesDefault; page.cfg_probeInterval = page.cfg_probeIntervalDefault; page.cfg_probeIdleInterval = page.cfg_probeIdleIntervalDefault; page.cfg_notifyOnProbe = page.cfg_notifyOnProbeDefault; page.cfg_checkImageUpdates = page.cfg_checkImageUpdatesDefault; page.cfg_updateCheckHours = page.cfg_updateCheckHoursDefault; page.cfg_notifyOnUpdate = page.cfg_notifyOnUpdateDefault; page.cfg_historySamples = page.cfg_historySamplesDefault } }
+        Controls.Button { text: i18n("Restore page defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_alertCpu = page.cfg_alertCpuDefault; page.cfg_alertMem = page.cfg_alertMemDefault; page.cfg_alertSeconds = page.cfg_alertSecondsDefault; page.cfg_probes = page.cfg_probesDefault; page.cfg_probeInterval = page.cfg_probeIntervalDefault; page.cfg_probeIdleInterval = page.cfg_probeIdleIntervalDefault; page.cfg_notifyOnProbe = page.cfg_notifyOnProbeDefault; page.cfg_logWatchMinutes = page.cfg_logWatchMinutesDefault; page.cfg_notifyOnLogIssue = page.cfg_notifyOnLogIssueDefault; page.cfg_checkImageUpdates = page.cfg_checkImageUpdatesDefault; page.cfg_updateCheckHours = page.cfg_updateCheckHoursDefault; page.cfg_notifyOnUpdate = page.cfg_notifyOnUpdateDefault; page.cfg_historySamples = page.cfg_historySamplesDefault } }
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true

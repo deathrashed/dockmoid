@@ -8,12 +8,14 @@ and docs/RELEASE_NOTES.md for release notes.
 
 - [x] Version 2.4.0 in package metadata, AppStream release and release documentation.
 - [x] Current user guide, feature/compatibility limitations, contribution and security guidance.
-- [x] Owner's README visual skill applied; adaptive shieldcn assets and locally bundled heading/license artwork.
+- [x] README with adaptive shieldcn badges and locally bundled heading/license artwork.
 - [x] Bundled artwork preserved with applicable license notices and historical attribution.
 - [x] Existing package ID retained; runtime/source archive builders exclude workspace, credentials and caches.
 - [x] Isolated regressions for parsing, engine capabilities, command correlation, cleanup defaults, Compose behavior and installer rollback.
 - [x] QML checked with native Qt/Plasma imports; production-view narrow/wide runtime checks.
-- [x] Native tray opening confirmed in the running widget after the representation fix.
+- [x] Screenshots in docs/assets regenerated from the UI harness for the current UI; regenerate
+      them if the UI changes again before release.
+- [x] Native tray opening checked in a running Plasma session.
 
 ## Build and validate the exact release candidate
 
@@ -27,7 +29,7 @@ unzip -t dockmoid-2.4.0-source.zip
 ```
 
 The .plasmoid archive contains runtime contents, metadata and legal notices. The source archive also
-contains docs, tests, translation tooling, CI and release scripts. The legacy packaging/release.py
+contains docs, tests, translation tooling and release scripts. The legacy packaging/release.py
 builds a runtime package from packaging/manifest.json; package-release.sh is the documented release-pair
 builder. Python helper files must be included by both.
 

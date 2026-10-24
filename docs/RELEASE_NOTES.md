@@ -17,7 +17,7 @@ This release refreshes the main layout, settings, diagnostics and Compose servic
 
 ## Validation and limits
 
-Validated locally on Plasma 6.7.5, with native tray opening confirmed by the user. Production Qt views
+Validated locally on Plasma 6.7.5, with native tray opening checked in a running session. Production Qt views
 were exercised at 360 and 1050 pixels across views/detail levels, maintenance pages and continuation
 controls. Installer rollback, helpers and packaging have isolated checks. This does not certify every
 Plasma 6 minor version or every remote/rootless/Podman configuration. No before/after memory claim is

@@ -15,6 +15,6 @@ class ReleaseArchive(unittest.TestCase):
                     self.assertIn(name,names)
                 self.assertFalse(any(p.startswith('.git/') or '/__pycache__/' in p or p.endswith('.env') for p in names))
             with zipfile.ZipFile(dest/f'dockmoid-{version}-source.zip') as z:
-                for name in ['README.md','docs/STORE_LISTING.md','docs/USER_GUIDE.md','SECURITY.md','tests/helpers_test.py','.github/workflows/check.yml']:
+                for name in ['README.md','docs/STORE_LISTING.md','docs/USER_GUIDE.md','SECURITY.md','tests/helpers_test.py','tests/run.sh']:
                     self.assertIn(f'dockmoid-{version}/'+name,z.namelist())
 if __name__=='__main__':unittest.main()

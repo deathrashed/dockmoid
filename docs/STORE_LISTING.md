@@ -18,14 +18,15 @@ Container status, Compose services and reviewable diagnostics in your KDE Plasma
 
 ## Description
 
-Dockmoid brings Docker and Podman container controls into KDE Plasma 6. Use List, Table, Grid or Groups,
-with separate resizable Running, Needs attention and Inactive sections. Keep configured Docker Compose
-services visible even when their containers have been removed, and start only the service you choose.
+Dockmoid brings Docker and Podman container controls into KDE Plasma 6. Use List, Table, Grid or Groups
+with collapsible Running, Stopped and Pending Deployment sections. Keep configured Docker Compose
+services visible even when their containers have been removed, and create only the service you choose.
 
-Open Details for metrics, ports, mounts, ANSI-colored logs, JSON tree/raw inspection and commands. Add
-a cached hover/selection preview, or embed Doctor, image deployment and resource inventories in the main
-page. The responsive toolbar also works in a detached window. Doctor presents evidence and selected
-action plans with command previews and visible results; no blanket automatic repair runs.
+An inspector under the list follows the selected container with its overview, live logs, events and
+Compose file. Open Details for usage, ports, networks, mounts, ANSI-colored logs, JSON tree/raw
+inspection and commands. Start, Stop, Restart, Pause, Kill and Update follow the same rules in every
+view. Doctor presents evidence and selected action plans with command previews and visible results;
+no blanket automatic repair runs.
 
 Docker Hub search shows star/download metadata, an Official filter and sorting of returned results.
 Resource inventories distinguish existing-container use from configured Compose references. Cleanup
@@ -39,8 +40,9 @@ up to 50 returned results, not all Docker Hub images. Commands run with your acc
 
 ## Screenshots and submission
 
-Use docs/assets/overview.png, new-containers.png and doctor.png. These show production QML with example
-data, rather than a personal host; caption them accordingly. The project icon is contents/icons/dockmoid.png.
+Use docs/assets/overview.png, grid.png, detail.png, deploy.png, resources.png and narrow.png. These show
+production QML with example data, rather than a personal host; caption them accordingly. The project
+icon is contents/icons/dockmoid.png.
 
 Select the Plasma 6 category shown by the live upload form and supply its requested image dimensions,
 download architecture/type and source/license fields. The Store assigns the listing URL; add that

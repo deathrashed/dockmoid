@@ -11,7 +11,7 @@ Controls.AbstractButton {
     property string glyph: "layers"
     property bool iconOnly: false
 
-    checkable: true
+    checkable: false
     implicitHeight: Kirigami.Units.gridUnit * 1.7
     implicitWidth: control.iconOnly ? implicitHeight : row.implicitWidth + Kirigami.Units.largeSpacing * 2
     hoverEnabled: true

@@ -57,8 +57,11 @@ Item {
         {key:"networks", title:i18n("Networks"), min:140, sort:"networks", level:3},
         {key:"memU", title:i18n("Memory Used"), min:130, sort:"memPct", level:3}
     ]
+    /* The current delegate, untyped: the view only knows it as an Item. */
+    readonly property var currentEntry: table.currentItem
+
     /* Bring proxy row `row` into view (view switches, Show in List). */
-    function reveal(row) { if (row >= 0 && row < table.count) table.positionViewAtIndex(row, ListView.Contain) }
+    function reveal(row) { if (row >= 0 && row < table.count) { table.currentIndex = row; table.positionViewAtIndex(row, ListView.Contain) } }
 
     function savedKeys() {
         try { const v = root.cfg.tableVisibleColumns || ""; return Array.isArray(JSON.parse(v)) ? JSON.parse(v) : String(v).split(",").filter(function(x){return x !== ""}) } catch (e) { return String(root.cfg.tableVisibleColumns || "").split(",").filter(function(x){return x !== ""}) }
@@ -256,9 +259,23 @@ Item {
             cacheBuffer: Kirigami.Units.gridUnit * 4
             clip: true
             boundsBehavior: Flickable.StopAtBounds
+            // Keyboard: arrows select like a click (the inspector follows), Enter opens
+            // Details, the Menu key or Shift+F10 opens the actions menu.
+            keyNavigationEnabled: true
+            activeFocusOnTab: true
+            onCurrentIndexChanged: { if (root.currentEntry && activeFocus) root.backend.previewContainer(root.currentEntry.containerKey, true) }
+            Keys.onReturnPressed: { if (root.currentEntry) root.openDetail(root.currentEntry.containerKey) }
+            Keys.onEnterPressed: { if (root.currentEntry) root.openDetail(root.currentEntry.containerKey) }
+            Keys.onPressed: function (event) {
+                if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier))) {
+                    if (root.currentEntry) root.currentEntry.openMenu()
+                    event.accepted = true
+                }
+            }
 
             delegate: Item {
                 id: rowItem
+                function openMenu() { actions.popup(rowItem, Kirigami.Units.gridUnit, rowItem.height) }
                 required property int index
 
                 // Roles are declared individually: declaring a property called
@@ -395,8 +412,8 @@ Item {
                                         readonly property var primary: root.backend.primaryActionFor(rowItem.record)
                                         visible: root.detailLevel >= 1
                                         glyph: primary.action === "stop" ? "media-playback-stop" : "media-playback-start"
-                                        text: primary.action === "create" ? i18n("Create and start") : primary.action === "stop" ? i18n("Stop") : i18n("Start")
-                                        enabled: primary.enabled
+                                        text: primary.action === "create" ? i18n("Create and start %1", rowItem.record.name) : primary.action === "stop" ? i18n("Stop %1", rowItem.record.name) : i18n("Start %1", rowItem.record.name)
+                                        blockedReason: root.backend.actionReason(rowItem.record, primary.action)
                                         onClicked: root.backend.runAction(rowItem.record, primary.action)
                                     }
                                     ActionToolButton { glyph:"application-menu"; text:i18n("Container actions"); onClicked:actions.popup(this,0,height) }
@@ -404,6 +421,21 @@ Item {
                             }
                         }
                     }
+                }
+
+                // Selection wash and keyboard focus ring, as in List and Grid.
+                Rectangle {
+                    anchors.fill: parent
+                    z: -1
+                    visible: root.backend.previewMode === "selection" && root.backend.previewRecordId === rowItem.containerKey
+                    color: Qt.alpha(Kirigami.Theme.highlightColor, Style.WASH.selected)
+                }
+                Rectangle {
+                    anchors.fill: parent
+                    visible: table.activeFocus && rowItem.ListView.isCurrentItem
+                    color: "transparent"
+                    border.width: 2
+                    border.color: Kirigami.Theme.focusColor
                 }
 
                 // A hairline that survives column resizing, drawn last.
@@ -442,7 +474,17 @@ Item {
                 }
 
                 HoverHandler { id: rowHover;onHoveredChanged:if(hovered)root.backend.previewContainer(rowItem.containerKey,false) }
-                TapHandler {onTapped:root.backend.previewContainer(rowItem.containerKey,true)}
+                TapHandler {onTapped:{ if (root.backend.selection.active) { root.backend.selection.toggle(rowItem.containerKey); return } root.backend.previewContainer(rowItem.containerKey,true); table.currentIndex = rowItem.index }}
+                // Selection mode: a tick at the row's start.
+                ActionIcon {
+                    visible: root.backend.selection.active
+                    anchors.left: parent.left
+                    anchors.leftMargin: 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    glyph: root.backend.selection.picked[rowItem.containerKey] === true ? "square-check" : "square"
+                    implicitWidth: Kirigami.Units.iconSizes.small
+                    implicitHeight: implicitWidth
+                }
             }
         }
 

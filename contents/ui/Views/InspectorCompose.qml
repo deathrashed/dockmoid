@@ -54,6 +54,31 @@ Item {
                     root.message = String(out || "").trim().split("\n").slice(-3).join("\n")
                 })
             }
+            // Restart keeps the old configuration; Apply re-reads the files and recreates
+            // only what changed. Preview (Compose 2.17+) shows that without doing it.
+            Components.DockButton {
+                glyph: "file-search"
+                text: i18n("Preview")
+                visible: root.backend.composeDryRun && !root.backend.readOnly
+                onClicked: root.backend.composeRun(root.record, "service-preview", i18n("Preview Changes"), function (ok, out) {
+                    root.messageOk = ok
+                    root.message = String(out || "").trim().split("\n").slice(-6).join("\n") || i18n("Nothing would change.")
+                })
+            }
+            Components.DockButton {
+                glyph: "file-check"
+                text: i18n("Apply")
+                visible: root.backend.canUseCompose && !root.backend.readOnly
+                blockedReason: root.backend.actionReason(root.record, "recreate")
+                onClicked: {
+                    const state = String(root.record.state || "")
+                    const verb = state === "running" || state === "paused" || state === "restarting" ? "service-apply-running" : "service-apply-stopped"
+                    root.backend.composeRun(root.record, verb, i18n("Apply Changes · %1", root.record.name), function (ok, out) {
+                        root.messageOk = ok
+                        root.message = ok ? i18n("Applied. Compose recreated what the files changed.") : String(out || "").trim().split("\n").slice(-3).join("\n")
+                    })
+                }
+            }
             Components.DockButton {
                 glyph: "document-edit"
                 text: i18n("Edit…")

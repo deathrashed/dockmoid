@@ -89,7 +89,9 @@ PlasmaComponents.Menu {
      */
     function offer(menu, label, glyph, action, run) {
         if (root.backend.stateActionsFor(root.record)[action] !== true) return null
-        return addToMenu(menu, label, glyph, run || function () { root.perform(action) }, root.canPerform(action))
+        // Only what applies now is listed; the reason shows on the buttons instead.
+        if (!root.canPerform(action)) return null
+        return addToMenu(menu, label, glyph, run || function () { root.perform(action) }, true)
     }
 
     // ============================================================= items ====
@@ -302,6 +304,10 @@ PlasmaComponents.Menu {
             addComposeItem(project, "update", i18n("Update (Pull and Up)"), "package-upgrade")
             addComposeItem(project, "recreate", i18n("Force Recreate"), "media-playlist-repeat")
             addSeparator(project)
+            addHeading(i18n("Configuration"), project)
+            addComposeItem(project, "apply", i18n("Apply Changes"), "file-check")
+            if (root.backend.composeDryRun) addComposeItem(project, "preview", i18n("Preview Changes (Dry Run)"), "file-search")
+            addSeparator(project)
             addComposeItem(project, "down", i18n("Take Down…"), "edit-delete", true)
 
             if (rec.service) {
@@ -310,6 +316,13 @@ PlasmaComponents.Menu {
                 addComposeItem(service, "service-restart", i18n("Restart"), "view-refresh")
                 addComposeItem(service, "service-pull", i18n("Pull Image"), "system-download")
                 addComposeItem(service, "service-recreate", i18n("Force Recreate"), "media-playlist-repeat")
+                addSeparator(service)
+                addToMenu(service, i18n("Apply Changes…"), "file-check", function () {
+                    root.dialogs.confirmRecreate(rec, i18n("Apply Compose changes to %1?", rec.name),
+                        i18n("Compose re-reads the files and recreates this service only if its configuration or image changed. A stopped service stays stopped."),
+                        function () { root.runCompose(rec, root.applyVerb(rec), false) })
+                })
+                if (root.backend.composeDryRun) addComposeItem(service, "service-preview", i18n("Preview Changes (Dry Run)"), "file-search")
             }
         }
 
@@ -317,6 +330,16 @@ PlasmaComponents.Menu {
         addHeading(i18n("Files"), menu)
         if (rec.composeFiles !== "") addToMenu(menu, i18n("Edit Compose File…"), "document-edit", function () { root.backend.editCompose(rec) })
         if (!root.backend.remoteEngine && rec.composeWorkDir) addToMenu(menu, i18n("Open Project Folder"), "folder-open", function () { root.backend.openContainerFolder(rec) })
+    }
+
+    function showNetworkCompare(rec, other) {
+        var generation = root.backend.generation
+        var requestId = root.backend.newOutputRequest("diagnostics", rec.id)
+        var title = i18n("Network — %1 and %2", rec.name, other.name)
+        root.openOutput(title, i18n("Loading…"), false, rec.id)
+        root.backend.compareNetworks(rec, other, function (text) {
+            root.backend.correlatedOutputReady("diagnostics", rec.id, generation, requestId, 0, title, text)
+        })
     }
 
     /* A read-only look at the container, on the output page. */
@@ -332,7 +355,15 @@ PlasmaComponents.Menu {
                  pull:i18n("Pull Images"),update:i18n("Update Project"),recreate:i18n("Recreate Project"),down:i18n("Take Down Project"),
                  start:i18n("Start Project"),pause:i18n("Pause Project"),unpause:i18n("Resume Project"),images:i18n("Project Images"),
                  top:i18n("Project Processes"),config:i18n("Validate Configuration"),"service-logs":i18n("Service Logs"),
-                 "service-restart":i18n("Restart Service"),"service-pull":i18n("Pull Service Image"),"service-recreate":i18n("Recreate Service")})[verb] || i18n("Compose")
+                 "service-restart":i18n("Restart Service"),"service-pull":i18n("Pull Service Image"),"service-recreate":i18n("Recreate Service"),
+                 apply:i18n("Apply Project Changes"),preview:i18n("Preview Project Changes"),"service-apply-running":i18n("Apply Service Changes"),
+                 "service-apply-stopped":i18n("Apply Service Changes"),"service-preview":i18n("Preview Service Changes")})[verb] || i18n("Compose")
+    }
+
+    /* Apply keeps a stopped service stopped: it is recreated without starting. */
+    function applyVerb(rec) {
+        const state = String(rec.containerState || rec.state || "")
+        return state === "running" || state === "paused" || state === "restarting" ? "service-apply-running" : "service-apply-stopped"
     }
 
     function showInspect(rec) {
@@ -398,6 +429,16 @@ PlasmaComponents.Menu {
             if (web.length > 0)
                 addEntry(i18n("Web"), "globe", function () { root.backend.openLink(web[0]) }, "", "open web ui")
             addEntry(i18n("Logs"), "scroll-text", function () { root.perform("logs") }, "", "logs")
+            if (rec.state !== "not-created") {
+                addEntry(i18n("Diagnose"), "stethoscope", function () { root.backend.diagnoseRequested(rec.id) }, "", "diagnose")
+                // Several containers at once: the select-mode items appear only while it is on.
+                if (root.backend.selection.active) {
+                    addEntry(i18n("Logs With Others…"), "scroll-text", function () { root.backend.mergedLogsRequested(rec.id) }, "", "merged logs")
+                    addEntry(root.backend.selection.isPicked(rec.id) ? i18n("Unselect") : i18n("Select"), "square-check", function () { root.backend.selection.toggle(rec.id) }, "", "select")
+                } else {
+                    addEntry(i18n("Select"), "square-check", function () { root.backend.selection.active = true; root.backend.selection.toggle(rec.id) }, "", "select")
+                }
+            }
         }
 
         if (wants("manage") && !root.backend.readOnly) {
@@ -415,7 +456,11 @@ PlasmaComponents.Menu {
                 const force = makeSubmenu(manage, i18n("Force"), "zap")
                 if (force) {
                     offer(force, i18n("Restart Now"), "view-refresh", "forceRestart")
-                    offer(force, i18n("Recreate"), "media-playlist-repeat", "recreate", function () { root.runCompose(rec, "service-recreate", false) })
+                    offer(force, i18n("Recreate…"), "media-playlist-repeat", "recreate", function () {
+                        root.dialogs.confirmRecreate(rec, i18n("Recreate %1?", rec.name),
+                            i18n("The container is replaced by a new one from its Compose file, even if nothing changed."),
+                            function () { root.runCompose(rec, "service-recreate", false) })
+                    })
                     offer(force, i18n("Remove…"), "trash", "remove", function () { root.dialogs.confirmRemove(rec) })
                 }
 
@@ -492,12 +537,38 @@ PlasmaComponents.Menu {
                 if (running) addToMenu(inspect, i18n("Port Mappings"), "plug", function () { root.showDiagnostic(rec, "port") })
                 addToMenu(inspect, i18n("Filesystem Changes"), "file-diff", function () { root.showDiagnostic(rec, "diff") })
                 addToMenu(inspect, i18n("Recent Events"), "clock", function () { root.showDiagnostic(rec, "events") })
+                // "Why can't these two talk?": pick the other container.
+                const others = root.backend.records.filter(function (r) { return r.id !== rec.id && r.state !== "not-created" })
+                if (rec.state !== "not-created" && others.length > 0) {
+                    const compare = makeSubmenu(inspect, i18n("Compare Network With"), "network")
+                    for (let i = 0; compare && i < Math.min(others.length, 40); i++) {
+                        let other = others[i]
+                        addToMenu(compare, other.name, other.isRunning ? "circle-play" : "circle-stop", function () { root.showNetworkCompare(rec, other) })
+                    }
+                }
             }
             const terminal = makeSubmenu(root, i18n("Terminal"), "square-terminal", "terminal")
             if (terminal) {
                 offer(terminal, i18n("Run Command…"), "square-terminal", "exec", function () { root.dialogs.openRun(rec) })
                 addToMenu(terminal, i18n("Follow Logs in Terminal"), "terminal", function () { root.backend.followLogs(rec) })
                 if (running) addToMenu(terminal, i18n("Copy Shell Command"), "edit-copy", function () { clipboard.content = root.backend.engineBinary + " exec -it " + rec.name + " sh" })
+            }
+        }
+        // Entries that do not apply are left out, so a submenu can end up empty
+        // (Manage while an action runs, Force on a stopped container): drop those.
+        root.dropEmptySubmenus(root)
+    }
+
+    function dropEmptySubmenus(menu) {
+        for (let i = menu.count - 1; i >= 0; i--) {
+            const sub = (menu.menuAt(i) as ActionMenu)
+            if (!sub) continue
+            root.dropEmptySubmenus(sub)
+            if (sub.count === 0) {
+                menu.removeMenu(sub)
+                const at = root.entries.indexOf(sub)
+                if (at >= 0) root.entries.splice(at, 1)
+                sub.destroy()
             }
         }
     }

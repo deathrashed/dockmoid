@@ -25,6 +25,9 @@ RUN=lambda i:(i<8) if not PERF else (i%3!=0)
 for i,name in enumerate(names):
  r={key:'' for key in 'id name image command createdAt runningFor state status health localVolumes networks mounts ports size platform project service composeFiles composeWorkDir composeProfile cpu mem memU blockio netio pids restartPolicy sortKey'.split()}
  r.update(id=f'{i:012x}',name=name,image=f'example/{name}:latest',command='/entrypoint',state='running' if RUN(i) else 'exited',status='Up 2 hours (healthy)' if RUN(i) else 'Exited (0) 2 days ago',health='healthy' if RUN(i) else 'none',isRunning=RUN(i),project=name,service=name,composeFiles=f'/example/{name}/compose.yaml',composeWorkDir=f'/example/{name}',cpu='2.4%' if i<8 else '',mem='1.2%' if i<8 else '',cpuPct=2.4 if i<8 else 0,memPct=1.2 if i<8 else 0,networks='media_net',mounts=('/home/example/docker/'+name+'/config,/home/example/media/music,/mnt/long storage path/container-data/'+name if i<8 else ''),ports=('127.0.0.1:8080->80/tcp, [::]:8443->443/tcp' if i<8 else ''),memU=('138 MiB / 16 GiB' if i<8 else ''),localVolumes='0',runningFor='2 hours' if i<8 else '2 days',size='0 B',platform='linux/amd64',restartPolicy='unless-stopped',pinned=False,probe='',updateAvailable=i<3,sortKey=name)
+ # Inspect times (ms) for the timeline: up 2h 24m, or stopped 2 days ago; every 3rd recreated 23h ago.
+ import time;now=int(time.time()*1000);h=3600000
+ r.update(startedAtMs=now-int(2.4*h) if RUN(i) else now-53*h,finishedAtMs=0 if RUN(i) else now-48*h,createdMs=(now-23*h if RUN(i) and i%3==0 else now-int(2.4*h)) if RUN(i) else now-60*h)
  records.append(r)
 icon_dir=project/'contents/assets/library'
 files=[p.name for p in icon_dir.iterdir() if p.suffix in ['.svg','.png','.webp']]
@@ -55,7 +58,7 @@ Rectangle {
  function grid(){popup.selectView(3)}
  function tick(){var r=backend.records;for(var i=0;i<r.length;i++){if(r[i].isRunning){r[i].cpuPct=(r[i].cpuPct*7+i)%9;r[i].cpu=r[i].cpuPct.toFixed(2)+'%';r[i].memPct=(r[i].memPct*5+i)%7;r[i].mem=r[i].memPct.toFixed(2)+'%'}}backend.syncModel();backend.recomputeTotals();backend.revision++}
  function typeSearch(t){popup.searchText=t}
- function showPage(name){popup.selectView(0);if(name==='doctor')popup.showDoctor(0);else if(name==='resources')popup.showResources();else if(name==='deploy')popup.showDeployment();else if(name==='deploy-form')popup.showDeployment(1);else if(name==='deploy-results'){popup.showDeployment();backend.deployment.searchPerformed=true;backend.deployment.results=[{name:'linuxserver/sonarr',stars:1903,pulls:2372530000,official:false,description:'A Sonarr container, brought to you by LinuxServer.io.'},{name:'linuxserver/radarr',stars:1802,pulls:2372530000,official:false,description:'A Radarr container, brought to you by LinuxServer.io.'},{name:'nginx',stars:20500,pulls:1000000000,official:true,description:'Official build of Nginx.'},{name:'linuxserver/qbittorrent',stars:1687,pulls:346571000,official:false,description:''},{name:'example/very-long-repository-name-for-layout',stars:3,pulls:null,official:false,description:'A deliberately long description that should wrap onto a second line and then be elided after it so every card keeps the same height.'}]}else if(name==='activity')popup.showActivity();else if(name==='detail')popup.showDetail('000000000000',0);else if(name==='detail1')popup.showDetail('000000000009',0)}
+ function showPage(name){popup.selectView(name==='side'?4:0);if(name==='doctor')popup.showDoctor(0);else if(name==='diagnose')popup.showDetail(backend.records[8].id,4);else if(name==='resources')popup.showResources();else if(name==='deploy')popup.showDeployment();else if(name==='deploy-form')popup.showDeployment(1);else if(name==='deploy-results'){popup.showDeployment();backend.deployment.searchPerformed=true;backend.deployment.results=[{name:'linuxserver/sonarr',stars:1903,pulls:2372530000,official:false,description:'A Sonarr container, brought to you by LinuxServer.io.'},{name:'linuxserver/radarr',stars:1802,pulls:2372530000,official:false,description:'A Radarr container, brought to you by LinuxServer.io.'},{name:'nginx',stars:20500,pulls:1000000000,official:true,description:'Official build of Nginx.'},{name:'linuxserver/qbittorrent',stars:1687,pulls:346571000,official:false,description:''},{name:'example/very-long-repository-name-for-layout',stars:3,pulls:null,official:false,description:'A deliberately long description that should wrap onto a second line and then be elided after it so every card keeps the same height.'}]}else if(name==='activity')popup.showActivity();else if(name==='detail')popup.showDetail('000000000000',0);else if(name==='detail1')popup.showDetail('000000000009',0)}
  function presentation(mode,level){popup.selectView(mode);popup.selectDetail(level)}
  function level(){return popup.detailLevel}
  function mode(){return popup.viewMode}
@@ -78,7 +81,7 @@ Rectangle {
 app=QApplication([]);pal=app.palette()
 for role,color in [(QPalette.Window,'#292e32'),(QPalette.WindowText,'#eff0f1'),(QPalette.Base,'#24292d'),(QPalette.Text,'#eff0f1'),(QPalette.Button,'#31363b'),(QPalette.ButtonText,'#eff0f1')]:pal.setColor(role,QColor(color))
 app.setPalette(pal);messages=[];qInstallMessageHandler(lambda t,c,m:messages.append(m))
-qml=qml[:-1]+'''function previewTarget(){function find(item){if(item.containerKey && item.visible && item.width>0 && item.height>0)return item;for(let child of item.children){const found=find(child);if(found)return found}return null}const item=find(root);if(!item)return '{}';const p=item.mapToItem(root,60,14);return JSON.stringify({x:p.x,y:p.y,id:item.containerKey})} function previewSelected(){return backend.previewRecordId} function selectId(id){backend.previewContainer(id,true)} function selectedOnScreen(){function find(item,test){if(test(item))return item;for(let child of item.children){const f=find(child,test);if(f)return f}return null}const pane=find(root,function(i){return i.objectName==='containerListPane'});const item=find(root,function(i){return i.containerKey===backend.previewRecordId&&i.visible&&i.width>0});if(!item||!pane)return false;const p=item.mapToItem(pane,0,item.height/2);return p.y>0&&p.y<pane.height} function hideSelected(){const r=backend.findRecord(backend.previewRecordId);popup.stateFilter=r&&r.state==='running'?'stopped':'running'} function clearAll(){popup.clearFilters()} function setStale(v){backend.dataStale=v} }'''
+qml=qml[:-1]+'''function previewTarget(){function find(item){if(item.containerKey && item.visible && item.width>0 && item.height>0)return item;for(let child of item.children){const found=find(child);if(found)return found}return null}const item=find(root);if(!item)return '{}';const p=item.mapToItem(root,60,14);return JSON.stringify({x:p.x,y:p.y,id:item.containerKey})} function previewSelected(){return backend.previewRecordId} function selectId(id){backend.previewContainer(id,true)} function selectedOnScreen(){function find(item,test){if(test(item))return item;for(let child of item.children){const f=find(child,test);if(f)return f}return null}const pane=find(root,function(i){return i.objectName==='containerListPane'});const item=find(root,function(i){return i.containerKey===backend.previewRecordId&&i.visible&&i.width>0});if(!item||!pane)return false;const p=item.mapToItem(pane,0,item.height/2);return p.y>0&&p.y<pane.height} function hideSelected(){const r=backend.findRecord(backend.previewRecordId);popup.stateFilter=r&&r.state==='running'?'stopped':'running'} function clearAll(){popup.clearFilters()} function setStale(v){backend.dataStale=v} function selectionCheck(){const sel=backend.selection;sel.active=true;const run=backend.records.find(function(r){return r.state==='running'}),stop=backend.records.find(function(r){return r.state==='exited'});sel.toggle(run.id);sel.toggle(stop.id);popup.stateFilter='running';const plan=sel.plan('stop');const r=JSON.stringify({picked:sel.pickedIds.length,targets:plan.targets.map(function(x){return x.name}),skipped:plan.skipped.map(function(x){return x.name}),run:run.name,stopped:stop.name});popup.stateFilter='all';return r} function logSessionCheck(){const comp=Qt.createComponent('''+json.dumps((project/'contents/ui/components/LogSession.qml').as_uri())+''');if(comp.status!==Component.Ready)return comp.errorString();const a=backend.records[0].id,b=backend.records[1].id;const s=comp.createObject(root,{backend:backend,recordId:a});const g=backend.generation,req=s.requestId,out=[];backend.recordOutput('logs',a,g,req,2,'newer');backend.recordOutput('logs',a,g,req,1,'older');out.push(s.text);backend.recordOutput('logs',a,g,'other-request',9,'foreign');out.push(s.text);s.recordId=b;out.push(s.text===''?'cleared':s.text);backend.recordOutput('logs',b,g,req,5,'stale from a');out.push(s.text===''?'cleared':s.text);s.destroy();return out.join('|')} function selectionEnd(){backend.selection.active=false;return backend.selection.pickedIds.length} }'''
 file=out/'Preview.qml';file.write_text(qml)
 view=QQuickView();view.setResizeMode(QQuickView.SizeRootObjectToView);view.setSource(QUrl.fromLocalFile(str(file)));assert view.status()!=QQuickView.Error,[e.toString() for e in view.errors()];view.resize(1050,760);view.show();failures=[]
 def safe(fn):
@@ -105,7 +108,7 @@ def continuity():
  root=view.rootObject();view.resize(1050,760);root.presentation(0,1);QTest.qWait(300)
  proxy=view.rootObject().findChild(QObject,'containerProxy');role=[k for k,v in proxy.roleNames().items() if bytes(v)==b'containerKey'][0]
  last=proxy.data(proxy.index(proxy.rowCount()-1,0),role);root.selectId(last);QTest.qWait(100)  # the last row: off screen until revealed
- for m in [1,3,0]:
+ for m in [1,3,2,0]:
   root.presentation(m,1);QTest.qWait(400)
   if not root.selectedOnScreen():failures.append(('selection not revealed after view switch',m))
  root.hideSelected();QTest.qWait(300)
@@ -117,6 +120,36 @@ def continuity():
  if not visible_named('footerStale'):failures.append('stale data not indicated')
  root.setStale(False);QTest.qWait(100)
  if visible_named('footerStale'):failures.append('stale note stayed after a good refresh')
+ # A bottom tab: pressing the open one again hides the pane; pressing another shows it.
+ from PySide6.QtCore import QMetaObject,Q_ARG
+ home=root.findChild(QObject,'homeSectionPage')
+ def press(key):QMetaObject.invokeMethod(home,'tabPressed',Q_ARG('QVariant',key))
+ home.setDock('expanded',True);home.setDock('page','preview');QTest.qWait(50)
+ press('preview')
+ if home.property('dockExpanded'):failures.append('open tab did not collapse on second press')
+ press('logs')
+ if not home.property('dockExpanded') or home.property('dockPage')!='logs':failures.append(('other tab did not open',home.property('dockPage')))
+ press('logs')
+ if home.property('dockExpanded'):failures.append('Logs did not collapse on second press')
+ press('preview')
+ if not home.property('dockExpanded') or home.property('dockPage')!='preview':failures.append('Overview did not reopen')
+ # Ctrl+F opens the bottom search with its box, as a real key press would.
+ home.setDock('expanded',True);home.setDock('page','preview');QTest.qWait(50)
+ panel=[x for x in root.findChildren(QObject) if x.objectName()=='searchPanel']
+ if panel and panel[0].property('opened'):panel[0].setProperty('visible',False);QTest.qWait(50)
+ QTest.keyClick(view,Qt.Key_F,Qt.ControlModifier);QTest.qWait(150)
+ panel=[x for x in root.findChildren(QObject) if x.objectName()=='searchPanel']
+ fields=[x for x in root.findChildren(QObject) if x.objectName()=='searchField']
+ if not ((panel and panel[0].property('opened')) or (fields and fields[0].property('visible') and fields[0].property('activeFocus'))):failures.append('Ctrl+F did not open search')
+ QTest.keyClick(view,Qt.Key_Escape);QTest.qWait(80)
+ # Selection mode: picks survive filtering; the review runs only where the rules allow.
+ info=json.loads(root.selectionCheck());QTest.qWait(200)
+ if info['picked']!=2 or info['targets']!=[info['run']] or info['skipped']!=[info['stopped']]:failures.append(('selection plan',info))
+ if not visible_named('selectionBar'):failures.append('selection bar missing')
+ if root.selectionEnd()!=0:failures.append('leaving selection mode kept picks')
+ # A log session keeps the newest answer and ignores late or foreign ones (A -> B -> late A).
+ got=root.logSessionCheck()
+ if got!='newer|newer|cleared|cleared':failures.append(('log session',got))
 def step(index=0):
  if index==len(cases):
   menus()
@@ -139,13 +172,16 @@ def check(index,w,m,l):
  if os.environ.get('DOCKMOID_UI_CAPTURE_DIR'):
   folder=pathlib.Path(os.environ['DOCKMOID_UI_CAPTURE_DIR']);folder.mkdir(parents=True,exist_ok=True);image.save(str(folder/f'w{w}-m{m}-l{l}.png'))
  checks.append([w,m,l]);step(index+1)
-PAGES=[(n,w) for n in (os.environ.get('DOCKMOID_UI_ONLY') or 'doctor,resources,deploy,deploy-results,deploy-form,detail,detail1,activity,dock-logs,dock-events,dock-compose,dock-preview').split(',') for w in [1050,360]]
+PAGES=[(n,w) for n in (os.environ.get('DOCKMOID_UI_ONLY') or 'side,doctor,diagnose,resources,deploy,deploy-results,deploy-form,detail,detail1,activity,dock-logs,dock-events,dock-compose,dock-health,dock-search,dock-preview').split(',') for w in [1050,360]]
 def pages(i):
  if i==len(PAGES):app.quit();return
  n,w=PAGES[i];view.resize(w,760)
  if n.startswith('dock-'):
   home=view.rootObject().findChild(QObject,"homeSectionPage");home.setDock("page",n[5:]);home.setDock("expanded",True)
   if n=='dock-preview':QTest.mouseClick(view,Qt.LeftButton,Qt.NoModifier,QPoint(120,200))
+  if n=='dock-search':
+   from PySide6.QtCore import QMetaObject
+   QMetaObject.invokeMethod(view.rootObject().findChild(QObject,'homeSectionPage'),'openSearch')
  else:view.rootObject().showPage(n)
  def grab():
   folder=pathlib.Path(os.environ.get('DOCKMOID_UI_CAPTURE_DIR') or out);folder.mkdir(parents=True,exist_ok=True)

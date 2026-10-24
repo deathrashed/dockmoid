@@ -1,5 +1,6 @@
 import QtQuick
 import "../../lib/parsers.js" as Parsers
+import "../../lib/compose.js" as Compose
 
 Item {
     id: root
@@ -13,6 +14,42 @@ Item {
     property string output: ""
     property string progress: ""
     property double checkedAt: 0
+    /*
+     * Insights from what Dockmoid already knows: no command runs to build them,
+     * so opening Doctor costs nothing. Each names a container or a setting and
+     * says where to look. A full check is still the Run checks button.
+     */
+    readonly property var insights: {
+        const revision = backend.revision, logs = backend.logIssues, activity = backend.activity || [], now = Date.now()
+        const out = []
+        const recent = function (kind, hours) {
+            return activity.filter(function (a) { return a.kind === kind && now - a.time < hours * 3600000 })
+        }
+        backend.records.forEach(function (rec) {
+            if (rec.isRunning && rec.health === "unhealthy")
+                out.push({severity: "error", title: i18n("%1 is unhealthy", rec.name), detail: i18n("Its healthcheck is failing. Open Diagnose for the output and the recent log errors."), id: rec.id, tab: 4})
+            if (rec.isRunning && rec.probe === "down")
+                out.push({severity: "error", title: i18n("%1 does not answer", rec.name), detail: i18n("Its web page did not respond at the last probe."), id: rec.id, tab: 4})
+            const crashes = recent("crashed", 24).filter(function (a) { return a.id === rec.id }).length
+            if (crashes > 0)
+                out.push({severity: "warning", title: i18np("%2 stopped unexpectedly once in the last day", "%2 stopped unexpectedly %1 times in the last day", crashes, rec.name), detail: i18n("Diagnose shows the exit codes and the log lines around them."), id: rec.id, tab: 4})
+            const digest = logs[rec.id]
+            if (digest) {
+                const loops = digest.items.filter(function (i) { return i.level === "error" && i.kind !== "single" })
+                if (loops.length > 0)
+                    out.push({severity: "warning", title: i18n("%1: errors repeat in its logs", rec.name), detail: loops.slice(0, 2).map(function (i) { return i.sample }).join("\n"), id: rec.id, tab: 4})
+            }
+        })
+        const restarting = recent("restarting", 1).length
+        if (restarting > 0) out.push({severity: "warning", title: i18np("%1 restart in the last hour", "%1 restarts in the last hour", restarting), detail: i18n("Repeated restarts usually mean a crash loop. Diagnose names the container."), id: "", tab: 0})
+        if (backend.updateCount > 0) out.push({severity: "info", title: i18np("%1 image has a newer version", "%1 images have newer versions", backend.updateCount), detail: i18n("A newer image is not automatically a safe update: check its changes first."), id: "", tab: 0})
+        if (backend.notCreated > 0) out.push({severity: "info", title: i18np("%1 Compose service is not deployed", "%1 Compose services are not deployed", backend.notCreated), detail: i18n("Services behind a profile are optional by design. Others may be waiting for a deploy."), id: "", tab: 0})
+        if (!backend.engineActive) out.push({severity: "error", title: i18n("The engine does not answer"), detail: backend.lastError || i18n("Nothing else can be checked until it does."), id: "", tab: 0})
+        if (backend.logWatchMinutes === 0) out.push({severity: "info", title: i18n("The log watch is off"), detail: i18n("Turn it on in Settings → Monitoring to be told about error loops in container logs."), id: "", tab: 0})
+        const rank = {error: 0, warning: 1, info: 2}
+        return out.sort(function (a, b) { return rank[a.severity] - rank[b.severity] }).slice(0, 20)
+    }
+
     Connections {
         target: root.backend
         function onGenerationChanged() {root.scanning=false;root.executing=false;root.checkedAt=0;root.plans=[];root.checks=({});root.images=({});root.progress=i18n("Connection changed · run Check again")}
@@ -25,7 +62,9 @@ Item {
             const checked = root.checks[rec.id] || {}, state = checked.state || {}
             const health = state.Health || {}, history = health.Log || []
             if (backend.isProblem(rec)) result.push({kind:"containers",severity:rec.health === "unhealthy" ? "error" : rec.state === "restarting" ? "warning" : "info",title:rec.name + " · " + (rec.state === "restarting" ? i18n("Restarting") : rec.health === "unhealthy" ? i18n("Health check failed") : rec.state),evidence:rec.status + (state.Error ? "\n" + state.Error : "") + (history.length ? "\n" + String(history[history.length-1].Output || "").slice(0,1500) : ""),id:rec.id,action:rec.state === "paused" ? "" : "restart",help:"https://docs.docker.com/reference/dockerfile/#healthcheck"})
-            if (rec.state === "not-created") result.push({kind:"compose",severity:"warning",title:rec.name + " · " + i18n("Undeployed"),evidence:i18n("Configured service %1/%2 has no existing container. Nothing will start automatically.",rec.project,rec.service),id:rec.id,action:"start",help:"https://docs.docker.com/reference/cli/docker/compose/up/"})
+            // A service behind a Compose profile is optional by design: not deployed is expected.
+            if (rec.state === "not-created" && rec.composeProfile) result.push({kind:"compose",severity:"info",title:rec.name + " · " + i18n("Optional (profile %1)", rec.composeProfile),evidence:i18n("Configured service %1/%2 belongs to the Compose profile %3, so Compose only creates it when that profile is enabled or the service is named. This is usually intended.",rec.project,rec.service,rec.composeProfile),id:rec.id,action:"start",help:"https://docs.docker.com/compose/how-tos/profiles/"})
+            else if (rec.state === "not-created") result.push({kind:"compose",severity:"warning",title:rec.name + " · " + i18n("Undeployed"),evidence:i18n("Configured service %1/%2 has no existing container. Nothing will start automatically.",rec.project,rec.service),id:rec.id,action:"start",help:"https://docs.docker.com/reference/cli/docker/compose/up/"})
             if (checked.restartCount > 0) result.push({kind:"containers",severity:"warning",title:rec.name + " · " + i18n("%1 recorded restarts",String(checked.restartCount)),evidence:i18n("Docker reports a restart count of %1. This alone does not prove a restart loop. State: %2; exit code: %3",String(checked.restartCount),rec.state,String(state.ExitCode === undefined ? "Unavailable" : state.ExitCode)),id:rec.id,action:"",help:"https://docs.docker.com/engine/containers/start-containers-automatically/"})
             if (root.images[rec.image] && !root.images[rec.image].available) result.push({kind:"compose",severity:"warning",title:rec.name + " · " + i18n("Image unavailable locally"),evidence:rec.image + "\n" + i18n("The selected engine could not inspect this image. It may need pulling or may require registry access."),id:rec.id,action:"pull",help:"https://docs.docker.com/reference/cli/docker/image/pull/"})
         })
@@ -102,10 +141,9 @@ Item {
         else if (action === "start" && rec.state !== "not-created") {command=backend.containerCommand(backend.cfg.startOneCommand,rec);expected=i18n("Start this existing container.")}
         else if (action === "restart" && rec.state !== "not-created") {command=backend.containerCommand(backend.cfg.restartOneCommand,rec);expected=i18n("Restart this container. Its service will be interrupted.");downtime=!!rec.isRunning}
         else if ((action === "start" || action === "recreate") && backend.canUseCompose && rec.project && rec.service && rec.composeFiles && Parsers.isSafeToken(rec.project) && Parsers.isSafeToken(rec.service)) {
-            const base=backend.expand(backend.cfg.composeCommand,{})+" -p "+rec.project+" "+Parsers.composeFileArgs(rec.composeFiles,backend.shellQuote)
-            const checks=String(rec.composeFiles).split(",").map(function(f){return "test -r "+backend.shellQuote(f.trim())}).join(" && ")
-            command=checks+" && "+(rec.composeWorkDir?"cd "+backend.shellQuote(rec.composeWorkDir)+" && ":"")
-                +(action==="recreate"?base+" pull "+rec.service+" && ":"")+base+" up "+(action==="recreate"&&!rec.isRunning?"--no-start":"-d")+" --no-deps "+(action==="recreate"?"--force-recreate ":"")+rec.service
+            // The same recipes as the immediate actions (lib/compose.js), checked and run from the project folder.
+            const verb=action==="start"?"create-service":(rec.isRunning?"update-service-running":"update-service-stopped")
+            command=Compose.guarded(Compose.recipe(verb,rec,{compose:backend.expand(backend.cfg.composeCommand,{}),quote:backend.shellQuote}),rec,backend.shellQuote)
             expected=action==="start"?i18n("Create and start only this Compose service. Dependencies are not started."):i18n("Pull and replace only this service, preserving its running/stopped state. Container writable-layer changes are lost; mounted data and volumes are retained.")
             downtime=action==="recreate"&&!!rec.isRunning
         }

@@ -8,9 +8,12 @@ import "../../lib/style.js" as Style
 /*
  * DockButton — the one button the widget draws its own artwork on.
  *
- * `variant` picks the emphasis: "default", "primary" (accent), "danger"
- * (negative colour on the icon and label) or "flat". `iconOnly` replaces the
+ * `variant` picks the emphasis: "default", "primary" (the selected-tab
+ * look: accent wash and outline), "danger" (negative colour on the icon and
+ * label) or "flat". A checkable button that is on looks like "primary". `iconOnly` replaces the
  * label with a tooltip; it is how the compact per-row controls are drawn.
+ * `blockedReason` greys it out like `enabled: false` while keeping a tooltip
+ * that says why (a disabled control gets no hover).
  */
 PlasmaComponents.Button {
     id: control
@@ -23,16 +26,15 @@ PlasmaComponents.Button {
     property bool menuOpen: false
     /* Colour of the icon alone (a Tones name or hue); the label keeps the text colour. */
     property string iconTone: ""
+    property string blockedReason: ""
+    readonly property bool usable: control.enabled && control.blockedReason === ""
 
     /* Colour while enabled. The disabled colour is read inside each child
        item, because Kirigami.Theme resolves it per item and an item inside a
        disabled button uses the Disabled colour group. */
     readonly property bool primary: control.variant === "primary"
     /* Text on the accent fill: dark on a light accent, white on a dark one. */
-    readonly property color onAccent: Kirigami.Theme.highlightColor.hslLightness > 0.62 ? "#1b1e20" : "#ffffff"
-    readonly property color activeColor: control.variant === "danger" ? Kirigami.Theme.negativeTextColor
-        : control.primary ? control.onAccent
-        : Kirigami.Theme.textColor
+    readonly property color activeColor: control.variant === "danger" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
 
     /* One control height everywhere; icon-only buttons are square. */
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
@@ -48,6 +50,14 @@ PlasmaComponents.Button {
     spacing: Kirigami.Units.smallSpacing * 1.5
 
     flat: control.iconOnly || control.variant === "flat"
+    topPadding: Kirigami.Units.smallSpacing
+    bottomPadding: Kirigami.Units.smallSpacing
+    background: ButtonSurface {
+        control: control
+        emphasised: control.primary || control.checked || control.menuOpen
+        flat: control.flat
+        danger: control.variant === "danger"
+    }
     display: control.iconOnly ? PlasmaComponents.AbstractButton.IconOnly : PlasmaComponents.AbstractButton.TextBesideIcon
     icon.name: ""
     icon.source: Qt.resolvedUrl(ActionIcons.path(glyph))
@@ -56,23 +66,9 @@ PlasmaComponents.Button {
     icon.height: control.glyphSize
 
     onClicked: toolTipSuppressed = true
+    // Keyboard activation of a blocked button does nothing either.
+    Keys.onPressed: function (event) { if (control.blockedReason !== "" && (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) event.accepted = true }
     onHoveredChanged: if (!hovered) toolTipSuppressed = false
-
-    /* The accent fill sits between the style's frame and the content, so the
-       default look of every other variant stays exactly as the style draws it. */
-    Rectangle {
-        z: -0.5
-        visible: control.primary
-        anchors.fill: parent
-        radius: Kirigami.Units.smallSpacing
-        color: !control.enabled ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface3)
-            : control.down ? Qt.darker(Kirigami.Theme.highlightColor, 1.25)
-            : control.hovered ? Qt.lighter(Kirigami.Theme.highlightColor, 1.12)
-            : Kirigami.Theme.highlightColor
-        border.width: control.visualFocus ? 2 : 1
-        border.color: control.visualFocus ? Kirigami.Theme.textColor
-            : Qt.alpha(Qt.darker(Kirigami.Theme.highlightColor, 1.4), 0.8)
-    }
 
     // Centred as a group, so a button stretched by a layout keeps its
     // icon and label together in the middle instead of against the left edge.
@@ -85,7 +81,7 @@ PlasmaComponents.Button {
             spacing: control.iconOnly ? 0 : control.spacing
             ActionIcon {
                 glyph: control.glyph
-                color: control.enabled ? (control.iconTone !== "" ? (Style.HUE[control.iconTone] !== undefined ? Style.HUE[control.iconTone] : control.activeColor) : control.activeColor) : Kirigami.Theme.disabledTextColor
+                color: control.usable ? (control.iconTone !== "" ? (Style.HUE[control.iconTone] !== undefined ? Style.HUE[control.iconTone] : control.activeColor) : control.activeColor) : Kirigami.Theme.disabledTextColor
                 Layout.alignment: Qt.AlignCenter
                 implicitWidth: control.glyphSize
                 implicitHeight: control.glyphSize
@@ -94,14 +90,29 @@ PlasmaComponents.Button {
                 visible: !control.iconOnly
                 text: control.Kirigami.MnemonicData.richTextLabel
                 font: control.font
-                color: control.enabled ? control.activeColor : Kirigami.Theme.disabledTextColor
+                color: control.usable ? control.activeColor : Kirigami.Theme.disabledTextColor
             }
         }
     }
 
     PlasmaComponents.ToolTip {
-        visible: control.iconOnly && control.hovered && !control.toolTipSuppressed && !control.menuOpen
+        visible: control.iconOnly && control.hovered && !control.toolTipSuppressed && !control.menuOpen && control.blockedReason === ""
         text: control.text
         delay: 500
     }
+
+    // While blocked: swallow presses so the button does nothing, and explain why on hover.
+    MouseArea {
+        id: blocker
+        anchors.fill: parent
+        visible: control.blockedReason !== ""
+        hoverEnabled: true
+        acceptedButtons: Qt.AllButtons
+        PlasmaComponents.ToolTip {
+            visible: blocker.containsMouse
+            text: control.iconOnly ? control.text + "\n" + control.blockedReason : control.blockedReason
+            delay: 500
+        }
+    }
+    Accessible.description: control.blockedReason
 }

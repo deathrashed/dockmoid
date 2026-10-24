@@ -116,18 +116,49 @@ Item {
     readonly property var levelColors: root.darkTheme
         ? {error:"#ff8787",warn:"#ffd43b",info:"#74c0fc",debug:"#9aa0a6"}
         : {error:"#c92a2a",warn:"#946200",info:"#1864ab",debug:"#6c757d"}
+    /*
+     * Each line is cleaned (ANSI stripped, timestamp formatted) once and its
+     * HTML built once, then reused while it stays in the tail: a new poll or a
+     * filter keystroke no longer re-formats thousands of unchanged lines. The
+     * cache lives in a holder that is never reassigned, so filling it does not
+     * re-trigger these bindings; a timestamp or theme change starts it afresh.
+     */
+    readonly property var cacheHolder: ({map: ({}), key: ""})
+    readonly property string formatKey: root.timestampMode + "|" + root.timestampPrecision + "|" + root.darkTheme
     readonly property var rawLines: String(root.sourceText).split("\n")
-    readonly property var matchedRawLines: {
-        const n = root.needle.toLowerCase()
-        const level = /\b(error|err|fatal|panic|crit|critical|warn|warning|exception|fail|failed|denied|refused)\b/i
-        return root.rawLines.filter(function (raw) {
-            const clean = root.formatTimestampLine(root.stripAnsi(raw))
-            return (n === "" || clean.toLowerCase().indexOf(n) !== -1)
-                && (!root.errorsOnly || level.test(clean))
+    readonly property var entries: {
+        const holder = root.cacheHolder, key = root.formatKey
+        const old = holder.key === key ? holder.map : ({}), next = {}
+        const out = root.rawLines.map(function (raw) {
+            let e = next[raw] || old[raw]
+            if (!e) { const clean = root.formatTimestampLine(root.stripAnsi(raw)); e = {raw: raw, clean: clean, lower: clean.toLowerCase(), html: null} }
+            next[raw] = e
+            return e
         })
+        holder.map = next; holder.key = key
+        return out
     }
-    readonly property var shownLines: root.matchedRawLines.map(function (raw) { return root.formatTimestampLine(root.stripAnsi(raw)) })
-    readonly property string renderedHtml: root.matchedRawLines.map(function (raw) { return root.ansiHtml(root.formatAnsiLine(raw)) }).join("<br>")
+    /* The filter applies after a short pause in typing. */
+    property string appliedNeedle: ""
+    Timer { id: needleDebounce; interval: 120; onTriggered: root.appliedNeedle = root.needle }
+    onNeedleChanged: if (root.needle === "") { needleDebounce.stop(); root.appliedNeedle = "" } else needleDebounce.restart()
+    readonly property var matched: {
+        const n = root.appliedNeedle.toLowerCase()
+        const level = /\b(error|err|fatal|panic|crit|critical|warn|warning|exception|fail|failed|denied|refused)\b/i
+        if (n === "" && !root.errorsOnly) return root.entries
+        return root.entries.filter(function (e) { return (n === "" || e.lower.indexOf(n) !== -1) && (!root.errorsOnly || level.test(e.clean)) })
+    }
+    readonly property var shownLines: root.matched.map(function (e) { return e.clean })
+    /* Rich text slows sharply with length: draw the newest lines, say how many are left out. */
+    readonly property int renderLimit: 2000
+    readonly property int hiddenLines: Math.max(0, root.matched.length - root.renderLimit)
+    readonly property string renderedHtml: {
+        const shown = root.hiddenLines > 0 ? root.matched.slice(-root.renderLimit) : root.matched
+        const body = shown.map(function (e) { if (e.html === null) e.html = root.ansiHtml(root.formatAnsiLine(e.raw)); return e.html }).join("<br>")
+        return root.hiddenLines > 0
+            ? '<span style="color:' + root.levelColors.debug + '">' + root.escapeHtml(i18n("… %1 earlier lines not drawn; filter to find them, or copy to get every line.", root.hiddenLines)) + "</span><br>" + body
+            : body
+    }
     onPausedChanged: if (root.paused) root.frozenText = root.text
 
     readonly property string shown: root.shownLines.join("\n")
@@ -161,10 +192,11 @@ Item {
                 onTextChanged: root.needle = text
                 Keys.onEscapePressed: clear()
             }
-            PlasmaComponents.ToolButton {
+            DockButton {
+                variant: "flat"
                 visible: filterField.text !== ""
-                display: PlasmaComponents.AbstractButton.IconOnly
-                icon.name: "edit-clear"
+                iconOnly: true
+                glyph: "edit-clear"
                 text: i18n("Clear filter")
                 onClicked: filterField.clear()
             }
@@ -178,16 +210,16 @@ Item {
 
             Item { Layout.fillWidth: true }
 
-            PlasmaComponents.ToolButton {
+            DockButton {
+                variant: "flat"
                 id: errorsButton
                 visible: root.logMode
-                display: PlasmaComponents.AbstractButton.IconOnly
-                icon.name: "dialog-warning"
+                iconOnly: true
+                glyph: "dialog-warning"
                 text: i18n("Only errors and warnings")
                 checkable: true
                 checked: root.errorsOnly
                 onClicked: root.errorsOnly = checked
-                PlasmaComponents.ToolTip { text: errorsButton.text }
             }
 
             /*
@@ -195,15 +227,15 @@ Item {
              * at tray-popup width those pushed the other tools off the edge,
              * and their content-sized widths fed back into the row's layout.
              */
-            PlasmaComponents.ToolButton {
+            DockButton {
+                variant: "flat"
                 id: timestampButton
                 visible: root.logMode
-                display: PlasmaComponents.AbstractButton.IconOnly
-                icon.name: "view-calendar-time-spent"
+                iconOnly: true
+                glyph: "clock"
                 text: i18n("Timestamps")
                 checked: timestampMenu.opened || root.timestampMode !== 0
                 onClicked: timestampMenu.popup(timestampButton, 0, timestampButton.height)
-                PlasmaComponents.ToolTip { text: timestampButton.text }
             }
             PlasmaComponents.Menu {
                 id: timestampMenu
@@ -236,48 +268,48 @@ Item {
 
             // Freeze, Follow and Wrap are toggles: named on a wide viewer, and
             // checked (highlighted) while on at any width.
-            PlasmaComponents.ToolButton {
+            DockButton {
+                variant: "flat"
                 id: pauseButton
                 visible: root.logMode
-                display: root.labelToggles ? PlasmaComponents.AbstractButton.TextBesideIcon : PlasmaComponents.AbstractButton.IconOnly
-                icon.name: "media-playback-pause"
+                iconOnly: !root.labelToggles
+                glyph: "media-playback-pause"
                 text: i18n("Freeze")
                 checkable: true
                 checked: root.paused
                 onClicked: root.paused = checked
-                PlasmaComponents.ToolTip { text: root.paused ? i18n("The display is frozen; new lines are kept back. Click to show them.") : i18n("Freeze the display to read; new lines are kept back") }
             }
 
-            PlasmaComponents.ToolButton {
+            DockButton {
+                variant: "flat"
                 id: followButton
                 visible: root.logMode
-                display: root.labelToggles ? PlasmaComponents.AbstractButton.TextBesideIcon : PlasmaComponents.AbstractButton.IconOnly
-                icon.name: "go-bottom"
+                iconOnly: !root.labelToggles
+                glyph: "arrow-down-to-line"
                 text: i18n("Follow")
                 checkable: true
                 checked: root.follow
                 onClicked: { root.follow = checked; if (checked) root.scrollToEnd() }
-                PlasmaComponents.ToolTip { text: root.follow ? i18n("Following the newest line") : i18n("Keep scrolled to the newest line") }
             }
 
-            PlasmaComponents.ToolButton {
+            DockButton {
+                variant: "flat"
                 id: wrapButton
-                display: root.labelToggles ? PlasmaComponents.AbstractButton.TextBesideIcon : PlasmaComponents.AbstractButton.IconOnly
-                icon.name: "text-wrap"
+                iconOnly: !root.labelToggles
+                glyph: "text-wrap"
                 text: i18n("Wrap")
                 checkable: true
                 checked: root.wrap
                 onClicked: root.wrap = checked
-                PlasmaComponents.ToolTip { text: root.wrap ? i18n("Long lines wrap") : i18n("Wrap long lines") }
             }
 
-            PlasmaComponents.ToolButton {
+            DockButton {
+                variant: "flat"
                 id: copyButton
-                display: PlasmaComponents.AbstractButton.IconOnly
-                icon.name: "edit-copy"
+                iconOnly: true
+                glyph: "edit-copy"
                 text: i18n("Copy what is shown")
                 onClicked: clipboard.content = root.shown
-                PlasmaComponents.ToolTip { text: copyButton.text }
             }
         }
 

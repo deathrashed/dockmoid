@@ -36,7 +36,8 @@ Item {
         if (severity === "warning") return "dialog-warning"
         return "document-view"
     }
-    Component.onCompleted: {doctor.scan(false);if(initialCleanup)doctor.cleanupPlan(initialCleanup)}
+    // Nothing runs on open: the insights come from state already known. Checks start with the button.
+    Component.onCompleted: {if(initialCleanup){doctor.scan(false);doctor.cleanupPlan(initialCleanup)}}
 
     ColumnLayout {
         anchors.fill: parent
@@ -75,6 +76,43 @@ Item {
             ColumnLayout {
                 width:scroll.availableWidth
                 spacing:Kirigami.Units.smallSpacing*2
+                // Front page: what is already known, and the way to a full check.
+                Components.Card {
+                    Layout.fillWidth:true;visible:root.tab===0&&!doctor.checkedAt&&!doctor.scanning
+                    prominentTitle:true;title:i18n("What Dockmoid Already Knows");titleGlyph:"lightbulb";titleTone:"blue"
+                    PlasmaComponents.Label {
+                        Layout.fillWidth:true;wrapMode:Text.WordWrap
+                        visible:doctor.insights.length===0
+                        text:i18n("Nothing stands out from the state Dockmoid already has. Run checks for a full look at the engine, the Compose projects and the storage.")
+                    }
+                    Repeater {
+                        model:doctor.insights
+                        delegate:RowLayout {
+                            required property var modelData
+                            Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
+                            Layout.alignment:Qt.AlignTop
+                            Components.ActionIcon {
+                                glyph:modelData.severity==="error"?"circle-x":modelData.severity==="warning"?"circle-alert":"info"
+                                color:modelData.severity==="error"?Kirigami.Theme.negativeTextColor:modelData.severity==="warning"?Kirigami.Theme.neutralTextColor:Kirigami.Theme.disabledTextColor
+                                implicitWidth:Kirigami.Units.iconSizes.small;implicitHeight:implicitWidth;Layout.alignment:Qt.AlignTop
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth:true;spacing:0
+                                PlasmaComponents.Label {Layout.fillWidth:true;wrapMode:Text.WordWrap;font.bold:true;text:modelData.title}
+                                PlasmaComponents.Label {Layout.fillWidth:true;wrapMode:Text.WordWrap;font:Kirigami.Theme.smallFont;color:Kirigami.Theme.disabledTextColor;text:modelData.detail;visible:text!==""}
+                            }
+                            Components.DockButton {
+                                visible:modelData.id!==""
+                                glyph:"stethoscope";text:i18n("Diagnose");iconOnly:true
+                                onClicked:root.backend.diagnoseRequested(modelData.id)
+                            }
+                        }
+                    }
+                    Components.DockButton {
+                        variant:"primary";glyph:"view-refresh";text:i18n("Run checks");enabled:!doctor.scanning&&!doctor.executing
+                        onClicked:doctor.scan()
+                    }
+                }
                 Flow {
                     Layout.fillWidth:true;visible:root.tab===0;spacing:Kirigami.Units.smallSpacing
                     Components.StatTile {clickable:false;glyph:"circle-play";value:backend.running;label:i18n("Running")}
@@ -126,13 +164,14 @@ Item {
                                 Layout.fillWidth:true;spacing:Kirigami.Units.smallSpacing
                                 Components.ActionButton {text:i18n("Evidence");glyph:"document-view";visible:finding.modelData.id!=="";onClicked:{const at=backend.records.findIndex(function(r){return r.id===finding.modelData.id});if(at>=0)root.selectedIndex=at;root.tab=1}}
                                 Components.ActionButton {text:i18n("Logs");glyph:"text-x-generic";visible:finding.modelData.kind==="containers"&&finding.modelData.id!=="";onClicked:root.openDetail(finding.modelData.id,1)}
+                                Components.ActionButton {text:i18n("Diagnose");glyph:"stethoscope";visible:finding.modelData.kind==="containers"&&finding.modelData.id!=="";onClicked:root.backend.diagnoseRequested(finding.modelData.id)}
                                 Components.ActionButton {text:i18n("Preview fix");glyph:"document-properties";visible:finding.modelData.action!=="";enabled:!backend.readOnly;onClicked:doctor.addPlan(backend.findRecord(finding.modelData.id),finding.modelData.action)}
                                 Components.ActionButton {text:i18n("Documentation");glyph:"insert-link";onClicked:root.openUrl(finding.modelData.help)}
                             }
                         }
                     }
                 }
-                PlasmaComponents.Label {Layout.fillWidth:true;visible:root.tab<=2&&root.visibleFindings.length===0;text:doctor.scanning?i18n("Checks in progress…"):i18n("No findings in this section. This is a point-in-time check, not a guarantee of service health.");wrapMode:Text.Wrap}
+                PlasmaComponents.Label {Layout.fillWidth:true;visible:root.tab<=2&&root.visibleFindings.length===0&&(doctor.checkedAt>0||doctor.scanning||root.tab>0);text:doctor.scanning?i18n("Checks in progress…"):i18n("No findings in this section. This is a point-in-time check, not a guarantee of service health.");wrapMode:Text.Wrap}
                 ColumnLayout {
                     Layout.fillWidth:true;visible:root.tab===3
                     PlasmaComponents.Label {text:i18n("Engine-reported disk usage");font.bold:true}

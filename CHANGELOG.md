@@ -2,13 +2,91 @@
 
 ## Unreleased
 
-- Clearer at a glance: rows spell out their state ("Stopped · 2d ago", "Running · 2h"); the detail
-  header shows one "Running · Healthy" badge instead of a separate health badge; the footer names
-  its counts ("8 running · 4 stopped") as far as the width allows; the inspector's current tab keeps
-  its label on a narrow popup, and the list's Filter/Sort/Search are set apart from the tabs.
+- Side by Side view (View menu): the list's rows with their pills on the left, the inspector on the
+  right, with its tabs, Select and search along its foot. A popup too narrow for two panes stacks them;
+  a strip too narrow for the search field opens the search box instead.
+- Search sits pinned at the right of the inspector strip and slides out to the left; its icon shows the
+  scope and opens the choices (Containers, Go to, Docker Hub Images). It reads "Search" unless the
+  icon-only setting is on. Go to matches loosely: "dpl" finds Deploy. Search left the More menu.
+- Refresh moved to the far left of the footer; Select moved to the inspector bar before Overview.
+- The Health tab shows the selected container's health: its healthcheck, last check and output,
+  restarts, last exit, what its logs repeat, its events and the fixes that apply to it.
+- Sort and Detail menus have icons; the Table's Columns menu uses the same style as the Detail levels.
+
+- Search is on the bottom strip, in one of three looks (a box that toggles with its button, a field that
+  becomes a field on press, or a field always shown), set in Settings or More → Search. Ctrl+F opens it
+  by default; the key is set in Settings → Appearance.
+- The inspector tabs toggle: pressing the open tab again hides the pane. The Health tab lists what needs
+  attention across containers, with Diagnose, Restart, Logs and Details buttons, and the recent events.
+- Home in the footer returns to the default view with no filter, selection or open page.
+- The Table's Detail button is Columns: presets (Compact, Standard, Everything) instead of levels.
+
+- Toolbar: Filter, Sort, Search and a Select toggle sit with View and Detail. The strip under the list
+  holds only the inspector's tabs and stays pinned to the bottom; pressing the open tab hides the pane.
+- Search has three looks (a box under the button, a field that opens in the toolbar, or always a
+  field) and three scopes: filter containers, go to a page or container, or search Docker Hub (Enter
+  opens the results on Deploy). Set in Settings → Appearance; the scope can be switched in the box.
+- Context menu: Apply Compose Changes moved to the Compose submenu; "Select" replaces "Select Several";
+  Logs With Others appears only in select mode; entries that do not apply are hidden instead of greyed.
+- Buttons share one look: a selected tab's light accent wash for primary and toggled buttons, no solid
+  accent fill. Log toolbar toggles (Freeze, Follow, Wrap) and Filter/Sort use it.
+- Log digest: Diagnose and the Events inspector summarise the newest log lines in plain sentences:
+  error loops, recurring messages and single errors, with counts (not raw lines).
+- Log watch (Settings → Monitoring, default every 15 minutes): reads a few running containers' recent
+  logs and announces a new error loop once (notification and Activity). Health and probe alerts are
+  unchanged.
+- Details has a Diagnose tab second after Overview; the menu's Diagnose opens it.
+- Doctor opens on insights built from state Dockmoid already has (unhealthy or non-answering containers,
+  recent crashes and restarts, repeated log errors, updates, undeployed services). It runs no checks until
+  Run checks is pressed.
+- Minimal view: cards keep clear of their frame, so icons and state marks no longer overlap the edge.
+
+- Greyed-out buttons say why on hover (read-only mode, engine offline, another action running, or
+  not possible in the container's state); greyed-out menu entries carry a short reason, and row
+  tooltips name the container ("Stop navidrome").
+- Compose: "Apply Compose Changes" re-reads the files and recreates only what changed (a stopped
+  service stays stopped), unlike Restart. "Preview Changes" uses `--dry-run` where the installed
+  Compose supports it (2.17+). Both are in the menus and the inspector's Compose tab.
+- Update, Recreate and Apply confirmations list the mounts that are kept and the paths written inside
+  the container that would be lost (`docker diff`), and say this is not a backup.
+- Details: the healthcheck's progress (starting, healthy, failing streak, or none configured) and its
+  last result and output; the image-update state says up to date, update available, not checked,
+  check failed, a local image, or needs buildx, with when it was checked.
+- Compose profiles: discovery keeps services behind profiles (Compose 2.20+ wildcard, older versions
+  as before); rows mark them as optional and Doctor reports them as info, not a warning.
+- Diagnose (container menu, Doctor): exit code and its usual meaning, OOM, restarts, health output,
+  recent events, the log lines worth reading first and the actions that fit, with no guessed cause.
+- Compare Network With (Inspect menu): shared networks, the names each container answers to,
+  published ports and what localhost means inside a container.
+- Logs With Others: several containers' logs as one timeline, labelled and time-bounded.
+- Select Several: tick containers in any view, review exactly which ones Start/Stop/Restart/Update
+  apply to and which are skipped and why, then see a result per container.
+- Activity entries open the container (crashes and restarts on its Logs tab); Deploy ends with a
+  result card (state, Details, Logs, Web, project folder) and keeps an unfinished form as a draft
+  in memory only (never on disk, since environment values can be secrets).
+- Engine unreachable: advice fits the connection (local, rootless, Podman, remote), with the command
+  to copy, Try Again and Connection Settings; a remote host never gets a Start button.
+- Problem Report (More menu): versions, connection type and recent errors with the home folder, user
+  name, remote host names and IP addresses redacted, shown for review before copying.
+- Removable filter chips over the list; Manage Saved Views renames, reorders and deletes views;
+  Grid, Table and Groups support arrow keys, Enter and the Menu key like List.
+- Cleanup reports the measured change in engine disk use; reclaimable sizes are labelled estimates.
+- Faster with large output (measured on 350 KB of inspect JSON and a 5000-line log): Inspect expand
+  all 36 s → 0.15 s, search ~30 s → ~0.15 s; log load 2.2 s → 0.2 s. The tree parses once and
+  draws only visible rows; logs format each line once and draw at most the newest 2000 lines.
+- Internal: one Compose recipe module shared by immediate actions and Doctor; one LogSession owner
+  for the inspector, detail and output log views.
+
+- Under each name, a timeline replaces the image: clock icons with how long it has been up, when it
+  stopped ("Oct 10 · 9d") and, after a recent recreate, the container's age. Tooltips give the exact
+  dates; the image moves to the name's tooltip and to Detailed rows. The times come from the
+  existing restart-policy inspect read, re-read only when a container's state changes.
+- The detail header shows one "Running · Healthy" badge instead of a separate health badge; the
+  inspector's current tab keeps its label on a narrow popup, and the list's Filter/Sort/Search are
+  set apart from the tabs.
 - Logs: Freeze, Follow and Wrap are named toggles on a wide viewer, and a frozen display says so,
   with "Show New Lines".
-- Stale data: when a refresh fails the footer shows how old the shown state is (click to retry) and
+- Stale data: when a refresh fails the footer shows a clock with the data's age (click to retry) and
   the list is dimmed, instead of last-known colours looking like a fresh check.
 - One selection across views: switching List, Table, Grid or Chips scrolls to the inspected
   container; arrow keys in the list move the inspector with them; when a filter hides the

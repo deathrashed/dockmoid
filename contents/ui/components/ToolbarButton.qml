@@ -18,6 +18,12 @@ PlasmaComponents.ToolButton {
     property string badgeText: ""
     /* Tones name or hue for the icon; empty keeps the text colour. */
     property string tint: ""
+    // A toolbar toggle that is on (a filter applied, search open) reads like a selected tab.
+    background: ButtonSurface {
+        control: control
+        flat: true
+        emphasised: control.checked || control.menuOpen
+    }
     readonly property bool stacked: presentation === 3
     readonly property bool showIcon: presentation !== 2
     readonly property bool showLabel: presentation !== 0

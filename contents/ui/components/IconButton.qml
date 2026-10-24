@@ -10,6 +10,9 @@ import "../../lib/style.js" as Style
  * of items, so lists stay quick to build and to scroll. It keeps the parts of
  * the button API the widget uses: glyph, text (tooltip and accessible name),
  * clicked, checkable/checked, enabled, hovered and menuOpen.
+ *
+ * `blockedReason` greys the button out like `enabled: false` but keeps the
+ * tooltip working (a disabled item gets no hover), so it can say why.
  */
 Item {
     id: control
@@ -21,6 +24,8 @@ Item {
     property bool checked: false
     property bool menuOpen: false
     property bool toolTipSuppressed: false
+    property string blockedReason: ""
+    readonly property bool usable: control.enabled && control.blockedReason === ""
     readonly property bool hovered: hover.hovered
     readonly property bool down: tap.pressed
     signal clicked()
@@ -30,10 +35,11 @@ Item {
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
     Accessible.name: control.text
+    Accessible.description: control.blockedReason
     Accessible.onPressAction: control.activate()
 
     function activate() {
-        if (!control.enabled) return
+        if (!control.usable) return
         if (control.checkable) control.checked = !control.checked
         control.clicked()
     }
@@ -46,7 +52,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: Kirigami.Units.smallSpacing
-        color: control.down ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.hover)
+        color: !control.usable ? "transparent" : control.down ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.hover)
             : control.checked ? Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintFaint)
             : control.hovered ? Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface3) : "transparent"
         border.width: control.activeFocus || control.checked ? 1 : 0
@@ -55,16 +61,16 @@ Item {
     ActionIcon {
         anchors.centerIn: parent
         glyph: control.glyph
-        color: control.enabled ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
+        color: control.usable ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
         implicitWidth: control.glyphSize
         implicitHeight: control.glyphSize
     }
-    HoverHandler { id: hover; cursorShape: control.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor }
+    HoverHandler { id: hover; cursorShape: control.usable ? Qt.PointingHandCursor : Qt.ArrowCursor }
     TapHandler {
         id: tap
-        enabled: control.enabled
+        enabled: control.usable
         gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: { control.toolTipSuppressed = true; control.activate() }
     }
-    Tip { text: control.text; suppressed: control.menuOpen || control.toolTipSuppressed }
+    Tip { text: control.blockedReason !== "" ? control.text + "\n" + control.blockedReason : control.text; suppressed: control.menuOpen || control.toolTipSuppressed }
 }

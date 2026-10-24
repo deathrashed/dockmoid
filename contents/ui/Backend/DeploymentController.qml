@@ -18,6 +18,16 @@ Item {
     property var results: []
     property bool searchPerformed: false
     property string lastFolder: ""
+    /* The last created project: the page resolves it to the new container after refresh. */
+    property string lastProject: ""
+    property bool lastStarted: false
+    property bool lastCreated: false
+    /*
+     * An unfinished Configure form, kept while Plasma runs so leaving the page
+     * does not lose it. Memory only: environment values are often secrets, so
+     * the draft is never written to the configuration or to disk.
+     */
+    property var draft: null
 
     function finish(code,out,err) {
         busy=false;failed=code!==0
@@ -52,8 +62,8 @@ Item {
         // The caller passes the reviewed recipe. Never overwrite an existing project.
         var compose=backend.expand(cfg.composeCommand,{})
         var cmd=Deploy.buildCommand(plan,compose,start)
-        activity="create";busy=true;failed=false;message=i18n("Creating %1… Docker progress will appear when the command finishes.",plan.name);output="";lastFolder=plan.directory
-        backend.run(cmd,"deploy-create",function(code,out,err){finish(code,out,err);if(code===0){message=i18n("%1 created. Project: %2",plan.name,plan.directory);backend.refresh({force:true,withStats:true})}else message=i18n("Creation failed with exit code %1. Project files: %2",code,plan.directory);backend.actionDone(plan.name,code===0?i18n("Project created"):message,code===0)})
+        activity="create";busy=true;failed=false;message=i18n("Creating %1… Docker progress will appear when the command finishes.",plan.name);output="";lastFolder=plan.directory;lastProject=plan.name;lastStarted=start;lastCreated=false
+        backend.run(cmd,"deploy-create",function(code,out,err){finish(code,out,err);lastCreated=code===0;if(code===0){draft=null;message=i18n("%1 created. Project: %2",plan.name,plan.directory);backend.refresh({force:true,withStats:true})}else message=i18n("Creation failed with exit code %1. Project files: %2",code,plan.directory);backend.actionDone(plan.name,code===0?i18n("Project created"):message,code===0)})
     }
     function createResource(kind,name) {
         if(busy||backend.readOnly)return

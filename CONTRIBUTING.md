@@ -13,7 +13,10 @@ AppStream CLI and zip. Python GUI fixtures additionally need PySide6 and a graph
 tests/run.sh
 # Optional GUI smoke suite: PySide6 and Plasma QML imports required
 python3 tests/ui_runtime.py
-# Only when native QML imports are unavailable; CI runs full lint separately:
+# Every page, with screenshots: DOCKMOID_UI_PAGES=1 DOCKMOID_UI_CAPTURE_DIR=/tmp/shots python3 tests/ui_runtime.py
+# Large inspect/log output stays fast and correct (synthetic data)
+python3 tests/ui_heavy_output.py
+# Only when native QML imports are unavailable; run full lint before a release:
 DOCKMOID_SKIP_QML_LINT=1 tests/run.sh
 ./package-release.sh /tmp/dockmoid-release
 ```

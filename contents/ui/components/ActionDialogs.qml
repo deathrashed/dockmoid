@@ -37,13 +37,16 @@ Item {
     }
 
     function confirmUpdate(rec) {
-        var recreate = rec.project && rec.service && backend.canUseCompose
-        confirm(recreate ? i18n("Update service %1?", rec.name) : i18n("Pull latest image for %1?", rec.name),
-            recreate ? (rec.isRunning
-                ? i18n("Host: %1\nImage: %2\nThe latest image will be pulled and this Compose service will be recreated and started. Expect a brief interruption. Other services are not recreated.", backend.engineBinary, rec.image)
-                : i18n("Host: %1\nImage: %2\nThe latest image will be pulled and this Compose service will be recreated without starting it. Other services are not recreated.", backend.engineBinary, rec.image))
-                : i18n("Host: %1\nImage: %2\nOnly the newer image is downloaded. The existing container keeps its current image until recreated using its deployment configuration.", backend.engineBinary, rec.image),
-            function () { if (recreate) root.backend.updateContainer(rec); else root.backend.pullImage(rec) })
+        const recreate = rec.project && rec.service && backend.canUseCompose
+        const go = function () { if (recreate) root.backend.updateContainer(rec); else root.backend.pullImage(rec) }
+        if (!recreate) {
+            confirm(i18n("Pull latest image for %1?", rec.name),
+                i18n("Host: %1\nImage: %2\nOnly the newer image is downloaded. The existing container keeps its current image until recreated using its deployment configuration.", backend.engineBinary, rec.image), go)
+            return
+        }
+        confirmRecreate(rec, i18n("Update service %1?", rec.name), rec.isRunning
+            ? i18n("Host: %1\nImage: %2\nThe latest image will be pulled and this Compose service will be recreated and started. Expect a brief interruption. Other services are not recreated.", backend.engineBinary, rec.image)
+            : i18n("Host: %1\nImage: %2\nThe latest image will be pulled and this Compose service will be recreated without starting it. Other services are not recreated.", backend.engineBinary, rec.image), go)
     }
 
     // ===================================================== remove ========
@@ -97,13 +100,37 @@ Item {
     property var confirmAction: null
     property string confirmTitle: ""
     property string confirmText: ""
+    property string confirmDetail: ""
+    property string confirmRecordId: ""
 
     /* Ask once, then run `action`. For anything not worth a dialog of its own. */
-    function confirm(title, text, action) {
+    function confirm(title, text, action, keepDetail) {
         root.confirmTitle = title
         root.confirmText = text
         root.confirmAction = action
+        if (keepDetail !== true) { root.confirmDetail = ""; root.confirmRecordId = "" }
         confirmDialog.open()
+    }
+
+    function confirmRecreate(rec, title, text, action) {
+        root.confirmDetail = i18n("Checking what the container keeps…")
+        const wanted = rec.id
+        root.confirmRecordId = wanted
+        confirm(title, text, action, true)
+        root.backend.recreateImpact(rec, function (impact) {
+            if (!confirmDialog.opened || root.confirmRecordId !== wanted) return
+            const lines = []
+            lines.push(impact.mounts.length > 0
+                ? i18np("Kept: %2 (mounted from outside the container)", "Kept: %1 mounts (from outside the container): %2", impact.mounts.length,
+                        impact.mounts.slice(0, 4).join(", ") + (impact.mounts.length > 4 ? " …" : ""))
+                : i18n("No mounts: nothing in this container is stored outside it."))
+            if (!impact.diff) lines.push(i18n("Could not list changes inside the container."))
+            else if (impact.diff.total === 0) lines.push(i18n("Nothing was written inside the container itself."))
+            else lines.push(i18np("Lost: %1 path written inside the container itself, e.g. %2", "Lost: %1 paths written inside the container itself, e.g. %2",
+                                  impact.diff.total, impact.diff.sample.slice(0, 3).join(", ")))
+            lines.push(i18n("This lists paths, not their importance; it is not a backup."))
+            root.confirmDetail = lines.join("\n")
+        })
     }
 
     QQC2.Dialog {
@@ -115,10 +142,24 @@ Item {
         onOpened: { standardButton(QQC2.Dialog.Yes).text = i18n("Confirm"); standardButton(QQC2.Dialog.No).text = i18n("Cancel") }
         onAccepted: { if (root.confirmAction) root.confirmAction(); root.confirmAction = null }
 
-        PlasmaComponents.Label {
+        // A plain Column with fixed widths: wrapping labels in a ColumnLayout inside
+        // a Dialog feed their height back into the width and never settle.
+        Column {
             width: Kirigami.Units.gridUnit * 24
-            wrapMode: Text.WordWrap
-            text: root.confirmText
+            spacing: Kirigami.Units.largeSpacing
+            PlasmaComponents.Label {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: root.confirmText
+            }
+            PlasmaComponents.Label {
+                width: parent.width
+                visible: root.confirmDetail !== ""
+                wrapMode: Text.WordWrap
+                text: root.confirmDetail
+                font: Kirigami.Theme.smallFont
+                color: Kirigami.Theme.disabledTextColor
+            }
         }
     }
 
@@ -229,6 +270,7 @@ Item {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 text: i18n("Default cleanup removes dangling images and build cache. Containers, networks, volumes, Compose files and bind-mounted data are preserved.")
+                    + "\n" + i18n("Reclaimable sizes are the engine's estimate: images sharing layers can make it larger than what is freed. The result reports the measured change.")
             }
 
             QQC2.CheckBox {

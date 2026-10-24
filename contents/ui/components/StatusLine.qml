@@ -34,8 +34,8 @@ Item {
     property bool showBusy: false
     /* Replaces the status text, for views that explain *why* (Needs attention). */
     property string labelOverride: ""
-    /* Spell the state out ("Stopped · 2d ago") instead of leaving it to the glyph. */
-    property bool spelled: false
+    /* Glyph or badge only: for rows whose timeline already gives the times. */
+    property bool showText: true
 
     readonly property string glyphName: root.showBadge ? "" : Status.statusGlyph(root.attention, root.operationBusy, root.isRunning, root.badge ? "always" : root.glyphMode)
     readonly property var spec: Status.badgeSpec(root.attention)
@@ -61,18 +61,9 @@ Item {
         }
     }
     readonly property string elapsed: Status.compactStatus(root.status, root.containerState, root.runningFor)
-    readonly property bool hasElapsed: root.attention !== "not-created" && root.elapsed !== "" && root.elapsed !== root.containerState
-    /* "2h" while up, "2d ago" once stopped. */
-    readonly property string when: !root.hasElapsed ? ""
-        : root.isRunning || root.attention === "restarting" || root.attention === "paused" ? root.elapsed
-        : i18nc("time since it stopped", "%1 ago", root.elapsed)
-    /* "Running · 2h", "Stopped · 2d ago", "Undeployed". */
-    readonly property string spelledText: root.when === "" ? root.badgeWord
-        : i18nc("state · time", "%1 · %2", root.badgeWord, root.when)
     readonly property string text: root.operationLabel !== "" ? root.operationLabel
         : root.labelOverride !== "" ? root.labelOverride
-        : root.showBadge ? (root.spelled ? root.when : root.elapsed)
-        : root.spelled ? root.spelledText
+        : root.showBadge ? root.elapsed
         : root.prefix + root.elapsed
 
     /* A tone name or hue to a colour; cheaper than an item per instance. */
@@ -121,7 +112,7 @@ Item {
         PlasmaComponents.Label {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            visible: root.text !== ""
+            visible: root.showText && root.text !== ""
             text: root.text
             elide: Text.ElideRight
             font: Kirigami.Theme.smallFont

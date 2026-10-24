@@ -115,6 +115,15 @@ PlasmaComponents.ItemDelegate {
         anchors.rightMargin: Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
 
+        IconButton {
+            // Selection mode: tick containers to act on several at once.
+            visible: root.backend.selection.active
+            glyph: root.backend.selection.picked[root.containerKey] === true ? "square-check" : "square"
+            text: root.backend.selection.picked[root.containerKey] === true ? i18n("Unselect %1", root.name) : i18n("Select %1", root.name)
+            implicitWidth: Kirigami.Units.gridUnit * 1.3
+            onClicked: root.backend.selection.toggle(root.containerKey)
+        }
+
         StateDot {
             Layout.alignment: root.detailLevel === 3 ? Qt.AlignTop : Qt.AlignVCenter
             Layout.topMargin: root.detailLevel === 3 ? Kirigami.Units.smallSpacing * 1.5 : 0
@@ -147,10 +156,20 @@ PlasmaComponents.ItemDelegate {
                     Layout.maximumWidth: Math.max(72, layout.width * 0.55)
                     Layout.minimumWidth: 72
                     text: root.record.name
-                    Tip { text: root.record.name }
+                    Tip { text: root.record.name + (root.record.image ? "\n" + root.record.image : "") }
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize
                     font.bold: true
                     elide: Text.ElideRight
+                }
+                ActionIcon {
+                    // Optional by design: Compose only creates it with its profile enabled.
+                    visible: !!root.record.composeProfile
+                    glyph: "toggle-left"
+                    color: Kirigami.Theme.textColor
+                    opacity: 0.55
+                    implicitWidth: Kirigami.Units.iconSizes.small * 0.75
+                    implicitHeight: implicitWidth
+                    Tip { text: i18n("Optional: Compose profile %1", root.record.composeProfile) }
                 }
                 Kirigami.Icon {
                     visible: root.record.pinned === true
@@ -193,31 +212,37 @@ PlasmaComponents.ItemDelegate {
                 Item { Layout.fillWidth: true }
             }
 
-            // -- image, and the state when there is no room for its own column --
+            // -- when it started/stopped, and the state when there is no room for its own column --
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
                 visible: root.detailLevel >= 1
                 StatusLine {
                     visible: root.narrow
-                    // First on the line, so the state icons form a column on every row;
-                    // the minimum keeps short times ("2h", "12m") the same width.
-                    Layout.minimumWidth: Kirigami.Units.gridUnit * 2.8
                     status: root.record.status; containerState: root.record.state; runningFor: root.record.runningFor
                     isRunning: root.record.isRunning === true
                     attention: root.attention
                     operationLabel: root.operation.label; operationOk: root.operation.ok; operationBusy: root.operation.busy
-                    glyphMode: "none"; badge: true; spelled: true
+                    glyphMode: "none"; badge: true; showText: false
                 }
-                PlasmaComponents.Label {
+                Timeline {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
-                    text: String(root.record.image).replace(/(@sha256:)[a-f0-9]{20,}/, function(_,prefix) { return prefix + String(root.record.image).split("@sha256:")[1].slice(0,12) + "…" })
-                    Tip { text: root.record.image }
-                    elide: Text.ElideMiddle
-                    font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
-                    color: Kirigami.Theme.disabledTextColor
+                    clip: true
+                    record: root.record
                 }
+            }
+
+            // -- image (level >= 2; always in the name's tooltip) ------
+            PlasmaComponents.Label {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                visible: root.detailLevel >= 2
+                text: String(root.record.image).replace(/(@sha256:)[a-f0-9]{20,}/, function(_,prefix) { return prefix + String(root.record.image).split("@sha256:")[1].slice(0,12) + "…" })
+                Tip { text: root.record.image }
+                elide: Text.ElideMiddle
+                font: root.detailLevel === 3 ? Kirigami.Theme.defaultFont : Kirigami.Theme.smallFont
+                color: Kirigami.Theme.disabledTextColor
             }
 
             // -- ports (level >= 2) ----------------------------------
@@ -318,21 +343,21 @@ PlasmaComponents.ItemDelegate {
                     }
                 }
                 ActionToolButton {
-                    text: i18n("Restart container")
+                    text: i18n("Restart %1", root.record.name)
                     glyph: "view-refresh"
-                    enabled: root.can.restart
+                    blockedReason: root.backend.actionReason(root.record, "restart")
                     onClicked: root.backend.runAction(root.record, "restart")
                 }
                 ActionToolButton {
-                    text: root.record.state === "paused" ? i18n("Resume container") : i18n("Pause container")
+                    text: root.record.state === "paused" ? i18n("Resume %1", root.record.name) : i18n("Pause %1", root.record.name)
                     glyph: root.record.state === "paused" ? "media-playback-start" : "media-playback-pause"
-                    enabled: root.can.pause || root.can.resume
+                    blockedReason: root.backend.actionReason(root.record, root.record.state === "paused" ? "resume" : "pause")
                     onClicked: root.backend.runAction(root.record, root.can.resume ? "resume" : "pause")
                 }
                 ActionToolButton {
-                    text: root.primary.action === "create" ? i18n("Create and start service") : root.primary.action === "stop" ? i18n("Stop container") : i18n("Start container")
+                    text: root.primary.action === "create" ? i18n("Create and start %1", root.record.name) : root.primary.action === "stop" ? i18n("Stop %1", root.record.name) : i18n("Start %1", root.record.name)
                     glyph: root.primary.action === "stop" ? "media-playback-stop" : "media-playback-start"
-                    enabled: root.primary.enabled
+                    blockedReason: root.backend.actionReason(root.record, root.primary.action)
                     onClicked: root.backend.runAction(root.record, root.primary.action)
                 }
                 ActionToolButton {
@@ -365,7 +390,7 @@ PlasmaComponents.ItemDelegate {
             isRunning: root.record.isRunning === true
             attention: root.attention
             operationLabel: root.operation.label; operationOk: root.operation.ok; operationBusy: root.operation.busy
-            glyphMode: "none"; badge: true; spelled: true
+            glyphMode: "none"; badge: true
         }
         Item {
             visible: root.detailLevel >= 1 && root.width >= Kirigami.Units.gridUnit * 38 && root.cfg.showResourceBars
@@ -421,9 +446,9 @@ PlasmaComponents.ItemDelegate {
                         id: toggleButton
                         opacity: root.hovered || root.highlighted || toggleButton.activeFocus ? 1 : 0.55
                         visible: root.detailLevel !== 0 && root.detailLevel !== 3
-                        enabled: root.primary.enabled
+                        blockedReason: root.backend.actionReason(root.record, root.primary.action)
                         glyph: root.primary.action === "stop" ? "media-playback-stop" : "media-playback-start"
-                        text: root.primary.action === "create" ? i18n("Create and start") : root.primary.action === "stop" ? i18n("Stop") : i18n("Start")
+                        text: root.primary.action === "create" ? i18n("Create and start %1", root.record.name) : root.primary.action === "stop" ? i18n("Stop %1", root.record.name) : i18n("Start %1", root.record.name)
                         onClicked: root.backend.runAction(root.record, root.primary.action)
                     }
                     ActionToolButton {
@@ -466,10 +491,17 @@ PlasmaComponents.ItemDelegate {
 
     onHoveredChanged: if(hovered) root.backend.previewContainer(root.containerKey,false)
     onClicked: {
+        if (root.backend.selection.active) { root.backend.selection.toggle(root.containerKey); return }
         root.backend.previewContainer(root.containerKey,true)
         ListView.view.currentIndex = root.index
     }
     onDoubleClicked: root.openDetail(root.record.id)
+    Keys.onPressed: function (event) {
+        if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier))) {
+            actions.popup(root, Kirigami.Units.gridUnit, root.height)
+            event.accepted = true
+        }
+    }
     Keys.onReturnPressed: root.openDetail(root.record.id)
     Keys.onEnterPressed: root.openDetail(root.record.id)
     Accessible.name: root.name + ", " + Status.compactStatus(root.status, root.containerState, root.runningFor)

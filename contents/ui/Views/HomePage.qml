@@ -34,8 +34,31 @@ Item {
     signal filterMenuRequested(Item anchor)
     signal sortMenuRequested(Item anchor)
     signal searchEdited(string text)
+    /* Go to, and Docker Hub search, from the bottom strip's search. */
+    signal pageRequested(string key)
+    signal imageSearchRequested(string query)
+    function openSearch() { search.open() }
+    /* A bottom tab: the open one hides the pane, any other opens its page. */
+    function tabPressed(key) {
+        if (root.dockExpanded && root.dockPage === key) root.setDock("expanded", false)
+        else { root.setDock("page", key); root.setDock("expanded", true) }
+    }
     property string stateFilterLabel: ""
-    function focusSearch() { searchField.forceActiveFocus(); searchField.selectAll() }
+    property string stateFilterKey: "all"
+    property string stateFilterIcon: ""
+    property bool problemsOnly: false
+    /* "search", "state" or "problems": one active filter's × was pressed. */
+    signal removeFilter(string which)
+    /* Selection mode: review `action` for the picked containers before it runs. */
+    signal batchReviewRequested(string action)
+    /* The active filters as removable chips over the list. */
+    readonly property var filterChips: {
+        const chips = []
+        if (root.problemsOnly) chips.push({key: "problems", glyph: "circle-alert", text: i18n("Needs Attention")})
+        if (root.stateFilterKey !== "all") chips.push({key: "state", glyph: root.stateFilterIcon, text: root.stateFilterLabel})
+        if (root.searchText.trim() !== "") chips.push({key: "search", glyph: "search", text: "“" + root.searchText.trim() + "”"})
+        return chips
+    }
     signal createRequested()
     signal resourcesRequested()
     signal openDetail(string recordId, int tab)
@@ -70,7 +93,7 @@ Item {
         cfg.serviceSectionSettings = JSON.stringify(all)
     }
     /* Older settings may name a page that moved to the toolbar. */
-    readonly property string dockPage: { const page = String(dockSetting("page", "preview")); return ["preview", "logs", "events", "compose"].indexOf(page) >= 0 ? page : "preview" }
+    readonly property string dockPage: { const page = String(dockSetting("page", "preview")); return ["preview", "logs", "events", "compose", "health"].indexOf(page) >= 0 ? page : "preview" }
     readonly property bool dockExpanded: dockSetting("expanded", true) === true
     function previewMode() { return String(dockSetting("previewMode", "selection")) }
 
@@ -90,14 +113,16 @@ Item {
         {key: "preview", label: i18n("Overview"), glyph: "eye"},
         {key: "logs", label: i18n("Logs"), glyph: "scroll-text"},
         {key: "events", label: i18n("Events"), glyph: "bell-ring"},
-        {key: "compose", label: i18n("Compose"), glyph: "file-code"}
+        {key: "compose", label: i18n("Compose"), glyph: "file-code"},
+        {key: "health", label: i18n("Health"), glyph: "heart-pulse"}
     ]
     Component { id: previewPage; Components.ServicePreview { backend: root.backend; onOpenDetail: function(id) { root.openDetail(id, 0) } } }
     Component { id: logsPage; InspectorLogs { backend: root.backend; onOpenDetail: function(id, tab) { root.openDetail(id, tab) } } }
     Component { id: eventsPage; InspectorEvents { backend: root.backend } }
     Component { id: composePage; InspectorCompose { backend: root.backend } }
     readonly property var dockComponent: dockPage === "logs" ? logsPage : dockPage === "events" ? eventsPage
-        : dockPage === "compose" ? composePage : previewPage
+        : dockPage === "compose" ? composePage : dockPage === "health" ? healthPage : previewPage
+    Component { id: healthPage; InspectorHealth { backend: root.backend; onOpenDetail: function(id, tab) { root.openDetail(id, tab) } } }
 
     // ------------------------------------------------ selection continuity ---
     /*
@@ -118,11 +143,12 @@ Item {
         const rows = root.proxy.count, filter = root.rowFilter
         return !!root.selectedRecord && root.proxyRowOf(root.backend.previewRecordId) < 0
     }
-    /* The loaded view; every view but Groups offers reveal(row). A var, since the views share no base type. */
+    /* The loaded view: reveal(row), or revealId(id) for Groups. A var, since the views share no base type. */
     readonly property var loadedView: viewLoader.item
     function revealSelection() {
-        if (root.loadedView && typeof root.loadedView.reveal === "function")
-            root.loadedView.reveal(root.proxyRowOf(root.backend.previewRecordId))
+        if (!root.loadedView) return
+        if (typeof root.loadedView.revealId === "function") root.loadedView.revealId(root.backend.previewRecordId)
+        else if (typeof root.loadedView.reveal === "function") root.loadedView.reveal(root.proxyRowOf(root.backend.previewRecordId))
     }
 
     // ---------------------------------------------------- the container list ---
@@ -173,8 +199,12 @@ Item {
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
     }
+    /* Side by side shows the list's rows (with their pills) beside the inspector;
+       a popup too narrow for two panes stacks them as usual. */
+    readonly property bool sideBySide: viewMode === 4 && root.width >= Kirigami.Units.gridUnit * 40
     readonly property var selectedViewComponent: viewMode === 1 ? tableComponent
         : viewMode === 2 ? groupComponent : viewMode === 3 ? gridComponent
+        : viewMode === 4 ? listComponent
         : detailLevel === 0 ? minimalComponent : listComponent
 
     ColumnLayout {
@@ -189,7 +219,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumHeight: 0
-            orientation: Qt.Vertical
+            orientation: root.sideBySide ? Qt.Horizontal : Qt.Vertical
             handle: Item {
                 implicitHeight: 7
                 Rectangle {
@@ -201,7 +231,7 @@ Item {
                 }
             }
             property bool wasResizing: false
-            onResizingChanged: { if (resizing) wasResizing = true; else if (wasResizing) { wasResizing = false; if (root.dockExpanded) root.setDock("height_" + root.dockPage, Math.round(dockPanel.height)) } }
+            onResizingChanged: { if (resizing) wasResizing = true; else if (wasResizing) { wasResizing = false; if (root.dockExpanded && !root.sideBySide) root.setDock("height_" + root.dockPage, Math.round(dockPanel.height)) } }
 
             // ---- top: what the selection asks for
             Rectangle {
@@ -210,14 +240,89 @@ Item {
                 Controls.SplitView.fillWidth: true
                 Controls.SplitView.fillHeight: true
                 Controls.SplitView.minimumHeight: Kirigami.Units.gridUnit * 6
+                Controls.SplitView.minimumWidth: root.sideBySide ? Kirigami.Units.gridUnit * 14 : 0
                 color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
                 border.width: 1
                 border.color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
                 radius: Kirigami.Units.smallSpacing
 
+                // Active filters, each removable on its own, so it is plain what the
+                // list leaves out and which control did it.
+                Flow {
+                    id: chipRow
+                    objectName: "filterChips"
+                    anchors { left: parent.left; right: parent.right; top: parent.top; margins: Kirigami.Units.smallSpacing }
+                    visible: root.filterChips.length > 0
+                    height: visible ? implicitHeight : 0
+                    spacing: Kirigami.Units.smallSpacing
+                    Repeater {
+                        model: root.filterChips
+                        delegate: Rectangle {
+                            id: chip
+                            required property var modelData
+                            implicitWidth: chipLine.implicitWidth + Kirigami.Units.smallSpacing * 2
+                            implicitHeight: Kirigami.Units.gridUnit * 1.3
+                            radius: height / 2
+                            color: Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintFaint)
+                            border.color: Qt.alpha(Kirigami.Theme.highlightColor, Style.WASH_BORDER.hover)
+                            Row {
+                                id: chipLine
+                                anchors.centerIn: parent
+                                spacing: Kirigami.Units.smallSpacing / 2
+                                Components.ActionIcon { anchors.verticalCenter: parent.verticalCenter; glyph: chip.modelData.glyph; implicitWidth: Kirigami.Units.iconSizes.small * 0.8; implicitHeight: implicitWidth }
+                                PlasmaComponents.Label { anchors.verticalCenter: parent.verticalCenter; text: chip.modelData.text; font: Kirigami.Theme.smallFont; elide: Text.ElideRight; width: Math.min(implicitWidth, Kirigami.Units.gridUnit * 10) }
+                                Components.IconButton {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    glyph: "x"
+                                    glyphSize: Kirigami.Units.iconSizes.small * 0.7
+                                    implicitWidth: Kirigami.Units.gridUnit
+                                    text: i18n("Remove this filter")
+                                    onClicked: root.removeFilter(chip.modelData.key)
+                                }
+                            }
+                        }
+                    }
+                }
+                // Selection mode's bar: how many are picked (and hidden by filters),
+                // the actions to review for them, and the way out.
+                Rectangle {
+                    id: selectionBar
+                    objectName: "selectionBar"
+                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 1 }
+                    visible: root.backend.selection.active
+                    height: visible ? selectionLine.implicitHeight + Kirigami.Units.smallSpacing * 2 : 0
+                    color: Qt.alpha(Kirigami.Theme.highlightColor, Style.ALPHA.tintFaint)
+                    readonly property int hidden: { const rows = root.proxy.count, filter = root.rowFilter; return root.backend.selection.hiddenCount(function (id) { return root.proxyRowOf(id) >= 0 }) }
+                    Flow {
+                        id: selectionLine
+                        anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: Kirigami.Units.smallSpacing }
+                        spacing: Kirigami.Units.smallSpacing
+                        PlasmaComponents.Label {
+                            height: Kirigami.Units.gridUnit * 1.7
+                            verticalAlignment: Text.AlignVCenter
+                            text: selectionBar.hidden > 0 ? i18n("%1 selected · %2 hidden by filters", root.backend.selection.pickedIds.length, selectionBar.hidden)
+                                : i18np("%1 selected", "%1 selected", root.backend.selection.pickedIds.length)
+                        }
+                        Repeater {
+                            model: [["start", "media-playback-start", i18n("Start")], ["stop", "media-playback-stop", i18n("Stop")],
+                                    ["restart", "view-refresh", i18n("Restart")], ["update", "cloud-download", i18n("Update…")]]
+                            delegate: Components.DockButton {
+                                required property var modelData
+                                glyph: modelData[1]; text: modelData[2]
+                                iconOnly: root.width < Kirigami.Units.gridUnit * 30
+                                visible: !root.backend.readOnly
+                                enabled: root.backend.selection.pickedIds.length > 0 && !root.backend.selection.running
+                                onClicked: root.batchReviewRequested(modelData[0])
+                            }
+                        }
+                        Components.DockButton { glyph: "x"; text: i18n("Clear"); iconOnly: true; enabled: root.backend.selection.pickedIds.length > 0; onClicked: root.backend.selection.clear() }
+                        Components.DockButton { glyph: "check"; text: i18n("Done"); onClicked: root.backend.selection.active = false }
+                    }
+                }
                 Loader {
                     id: viewLoader
-                    anchors.fill: parent
+                    anchors { left: parent.left; right: parent.right; bottom: selectionBar.visible ? selectionBar.top : parent.bottom; top: chipRow.visible ? chipRow.bottom : parent.top }
+                    anchors.topMargin: chipRow.visible ? Kirigami.Units.smallSpacing : 0
                     visible: root.backend.engineActive && root.proxy.count > 0
                     // Dimmed while the last refresh failed: these are last known states.
                     opacity: root.backend.dataStale && root.backend.lastUpdatedMs > 0 ? 0.7 : 1
@@ -247,107 +352,26 @@ Item {
                 }
             }
 
-            // ---- bottom: a page host
+            // ---- the inspector: below the list, or to its right side by side; its tabs at its foot
             Rectangle {
                 id: dockPanel
                 objectName: "dockPanel"
+                // Below the list (vertical) or to its right (side by side). Collapsed, only the strip shows.
                 Controls.SplitView.fillWidth: true
-                Controls.SplitView.minimumHeight: root.dockHeaderHeight
-                Controls.SplitView.maximumHeight: root.dockExpanded ? 16777215 : root.dockHeaderHeight
-                Controls.SplitView.preferredHeight: root.dockExpanded ? Math.max(root.dockHeaderHeight + Kirigami.Units.gridUnit * 4, root.dockWantedHeight) : root.dockHeaderHeight
+                Controls.SplitView.minimumHeight: root.sideBySide ? 0 : root.dockHeaderHeight
+                Controls.SplitView.maximumHeight: root.sideBySide || root.dockExpanded ? 16777215 : root.dockHeaderHeight
+                Controls.SplitView.preferredHeight: root.dockExpanded ? Math.max(Kirigami.Units.gridUnit * 4, root.dockWantedHeight) : root.dockHeaderHeight
+                Controls.SplitView.minimumWidth: root.sideBySide ? Kirigami.Units.gridUnit * 24 : 0
+                Controls.SplitView.maximumWidth: root.sideBySide && !root.dockExpanded ? Kirigami.Units.gridUnit * 24 : 16777215
+                Controls.SplitView.preferredWidth: root.sideBySide ? Kirigami.Units.gridUnit * 30 : -1
                 color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
                 border.width: 1
                 border.color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
                 radius: Kirigami.Units.smallSpacing
 
-                /* The tab strip sits on its own darker band. */
-                Rectangle {
-                    anchors { left: parent.left; right: parent.right; top: parent.top }
-                    height: root.dockHeaderHeight
-                    radius: Kirigami.Units.smallSpacing
-                    color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface3)
-                }
-
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 0
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: root.dockHeaderHeight
-                        Layout.leftMargin: Kirigami.Units.smallSpacing
-                        Layout.rightMargin: Kirigami.Units.smallSpacing
-                        spacing: Kirigami.Units.smallSpacing / 2
-                        Repeater {
-                            model: root.dockTabs
-                            delegate: Components.DockTab {
-                                required property var modelData
-                                glyph: modelData.glyph
-                                text: modelData.label
-                                // Narrow: the current tab keeps its label, so it is always clear
-                                // whether the inspector shows Overview, Logs, Events or Compose.
-                                iconOnly: root.width < Kirigami.Units.gridUnit * 44 && !checked
-                                checked: root.dockPage === modelData.key && root.dockExpanded
-                                onClicked: { root.setDock("page", modelData.key); root.setDock("expanded", true) }
-                            }
-                        }
-                        Item { Layout.fillWidth: true }
-                        // ---- the list's own controls, set apart from the inspector's tabs ----
-                        Rectangle {
-                            Layout.preferredWidth: 1
-                            Layout.preferredHeight: Kirigami.Units.gridUnit
-                            Layout.rightMargin: Kirigami.Units.smallSpacing
-                            color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
-                        }
-                        Components.ToolbarButton {
-                            id: dockFilter
-                            objectName: "dockFilterButton"
-                            presentation: root.width < Kirigami.Units.gridUnit * 36 ? 0 : 1
-                            glyph: "view-filter"
-                            label: i18n("Filter")
-                            text: i18n("Filter: %1", root.stateFilterLabel)
-                            menuIndicator: true
-                            checkable: true
-                            checked: root.activeFilterCount > 0
-                            badgeText: root.activeFilterCount > 0 ? String(root.activeFilterCount) : ""
-                            onClicked: root.filterMenuRequested(dockFilter)
-                        }
-                        Components.ToolbarButton {
-                            id: dockSort
-                            objectName: "dockSortButton"
-                            presentation: root.width < Kirigami.Units.gridUnit * 36 ? 0 : 1
-                            glyph: "view-sort-ascending"
-                            label: i18n("Sort")
-                            text: i18n("Sort containers")
-                            menuIndicator: true
-                            onClicked: root.sortMenuRequested(dockSort)
-                        }
-                        PlasmaExtras.SearchField {
-                            id: searchField
-                            objectName: "dockSearchField"
-                            // Shrinks before anything else when the strip is short of room.
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: Kirigami.Units.gridUnit * 3.5
-                            Layout.preferredWidth: activeFocus || text !== "" ? Kirigami.Units.gridUnit * 11 : Kirigami.Units.gridUnit * 7
-                            Layout.maximumWidth: Math.max(Kirigami.Units.gridUnit * 5, root.width * 0.3)
-                            placeholderText: i18n("Search…")
-                            text: root.searchText
-                            onTextChanged: if (text !== root.searchText) root.searchEdited(text)
-                            Keys.onEscapePressed: { clear(); root.forceActiveFocus() }
-                            Behavior on Layout.preferredWidth { NumberAnimation { duration: Kirigami.Units.shortDuration } }
-                        }
-                        Components.ActionToolButton {
-                            glyph: root.dockExpanded ? "chevron-down" : "chevron-up"
-                            text: root.dockExpanded ? i18n("Hide the inspector") : i18n("Show the inspector")
-                            onClicked: root.setDock("expanded", !root.dockExpanded)
-                        }
-                    }
-                    Rectangle {
-                        visible: root.dockExpanded
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 1
-                        color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
-                    }
                     Kirigami.InlineMessage {
                         objectName: "selectionHiddenMessage"
                         Layout.fillWidth: true
@@ -368,9 +392,68 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 0
-                        visible: root.dockExpanded
                         active: root.dockExpanded && root.visible
                         sourceComponent: root.dockComponent
+                    }
+                    /*
+                     * The inspector's tabs, pinned to the bottom whatever the pane's height.
+                     * A tab opens its page above; pressing the open tab again hides the pane.
+                     */
+                    Rectangle {
+                        id: dockStrip
+                        objectName: "dockStrip"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: root.dockHeaderHeight
+                        radius: Kirigami.Units.smallSpacing
+                        color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface3)
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: Kirigami.Units.smallSpacing
+                            anchors.rightMargin: Kirigami.Units.smallSpacing
+                            spacing: Kirigami.Units.smallSpacing / 2
+                            // Select: ticks on every container, for acting on several at once.
+                            Components.DockButton {
+                                objectName: "selectButton"
+                                glyph: "square-check"
+                                iconOnly: dockStrip.width < Kirigami.Units.gridUnit * 36
+                                text: root.backend.selection.pickedIds.length > 0 ? i18n("Select (%1)", root.backend.selection.pickedIds.length) : i18n("Select")
+                                variant: root.backend.selection.active ? "primary" : "flat"
+                                onClicked: root.backend.selection.active = !root.backend.selection.active
+                            }
+                            Repeater {
+                                model: root.dockTabs
+                                delegate: Components.DockTab {
+                                    required property var modelData
+                                    objectName: "dockTab"
+                                    glyph: modelData.glyph
+                                    text: modelData.label
+                                    // Narrow: only the open tab keeps its label.
+                                    iconOnly: dockStrip.width < Kirigami.Units.gridUnit * 40 && !checked
+                                    checked: root.dockPage === modelData.key && root.dockExpanded
+                                    onClicked: root.tabPressed(modelData.key)
+                                }
+                            }
+                            Item { Layout.fillWidth: true }
+                            // Search, pinned right; its look is set in Settings → Appearance.
+                            Components.SearchControl {
+                                id: search
+                                objectName: "dockSearch"
+                                backend: root.backend
+                                containerText: root.searchText
+                                available: dockStrip.width
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                                onContainerTextEdited: function (text) { root.searchEdited(text) }
+                                onPageRequested: function (key) { root.pageRequested(key) }
+                                onContainerRequested: function (recordId) { root.openDetail(recordId, 0) }
+                                onImageSearchRequested: function (query) { root.imageSearchRequested(query) }
+                            }
+                            Components.ActionToolButton {
+                                glyph: root.sideBySide ? (root.dockExpanded ? "chevron-right" : "chevron-left")
+                                    : (root.dockExpanded ? "chevron-down" : "chevron-up")
+                                text: root.dockExpanded ? i18n("Hide the inspector") : i18n("Show the inspector")
+                                onClicked: root.setDock("expanded", !root.dockExpanded)
+                            }
+                        }
                     }
                 }
             }

@@ -13,7 +13,12 @@ for folder, dirs, files in os.walk(root):
     dirs[:] = []
     path = pathlib.Path(folder) / filename
     try:
-        result = subprocess.run(['docker','compose','-f',str(path),'config','--format','json'], cwd=folder, capture_output=True, text=True, timeout=20)
+        # --profile '*' keeps services behind profiles (optional by design) in the
+        # result; Compose before 2.20 rejects the wildcard, so retry without it.
+        base = ['docker','compose','-f',str(path)]
+        result = subprocess.run(base+['--profile','*','config','--format','json'], cwd=folder, capture_output=True, text=True, timeout=20)
+        if result.returncode:
+            result = subprocess.run(base+['config','--format','json'], cwd=folder, capture_output=True, text=True, timeout=20)
         if result.returncode:
             errors.append(str(path) + ': Compose configuration could not be resolved'); continue
         config = json.loads(result.stdout)

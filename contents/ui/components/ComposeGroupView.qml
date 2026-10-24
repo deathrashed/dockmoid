@@ -50,6 +50,19 @@ Item {
         onOpenOutput: function(title,content,live,recordId) { root.openOutput(title,content,live,recordId) }
     }
 
+    /* Untyped, so the mapped index's row is read like any JS object. */
+    readonly property var groupModel: groupProxy
+    /* Groups sort their own proxy, so the shared selection is found by id here. */
+    function revealId(id) {
+        const model = root.backend.containerModel
+        for (let i = 0; id && i < model.count; i++) {
+            if (model.get(i).containerKey !== id) continue
+            const row = root.groupModel.mapFromSource(model.index(i, 0)).row
+            if (row >= 0) { view.currentIndex = row; view.positionViewAtIndex(row, ListView.Contain) }
+            return
+        }
+    }
+
     KItemModels.KSortFilterProxyModel {
         id: groupProxy
         sourceModel: root.backend.containerModel
@@ -73,6 +86,10 @@ Item {
             model: groupProxy
             width: scroll.width
             currentIndex: -1
+            keyNavigationEnabled: true
+            activeFocusOnTab: true
+            // Arrow keys select like a click does, so the inspector follows.
+            onCurrentIndexChanged: { const row = currentItem as ContainerRow; if (row && activeFocus) root.backend.previewContainer(row.containerKey, true) }
             reuseItems: true
             cacheBuffer: Kirigami.Units.gridUnit * 4
             clip: true

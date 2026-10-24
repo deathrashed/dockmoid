@@ -7,6 +7,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.kitemmodels as KItemModels
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
+import org.kde.plasma.plasmoid
 
 import "../components" as Components
 import "../../lib/profiles.js" as Profiles
@@ -83,13 +84,16 @@ PlasmaExtras.Representation {
     // Hidden controls remain available in More, with zero menu-row height.
     readonly property var toolbarSlots: {
         const widths = {view:viewButton.idealWidth, detail:detailButton.idealWidth,
+            filter:filterButton.idealWidth, sort:sortButton.idealWidth,
+
             activity:activityButton.idealWidth, new:newButton.idealWidth, resources:resourcesButton.idealWidth,
             doctor:doctorButton.idealWidth, maintain:maintainButton.idealWidth,
-            refresh:refreshButton.idealWidth, detach:detachButton.idealWidth, more:toolsButton.idealWidth}
-        // Filter, Sort and Search sit in the bar under the list, next to what they change.
-        const groups = [["view","detail"],[],
-            ["new","resources","doctor","activity","maintain"],["refresh","detach","more"]]
-        const gap = Kirigami.Units.smallSpacing / 2
+            detach:detachButton.idealWidth, more:toolsButton.idealWidth}
+        // What changes the list (view, detail, filter, sort, search), then pages, then window actions.
+        // Refresh and Select live in the footer and the inspector bar; the rest keeps its order.
+        const groups = [["view","detail","filter","sort"],[],
+            ["new","resources","doctor","activity","maintain"],["detach","more"]]
+        const gap = Kirigami.Units.smallSpacing
         function requiredWidth(keys) {
             let total = Kirigami.Units.smallSpacing * 2
             const counts = groups.map(function(group) {
@@ -104,19 +108,19 @@ PlasmaExtras.Representation {
             return total
         }
         let keep = ["view","more"]
-        ;["doctor","detach","refresh","new","detail","resources","activity","maintain"].forEach(function(key) {
+        ;["filter","doctor","detach","new","sort","detail","resources","activity","maintain"].forEach(function(key) {
             const next = keep.concat([key])
             if (requiredWidth(next) <= headerRow.width) keep = next
         })
         return keep
     }
     readonly property bool directDetail: toolbarSlots.indexOf("detail") >= 0
-    /* Always shown in the bar under the list, so never needed in More. */
-    readonly property bool directFilter: true
-    readonly property bool directSort: true
-    readonly property bool directSearch: true
+    readonly property bool directFilter: toolbarSlots.indexOf("filter") >= 0
+    readonly property bool directSort: toolbarSlots.indexOf("sort") >= 0
+    /* Select lives in the inspector bar; Refresh in the footer. Neither is repeated in More. */
+    readonly property bool directSelect: true
     readonly property bool directActivity: toolbarSlots.indexOf("activity") >= 0
-    readonly property bool directRefresh: toolbarSlots.indexOf("refresh") >= 0
+    readonly property bool directRefresh: true
     readonly property bool directNew: toolbarSlots.indexOf("new") >= 0
     readonly property bool directResources: toolbarSlots.indexOf("resources") >= 0
     readonly property bool directDoctor: toolbarSlots.indexOf("doctor") >= 0
@@ -126,14 +130,15 @@ PlasmaExtras.Representation {
         {mode:0, icon:"view-list-text", label:i18n("List")},
         {mode:1, icon:"view-list-details", label:i18n("Table")},
         {mode:3, icon:"view-grid", label:i18n("Grid")},
-        {mode:2, icon:"view-list-tree", label:i18n("Groups")}
+        {mode:2, icon:"view-list-tree", label:i18n("Groups")},
+        {mode:4, icon:"layout-panel-left", label:i18n("Side by Side")}
     ]
     readonly property var sortChoices: [
-        {role:"sortKey", label:i18n("By State, in Sections")},
-        {role:"name", label:i18n("Name")}, {role:"cpuPct", label:i18n("CPU")},
-        {role:"memPct", label:i18n("Memory")}, {role:"project", label:i18n("Project")}
+        {role:"sortKey", label:i18n("By State, in Sections"), glyph:"layers"},
+        {role:"name", label:i18n("Name"), glyph:"arrow-down-a-z"}, {role:"cpuPct", label:i18n("CPU"), glyph:"cpu"},
+        {role:"memPct", label:i18n("Memory"), glyph:"memory-stick"}, {role:"project", label:i18n("Project"), glyph:"folder-kanban"}
     ]
-    onSearchTextChanged: { if (searchPopupField.text !== searchText) searchPopupField.text = searchText; if (searchText === "") { searchDebounce.stop(); searchApplied = "" } else searchDebounce.restart() }
+    onSearchTextChanged: { if (searchText === "") { searchDebounce.stop(); searchApplied = "" } else searchDebounce.restart() }
 
     implicitWidth: Kirigami.Units.gridUnit * 36
     implicitHeight: Kirigami.Units.gridUnit * 24
@@ -221,15 +226,42 @@ PlasmaExtras.Representation {
         if (root.cfg.sortRole !== role) root.cfg.sortAscending = role !== "cpuPct" && role !== "memPct"
         root.cfg.sortRole = role
     }
-    /* Ctrl+F: the search field in the bar under the list. */
+    /* Ctrl+F and the More menu: the search control on the bottom strip. */
     function openSearch() {
         toolsMenu.close()
         if (stack.depth > 1) stack.pop(stack.get(0))
-        homePage.focusSearch()
+        homePage.openSearch()
+    }
+    /* Home: the default view and detail level, no filters, no selection, the list on top. */
+    function goHome() {
+        if (stack.depth > 1) stack.pop(stack.get(0))
+        root.clearFilters()
+        root.backend.selection.active = false
+        root.selectView(root.cfg.defaultViewMode)
+        root.selectDetail(root.cfg.defaultDetailLevel)
+        homePage.setDock("page", "preview")
+        homePage.setDock("expanded", true)
+    }
+    /* Go to and Docker Hub search from the strip's search. */
+    function goToPage(key) {
+        if (stack.depth > 1) stack.pop(stack.get(0))
+        if (key === "containers") return
+        if (key === "deploy") root.showDeployment()
+        else if (key === "resources") root.showResources()
+        else if (key === "health") homePage.setDock("page", "health")
+        else if (key === "doctor") root.showDoctor(0)
+        else if (key === "activity") root.showActivity()
+        else if (key === "problem") root.showProblemReport()
+        else if (key === "settings") root.applet.configure()
+    }
+    function searchImages(query) {
+        root.showDeployment(0)
+        root.backend.deployment.search(query)
     }
     function showDeployment(initialTab, image) {
         const page = stack.push(Qt.resolvedUrl("DeploymentPage.qml"), {backend:root.backend,initialTab:initialTab || 0})
         if (page) page.closeRequested.connect(function() { stack.pop() })
+        if (page) page.openDetail.connect(function(id, tab) { root.showDetail(id, tab) })
         // From Resources: start the Configure form from this image.
         if (page && image) (page as DeploymentPage).useImage(image)
     }
@@ -253,44 +285,16 @@ PlasmaExtras.Representation {
         const seen = root.activitySeenAt
         return (root.backend.activity || []).filter(function (a) { return a.time > seen }).length
     }
+    // Diagnose is a tab of the container's Details.
+    Connections { target: root.backend; function onDiagnoseRequested(recordId) { root.showDetail(recordId, 4) } }
     function showActivity() {
         root.activitySeenAt = Date.now()
         const page = stack.push(Qt.resolvedUrl("ActivityPage.qml"), {backend: root.backend})
-        if (page) page.openDetail.connect(function(id) { root.showDetail(id) })
+        if (page) page.openDetail.connect(function(id, tab) { root.showDetail(id, tab) })
     }
     function checkUpdates() {
         root.backend.updateState["__checked"] = 0
         root.backend.startUpdateCheck(true)
-    }
-
-    QQC2.Popup {
-        id: searchPopup
-        objectName: "containerSearchPopup"
-        parent: root
-        x: Math.max(Kirigami.Units.smallSpacing, Math.min(toolsButton.mapToItem(root, 0, 0).x, root.width - width - Kirigami.Units.smallSpacing))
-        y: toolsButton.mapToItem(root, 0, 0).y + toolsButton.height + Kirigami.Units.smallSpacing
-        width: Math.min(root.width - Kirigami.Units.smallSpacing * 2, Kirigami.Units.gridUnit * 24)
-        focus: true
-        closePolicy: QQC2.Popup.CloseOnEscape | QQC2.Popup.CloseOnPressOutside
-        onOpened: { searchPopupField.forceActiveFocus(); searchPopupField.selectAll() }
-        contentItem: ColumnLayout {
-            spacing: Kirigami.Units.smallSpacing
-            PlasmaExtras.SearchField {
-                id: searchPopupField
-                Layout.fillWidth: true
-                Layout.minimumWidth: 0
-                placeholderText: i18n("Search containers")
-                onTextChanged: if (root.searchText !== text) root.searchText = text
-            }
-            PlasmaComponents.Label {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                text: i18n("Search by name, image, project, port or ID. Ctrl+F opens this search.")
-                color: Kirigami.Theme.disabledTextColor
-                font: Kirigami.Theme.smallFont
-            }
-            Components.ActionButton { text: i18n("Clear search"); glyph: "edit-clear"; enabled: root.searchText !== ""; onClicked: root.searchText = "" }
-        }
     }
 
     Components.LazyMenu {
@@ -343,6 +347,41 @@ PlasmaExtras.Representation {
         }
     }
 
+    /* Table column presets: styled like the Detail levels menu, checked when they match. */
+    readonly property var columnPresets: [
+        {label: i18n("Compact"), glyph: "columns-2", keys: ["name", "state", "actions"]},
+        {label: i18n("Standard"), glyph: "columns-3", keys: ["name", "state", "cpu", "mem", "ports", "actions"]},
+        {label: i18n("Everything"), glyph: "columns-4", keys: ["name", "actions", "state", "cpu", "mem", "image", "ports", "project", "id", "networks", "memU"]}
+    ]
+    function presetMatches(keys) {
+        let saved = []
+        try { const v = root.cfg.tableVisibleColumns || ""; saved = Array.isArray(JSON.parse(v)) ? JSON.parse(v) : String(v).split(",").filter(function (x) { return x !== "" }) } catch (e) { saved = [] }
+        return saved.length === keys.length && keys.every(function (k) { return saved.indexOf(k) >= 0 })
+    }
+    Components.LazyMenu {
+        id: tableColumnsMenu
+        menu: Component {
+            PlasmaComponents.Menu {
+                id: menuRoot
+                delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
+                Instantiator {
+                    model: root.columnPresets
+                    delegate: Components.ActionMenuDelegate {
+                        required property var modelData
+                        text: modelData.label
+                        icon.source: Qt.resolvedUrl(ActionIcons.path(modelData.glyph))
+                        checkable: true
+                        autoExclusive: true
+                        checked: root.presetMatches(modelData.keys)
+                        onTriggered: root.cfg.tableVisibleColumns = modelData.keys.join(",")
+                    }
+                    onObjectAdded: function(index, object) { menuRoot.insertItem(index, object) }
+                    onObjectRemoved: function(index, object) { menuRoot.removeItem(object) }
+                }
+            }
+        }
+    }
+
     Components.LazyMenu {
         id: detailMenu
         menu: Component {
@@ -355,6 +394,7 @@ PlasmaExtras.Representation {
                     required property int index
                     required property string modelData
                     text: modelData
+                    icon.source: Qt.resolvedUrl(ActionIcons.path(["minus", "list", "list-plus", "list-tree"][index]))
                     checkable: true
                     autoExclusive: true
                     checked: root.detailLevel === index
@@ -403,6 +443,7 @@ PlasmaExtras.Representation {
                 delegate: Components.ActionMenuDelegate {
                     required property var modelData
                     text: modelData.label
+                    icon.source: Qt.resolvedUrl(ActionIcons.path(modelData.glyph))
                     checkable: true
                     checked: root.cfg.sortRole === modelData.role
                     onTriggered: root.selectSort(modelData.role)
@@ -537,6 +578,182 @@ PlasmaExtras.Representation {
         }
         QQC2.TextField { id: savedViewName; placeholderText: i18n("View name"); width: Kirigami.Units.gridUnit * 18 }
     }
+    /*
+     * Merged logs: pick containers (the chosen one and its Compose project are
+     * ticked to start) and a time window; the result is one timeline on the
+     * output page, each line labelled with its container.
+     */
+    Connections { target: root.backend; function onMergedLogsRequested(recordId) { mergedLogsDialog.prepare(recordId) } }
+    QQC2.Dialog {
+        id: mergedLogsDialog
+        title: i18n("Logs Across Containers")
+        anchors.centerIn: parent
+        modal: true
+        standardButtons: QQC2.Dialog.Ok | QQC2.Dialog.Cancel
+        property var picked: ({})
+        property int windowIndex: 1
+        readonly property var windows: [["15m", i18n("Last 15 minutes")], ["1h", i18n("Last hour")], ["6h", i18n("Last 6 hours")], ["24h", i18n("Last 24 hours")]]
+        readonly property var choices: root.backend.records.filter(function (r) { return r.state !== "not-created" })
+        function prepare(recordId) {
+            const first = root.backend.findRecord(recordId)
+            const next = {}
+            // In select mode, the picked containers; otherwise this one and its Compose project.
+            const picks = root.backend.selection.active ? root.backend.selection.pickedIds : []
+            if (picks.length > 0) picks.forEach(function (id) { next[id] = true })
+            else root.backend.records.forEach(function (r) { if (r.id === recordId || (first && first.project && r.project === first.project)) next[r.id] = true })
+            next[recordId] = true
+            picked = next
+            open()
+        }
+        onOpened: standardButton(QQC2.Dialog.Ok).text = i18n("Show Logs")
+        onAccepted: {
+            const recs = choices.filter(function (r) { return picked[r.id] === true })
+            const generation = root.backend.generation
+            const requestId = root.backend.newOutputRequest("diagnostics", "")
+            const title = i18n("Logs — %1", recs.map(function (r) { return r.name }).join(", "))
+            root.showOutput(title, i18n("Loading…"), false, "", "diagnostics", requestId, generation)
+            root.backend.mergedLogs(recs, windows[windowIndex][0], function (text) {
+                root.backend.correlatedOutputReady("diagnostics", "", generation, requestId, 0, title, text)
+            })
+        }
+        Column {
+            width: Kirigami.Units.gridUnit * 20
+            spacing: Kirigami.Units.smallSpacing
+            Components.SizedComboBox {
+                width: parent.width
+                model: mergedLogsDialog.windows.map(function (w) { return w[1] })
+                currentIndex: mergedLogsDialog.windowIndex
+                onActivated: function (index) { mergedLogsDialog.windowIndex = index }
+            }
+            QQC2.ScrollView {
+                width: parent.width
+                height: Math.min(Kirigami.Units.gridUnit * 14, pickList.implicitHeight)
+                clip: true
+                Column {
+                    id: pickList
+                    width: parent.width
+                    Repeater {
+                        model: mergedLogsDialog.choices
+                        delegate: QQC2.CheckBox {
+                            required property var modelData
+                            text: modelData.project ? i18nc("container (project)", "%1 (%2)", modelData.name, modelData.project) : modelData.name
+                            checked: mergedLogsDialog.picked[modelData.id] === true
+                            onToggled: { const next = Object.assign({}, mergedLogsDialog.picked); next[modelData.id] = checked; mergedLogsDialog.picked = next }
+                        }
+                    }
+                }
+            }
+            PlasmaComponents.Label {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                font: Kirigami.Theme.smallFont
+                color: Kirigami.Theme.disabledTextColor
+                text: i18n("Lines are ordered by the engine's timestamps and capped at the newest 3000.")
+            }
+        }
+    }
+
+    /*
+     * Review a selection-mode action: exactly which containers it runs on, and
+     * which it skips and why. Nothing runs until Run is pressed; results land
+     * on the output page, one line per container.
+     */
+    QQC2.Dialog {
+        id: batchDialog
+        title: i18n("Review: %1", batchDialog.label)
+        anchors.centerIn: parent
+        modal: true
+        standardButtons: QQC2.Dialog.Ok | QQC2.Dialog.Cancel
+        property string action: ""
+        property var plan: ({targets: [], skipped: []})
+        readonly property string label: ({start: i18n("Start"), stop: i18n("Stop"), restart: i18n("Restart"), update: i18n("Update")})[action] || ""
+        function review(action) { batchDialog.action = action; batchDialog.plan = root.backend.selection.plan(action); open() }
+        onOpened: { standardButton(QQC2.Dialog.Ok).text = i18np("Run on %1 container", "Run on %1 containers", plan.targets.length); standardButton(QQC2.Dialog.Ok).enabled = plan.targets.length > 0 }
+        onAccepted: root.backend.selection.run(action)
+        Column {
+            width: Kirigami.Units.gridUnit * 22
+            spacing: Kirigami.Units.smallSpacing
+            PlasmaComponents.Label {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                font.bold: true
+                text: batchDialog.plan.targets.length > 0 ? i18n("%1 will run on, one at a time:", batchDialog.label) : i18n("None of the selected containers allow this now.")
+            }
+            PlasmaComponents.Label {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: batchDialog.plan.targets.map(function (r) { return "• " + r.name }).join("\n")
+            }
+            PlasmaComponents.Label {
+                width: parent.width
+                visible: batchDialog.plan.skipped.length > 0
+                wrapMode: Text.WordWrap
+                color: Kirigami.Theme.disabledTextColor
+                text: i18n("Skipped:") + "\n" + batchDialog.plan.skipped.map(function (s) { return "• " + s.name + " — " + s.reason }).join("\n")
+            }
+            PlasmaComponents.Label {
+                width: parent.width
+                visible: batchDialog.action === "update"
+                wrapMode: Text.WordWrap
+                font: Kirigami.Theme.smallFont
+                color: Kirigami.Theme.disabledTextColor
+                text: i18n("Each Compose service is pulled and recreated on its own; files written inside a container (outside its mounts) are lost.")
+            }
+        }
+    }
+    Connections {
+        target: root.backend.selection
+        function onFinished(action, results) {
+            const lines = results.map(function (r) { return (r.ok === true ? "✓ " : r.ok === false ? "✗ " : "– ") + r.name + ": " + r.text })
+            const generation = root.backend.generation
+            const requestId = root.backend.newOutputRequest("diagnostics", "")
+            root.showOutput(i18n("Results — %1", action), lines.join("\n"), false, "", "diagnostics", requestId, generation)
+        }
+    }
+
+    /* Rename, reorder or delete saved views one at a time. Edits apply on Save. */
+    QQC2.Dialog {
+        id: manageViewsDialog
+        title: i18n("Saved Views")
+        anchors.centerIn: parent
+        modal: true
+        standardButtons: QQC2.Dialog.Save | QQC2.Dialog.Cancel
+        property var draft: []
+        onAboutToShow: draft = Profiles.parseViews(root.cfg.savedViews)
+        onAccepted: root.cfg.savedViews = JSON.stringify(draft.filter(function (v) { return String(v.name).trim() !== "" }))
+        function move(index, by) {
+            const next = draft.slice(), target = index + by
+            if (target < 0 || target >= next.length) return
+            const item = next.splice(index, 1)[0]; next.splice(target, 0, item); draft = next
+        }
+        Column {
+            width: Kirigami.Units.gridUnit * 20
+            spacing: Kirigami.Units.smallSpacing
+            PlasmaComponents.Label {
+                width: parent.width
+                visible: manageViewsDialog.draft.length === 0
+                wrapMode: Text.WordWrap
+                text: i18n("No saved views yet. Use Save This View… to add one.")
+            }
+            Repeater {
+                model: manageViewsDialog.draft
+                delegate: Row {
+                    id: viewRow
+                    required property var modelData
+                    required property int index
+                    spacing: Kirigami.Units.smallSpacing
+                    QQC2.TextField {
+                        width: Kirigami.Units.gridUnit * 14
+                        text: viewRow.modelData.name
+                        onTextEdited: { const next = manageViewsDialog.draft.slice(); next[viewRow.index] = Object.assign({}, next[viewRow.index], {name: text}); manageViewsDialog.draft = next }
+                    }
+                    Components.IconButton { glyph: "arrow-up"; text: i18n("Move up"); enabled: viewRow.index > 0; onClicked: manageViewsDialog.move(viewRow.index, -1) }
+                    Components.IconButton { glyph: "arrow-down"; text: i18n("Move down"); enabled: viewRow.index < manageViewsDialog.draft.length - 1; onClicked: manageViewsDialog.move(viewRow.index, 1) }
+                    Components.IconButton { glyph: "trash"; text: i18n("Delete %1", viewRow.modelData.name); onClicked: { const next = manageViewsDialog.draft.slice(); next.splice(viewRow.index, 1); manageViewsDialog.draft = next } }
+                }
+            }
+        }
+    }
     Connections {
         target: root.backend
         function onBatchStatusChanged() {
@@ -546,7 +763,8 @@ PlasmaExtras.Representation {
     }
 
     // ----------------------------------------------------- keyboard ----
-    Shortcut { enabled: root.visible; sequences: ["Ctrl+F"]; onActivated: root.openSearch() }
+    // Ctrl+F by default; set or cleared in Settings → Appearance. Empty means no shortcut.
+    Shortcut { enabled: root.visible && String(root.cfg.searchShortcut || "") !== ""; context: Qt.ApplicationShortcut; sequences: [String(root.cfg.searchShortcut || "")]; onActivated: root.openSearch() }
     Shortcut { enabled: root.visible; sequences: ["Ctrl+R", "F5"]; onActivated: root.refreshNow() }
     Shortcut { enabled: root.visible; sequences: ["Ctrl+1"]; onActivated: root.selectView(0) }
     Shortcut { enabled: root.visible; sequences: ["Ctrl+2"]; onActivated: root.selectView(1) }
@@ -558,8 +776,7 @@ PlasmaExtras.Representation {
         // The search popup handles Escape itself; elsewhere clear filters, then go back.
         sequences: ["Escape"]
         onActivated: {
-            if (searchPopup.opened) searchPopup.close()
-            else if (root.searchText !== "") root.searchText = ""
+            if (root.searchText !== "") root.searchText = ""
             else if (root.problemsOnly) root.problemsOnly = false
             else if (root.stateFilter !== "all") root.stateFilter = "all"
             else if (stack.depth > 1) stack.pop()
@@ -605,6 +822,15 @@ PlasmaExtras.Representation {
      */
     property var outputPageRef: null
 
+    /* Versions and recent errors, redacted, on the output page to review and copy. */
+    function showProblemReport() {
+        const generation = root.backend.generation
+        const requestId = root.backend.newOutputRequest("diagnostics", "")
+        root.showOutput(i18n("Problem Report"), i18n("Collecting…"), false, "", "diagnostics", requestId, generation)
+        root.backend.problemReport(Plasmoid.metaData.version, function (text) {
+            root.backend.correlatedOutputReady("diagnostics", "", generation, requestId, 0, i18n("Problem Report"), text)
+        })
+    }
     function showOutput(title, text, isLive, recordId, kind, requestId, requestGeneration) {
         var prepared = root.backend.outputRequestPending ? root.backend.latestOutputRequest : null
         var matchesPrepared = prepared && prepared.generation === root.backend.generation
@@ -685,10 +911,35 @@ PlasmaExtras.Representation {
                             menuOpen: detailMenu.opened
                             presentation: root.toolbarStyle
                             visible: root.directDetail
-                            glyph: "view-visible"
-                            label: i18n("Detail")
-                            text: i18n("Detail level: %1", root.detailNames[root.detailLevel])
-                            onClicked: detailMenu.popup(this, 0, height)
+                            label: root.viewMode === 1 ? i18n("Columns") : i18n("Detail")
+                            glyph: root.viewMode === 1 ? "columns-3" : "view-visible"
+                            text: root.viewMode === 1 ? i18n("Which table columns show") : i18n("Detail level: %1", root.detailNames[root.detailLevel])
+                            // The Table shows columns, not levels: its presets replace the levels menu.
+                            onClicked: root.viewMode === 1 ? tableColumnsMenu.popup(this, 0, height) : detailMenu.popup(this, 0, height)
+                        }
+                        Components.ToolbarButton {
+                            id: filterButton
+                            objectName: "toolbarFilterButton"
+                            presentation: root.toolbarStyle
+                            visible: root.directFilter
+                            glyph: "view-filter"
+                            label: i18n("Filter")
+                            text: i18n("Filter: %1", root.stateFilterLabel)
+                            menuIndicator: true
+                            checked: root.activeFilterCount > 0
+                            badgeText: root.activeFilterCount > 0 ? String(root.activeFilterCount) : ""
+                            onClicked: stateMenu.popup(this, 0, height)
+                        }
+                        Components.ToolbarButton {
+                            id: sortButton
+                            objectName: "toolbarSortButton"
+                            presentation: root.toolbarStyle
+                            visible: root.directSort
+                            glyph: "view-sort-ascending"
+                            label: i18n("Sort")
+                            text: i18n("Sort containers")
+                            menuIndicator: true
+                            onClicked: toolbarSortMenu.popup(this, 0, height)
                         }
                     }
                 }
@@ -771,15 +1022,6 @@ PlasmaExtras.Representation {
                     RowLayout {
                         spacing: Kirigami.Units.smallSpacing / 2
                         Components.ToolbarButton {
-                            id: refreshButton
-                            presentation: root.toolbarStyle
-                            glyph: "view-refresh"
-                            label: i18n("Refresh")
-                            text: root.updatedText()
-                            visible: root.directRefresh
-                            onClicked: root.refreshNow()
-                        }
-                        Components.ToolbarButton {
                             id: detachButton
                             presentation: root.toolbarStyle
                             label: root.applet.detached ? i18n("Attach") : i18n("Detach")
@@ -820,12 +1062,6 @@ PlasmaExtras.Representation {
                                     text: i18n("Sort containers…")
                                     icon.source: Qt.resolvedUrl(ActionIcons.path("view-sort-ascending"))
                                     onTriggered: toolbarSortMenu.popup(toolsButton, 0, toolsButton.height)
-                                }
-                                Components.ActionMenuDelegate {
-                                    visible: !root.directSearch
-                                    text: i18n("Search containers…")
-                                    icon.source: Qt.resolvedUrl(ActionIcons.path("edit-find"))
-                                    onTriggered: root.openSearch()
                                 }
                                 Components.ActionMenuDelegate {
                                     visible: !root.directRefresh
@@ -885,7 +1121,7 @@ PlasmaExtras.Representation {
                                     onTriggered: { root.searchText = ""; root.problemsOnly = false; root.stateFilter = "all" }
                                 }
                                 PlasmaComponents.MenuSeparator {
-                                    visible: !root.directFilter || !root.directSort || !root.directSearch || !root.directRefresh
+                                    visible: !root.directFilter || !root.directSort || !root.directRefresh
                                         || !root.directNew || !root.directDetail || !root.directResources || !root.directMaintain
                                         || root.backend.problemCount > 0 || root.problemsOnly || root.searchText !== "" || root.stateFilter !== "all"
                                     height: visible ? implicitHeight : 0
@@ -911,6 +1147,7 @@ PlasmaExtras.Representation {
                                         height: visible ? implicitHeight : 0
                                     }
                                     Components.ActionMenuDelegate { text: i18n("Save This View…"); onTriggered: saveViewDialog.open() }
+                                    Components.ActionMenuDelegate { text: i18n("Manage Saved Views…"); enabled: Profiles.parseViews(root.cfg.savedViews).length > 0; onTriggered: manageViewsDialog.open() }
                                     Components.ActionMenuDelegate { text: i18n("Clear Saved Views…"); onTriggered: dialogs.confirm(i18n("Clear saved views?"), i18n("Only saved view shortcuts are removed."), function() { root.cfg.savedViews = "[]" }) }
                                 }
                                 PlasmaComponents.Menu {
@@ -1000,6 +1237,12 @@ PlasmaExtras.Representation {
                                 PlasmaComponents.MenuSeparator {}
                                 Components.ActionMenuDelegate {
                                     icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("bug"))
+                                    text: i18n("Problem Report…")
+                                    onTriggered: root.showProblemReport()
+                                }
+                                Components.ActionMenuDelegate {
+                                    icon.name: ""
                                     icon.source: Qt.resolvedUrl(ActionIcons.path("configure"))
                                     text: i18n("Configure Dockmoid…")
                                     onTriggered: root.applet.configure()
@@ -1061,6 +1304,15 @@ PlasmaExtras.Representation {
             initialItem: HomePage {
                 id: homePage
                 stateFilterLabel: root.stateFilterLabel
+                stateFilterKey: root.stateFilter
+                stateFilterIcon: (root.stateChoices.find(function (s) { return s.key === root.stateFilter }) || root.stateChoices[0]).icon
+                problemsOnly: root.problemsOnly
+                onBatchReviewRequested: function (action) { batchDialog.review(action) }
+                onRemoveFilter: function (which) {
+                    if (which === "search") { root.searchText = ""; root.searchApplied = "" }
+                    else if (which === "state") root.stateFilter = "all"
+                    else if (which === "problems") root.problemsOnly = false
+                }
                 onFilterMenuRequested: function (anchor) { stateMenu.popup(anchor, 0, anchor.height) }
                 onSortMenuRequested: function (anchor) { toolbarSortMenu.popup(anchor, 0, anchor.height) }
                 onSearchEdited: function (text) { root.searchText = text }
@@ -1076,6 +1328,8 @@ PlasmaExtras.Representation {
                 onCreateRequested: root.showDeployment()
                 onResourcesRequested:root.showResources()
                 onOpenDetail: function (recordId, tab) { root.showDetail(recordId, tab) }
+                onPageRequested: function (key) { root.goToPage(key) }
+                onImageSearchRequested: function (query) { root.searchImages(query) }
                 onOpenOutput: function (title, text, isLive, recordId) {
                     root.showOutput(title, text, isLive, recordId)
                 }
@@ -1089,6 +1343,9 @@ PlasmaExtras.Representation {
             visible: root.cfg.showStatusBar
             backend: root.backend
             onAttentionFilterRequested: {root.problemsOnly=!root.problemsOnly;root.stateFilter="all";root.searchText="";if(stack.depth>1)stack.pop(stack.get(0))}
+            onHomeRequested: root.goHome()
+            refreshTip: root.updatedText()
+            onRefreshRequested: root.refreshNow()
             onCountFilter: function(state) { root.stateFilter = state; root.searchText = ""; root.problemsOnly = false; if (stack.depth > 1) stack.pop(stack.get(0)) }
         }
     }

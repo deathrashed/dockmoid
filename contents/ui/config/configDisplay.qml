@@ -77,6 +77,10 @@ KCM.SimpleKCM {
     property bool cfg_wrapTextDefault
     property bool cfg_widthFitDefault
     property int cfg_toolbarStyleDefault
+    property int cfg_searchStyleDefault
+    property string cfg_searchScopeDefault
+    property string cfg_searchShortcutDefault
+    property bool cfg_searchIconOnlyDefault
     property int cfg_popupWidthDefault
     property int cfg_popupHeightDefault
     property string cfg_serviceIconDirectoryDefault
@@ -119,6 +123,11 @@ KCM.SimpleKCM {
     property alias cfg_wrapText: wrapText.checked
     property alias cfg_widthFit: widthFit.checked
     property alias cfg_toolbarStyle: toolbarStyle.currentIndex
+    property alias cfg_searchStyle: searchStyle.currentIndex
+    property string cfg_searchScope: "containers"
+    property string cfg_searchShortcut: "Ctrl+F"
+    property alias cfg_searchIconOnly: searchIconOnly.checked
+    readonly property var searchScopes: ["containers", "goto", "images"]
     property alias cfg_popupWidth: popupWidth.value
     property alias cfg_popupHeight: popupHeight.value
 
@@ -266,6 +275,39 @@ KCM.SimpleKCM {
             }
             QuestionHelp { helpText: i18n("Choose how toolbar actions are labelled in the popup.") }
         }
+        RowLayout {
+            Kirigami.FormData.label: i18n("Search opens as:")
+            Controls.ComboBox {
+                id: searchStyle
+                model: [i18n("A button that opens a box"), i18n("A button that slides out a field"), i18n("A field always shown")]
+            }
+            QuestionHelp { helpText: i18n("Ctrl+F opens search the same way.") }
+        }
+        RowLayout {
+            Kirigami.FormData.label: i18n("Search starts with:")
+            Controls.ComboBox {
+                model: [i18n("Filtering containers"), i18n("Going to a page or container"), i18n("Searching Docker Hub images")]
+                currentIndex: Math.max(0, page.searchScopes.indexOf(page.cfg_searchScope))
+                onActivated: function (index) { page.cfg_searchScope = page.searchScopes[index] }
+            }
+            QuestionHelp { helpText: i18n("The scope can also be switched inside the search box each time.") }
+        }
+        Controls.CheckBox {
+            id: searchIconOnly
+            Kirigami.FormData.label: i18n("Search button:")
+            text: i18n("show only its icon")
+        }
+        RowLayout {
+            Kirigami.FormData.label: i18n("Search shortcut:")
+            Controls.TextField {
+                id: searchShortcutField
+                text: page.cfg_searchShortcut
+                placeholderText: "Ctrl+F"
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                onEditingFinished: page.cfg_searchShortcut = text.trim()
+            }
+            QuestionHelp { helpText: i18n("Opens search from anywhere in the widget, written like Ctrl+F or Ctrl+Shift+S. Leave it empty for no shortcut.") }
+        }
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
@@ -313,7 +355,7 @@ KCM.SimpleKCM {
         }
 
 
-        Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_defaultViewMode = page.cfg_defaultViewModeDefault; page.cfg_defaultDetailLevel = page.cfg_defaultDetailLevelDefault; page.cfg_showHeader = page.cfg_showHeaderDefault; page.cfg_showStatusBar = page.cfg_showStatusBarDefault; page.cfg_showActivityBar = page.cfg_showActivityBarDefault; page.cfg_showHealth = page.cfg_showHealthDefault; page.cfg_showRestartPolicy = page.cfg_showRestartPolicyDefault; page.cfg_showResourceBars = page.cfg_showResourceBarsDefault; page.cfg_rowIconSize = page.cfg_rowIconSizeDefault; page.cfg_resourceBarMax = page.cfg_resourceBarMaxDefault; page.cfg_defaultGridDetailLevel = page.cfg_defaultGridDetailLevelDefault; page.cfg_defaultTableDetailLevel = page.cfg_defaultTableDetailLevelDefault; page.cfg_toolbarStyle = page.cfg_toolbarStyleDefault; page.cfg_popupWidth = page.cfg_popupWidthDefault; page.cfg_popupHeight = page.cfg_popupHeightDefault } }
+        Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_defaultViewMode = page.cfg_defaultViewModeDefault; page.cfg_defaultDetailLevel = page.cfg_defaultDetailLevelDefault; page.cfg_showHeader = page.cfg_showHeaderDefault; page.cfg_showStatusBar = page.cfg_showStatusBarDefault; page.cfg_showActivityBar = page.cfg_showActivityBarDefault; page.cfg_showHealth = page.cfg_showHealthDefault; page.cfg_showRestartPolicy = page.cfg_showRestartPolicyDefault; page.cfg_showResourceBars = page.cfg_showResourceBarsDefault; page.cfg_rowIconSize = page.cfg_rowIconSizeDefault; page.cfg_resourceBarMax = page.cfg_resourceBarMaxDefault; page.cfg_defaultGridDetailLevel = page.cfg_defaultGridDetailLevelDefault; page.cfg_defaultTableDetailLevel = page.cfg_defaultTableDetailLevelDefault; page.cfg_toolbarStyle = page.cfg_toolbarStyleDefault; page.cfg_searchStyle = page.cfg_searchStyleDefault; page.cfg_searchScope = page.cfg_searchScopeDefault; page.cfg_searchShortcut = page.cfg_searchShortcutDefault; page.cfg_searchIconOnly = page.cfg_searchIconOnlyDefault; page.cfg_popupWidth = page.cfg_popupWidthDefault; page.cfg_popupHeight = page.cfg_popupHeightDefault } }
         }
         Kirigami.FormLayout {
             Layout.fillWidth: true
@@ -364,7 +406,7 @@ KCM.SimpleKCM {
         }
 
 
-        Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_defaultViewMode = page.cfg_defaultViewModeDefault; page.cfg_defaultDetailLevel = page.cfg_defaultDetailLevelDefault; page.cfg_showHeader = page.cfg_showHeaderDefault; page.cfg_showStatusBar = page.cfg_showStatusBarDefault; page.cfg_showActivityBar = page.cfg_showActivityBarDefault; page.cfg_showHealth = page.cfg_showHealthDefault; page.cfg_showRestartPolicy = page.cfg_showRestartPolicyDefault; page.cfg_showResourceBars = page.cfg_showResourceBarsDefault; page.cfg_rowIconSize = page.cfg_rowIconSizeDefault; page.cfg_resourceBarMax = page.cfg_resourceBarMaxDefault; page.cfg_defaultGridDetailLevel = page.cfg_defaultGridDetailLevelDefault; page.cfg_defaultTableDetailLevel = page.cfg_defaultTableDetailLevelDefault; page.cfg_toolbarStyle = page.cfg_toolbarStyleDefault; page.cfg_popupWidth = page.cfg_popupWidthDefault; page.cfg_popupHeight = page.cfg_popupHeightDefault } }
+        Controls.Button { text: i18n("Restore defaults"); icon.name: "edit-undo"; onClicked: { page.cfg_defaultViewMode = page.cfg_defaultViewModeDefault; page.cfg_defaultDetailLevel = page.cfg_defaultDetailLevelDefault; page.cfg_showHeader = page.cfg_showHeaderDefault; page.cfg_showStatusBar = page.cfg_showStatusBarDefault; page.cfg_showActivityBar = page.cfg_showActivityBarDefault; page.cfg_showHealth = page.cfg_showHealthDefault; page.cfg_showRestartPolicy = page.cfg_showRestartPolicyDefault; page.cfg_showResourceBars = page.cfg_showResourceBarsDefault; page.cfg_rowIconSize = page.cfg_rowIconSizeDefault; page.cfg_resourceBarMax = page.cfg_resourceBarMaxDefault; page.cfg_defaultGridDetailLevel = page.cfg_defaultGridDetailLevelDefault; page.cfg_defaultTableDetailLevel = page.cfg_defaultTableDetailLevelDefault; page.cfg_toolbarStyle = page.cfg_toolbarStyleDefault; page.cfg_searchStyle = page.cfg_searchStyleDefault; page.cfg_searchScope = page.cfg_searchScopeDefault; page.cfg_popupWidth = page.cfg_popupWidthDefault; page.cfg_popupHeight = page.cfg_popupHeightDefault } }
         }
         // ---- Panel: style tiles, a three-state preview, then colours, badge and clicks ----
         ColumnLayout {

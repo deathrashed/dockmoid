@@ -187,7 +187,7 @@
   </entry>
   <!-- Restart policy of every container, one "<id> <policy> <retries>" per line. -->
   <entry name="restartPolicyCommand" type="String">
-    <default>{engine} ps -aq | xargs -r {engine} inspect --format '{{.Id}} {{.HostConfig.RestartPolicy.Name}} {{.HostConfig.RestartPolicy.MaximumRetryCount}}'</default>
+    <default>{engine} ps -aq | xargs -r {engine} inspect --format '{{.Id}} {{.HostConfig.RestartPolicy.Name}} {{.HostConfig.RestartPolicy.MaximumRetryCount}} {{.State.StartedAt}} {{.State.FinishedAt}} {{.Created}}'</default>
   </entry>
   <entry name="setRestartPolicyCommand" type="String">
     <default>{engine} update --restart={policy} {id}</default>
@@ -256,6 +256,9 @@
   <entry name="notifyOnRestartLoop" type="Bool">
     <default>true</default>
   </entry>
+  <!-- Background log watch: minutes between checks of a few running containers' recent logs; 0 is off. -->
+  <entry name="logWatchMinutes" type="Int"><default>15</default><min>0</min><max>1440</max></entry>
+  <entry name="notifyOnLogIssue" type="Bool"><default>true</default></entry>
   <entry name="notifyOnUnhealthy" type="Bool">
     <default>true</default>
   </entry>
@@ -400,6 +403,14 @@ Terminal here|utilities-terminal|project|konsole --workdir {dir}]]></default>
   <entry name="hiddenBrowserPorts" type="String"><default>{}</default></entry>
 
   <entry name="toolbarStyle" type="Int"><default>0</default><min>0</min><max>3</max></entry>
+  <!-- Search in the toolbar: 0 a floating box under the button, 1 a field that opens in the toolbar, 2 always a field. -->
+  <entry name="searchStyle" type="Int"><default>1</default><min>0</min><max>2</max></entry>
+  <!-- The search button shows only its icon (the word "Search" otherwise). -->
+  <entry name="searchIconOnly" type="Bool"><default>false</default></entry>
+  <!-- The key that opens search from anywhere in the popup. -->
+  <entry name="searchShortcut" type="String"><default>Ctrl+F</default></entry>
+  <!-- What search does first: containers (filter the list), goto (pages and containers), images (Docker Hub). -->
+  <entry name="searchScope" type="String"><default>containers</default></entry>
   <entry name="popupWidth" type="Int"><default>648</default><min>396</min><max>3840</max></entry>
   <entry name="popupHeight" type="Int"><default>432</default><min>252</min><max>2160</max></entry>
   <!-- 0 = list (Minimal wraps cards), 1 = table, 2 = compose groups, 3 = icon grid -->

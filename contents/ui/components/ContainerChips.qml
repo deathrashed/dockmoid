@@ -55,6 +55,11 @@ Item {
                 width: view.cellWidth - Kirigami.Units.smallSpacing
                 height: view.cellHeight - Kirigami.Units.smallSpacing
                 onDoubleClicked: root.openDetail(card.containerKey)
+                // The card's frame sits outside the padding: icon, state and menu keep clear of its edge.
+                leftPadding: Kirigami.Units.smallSpacing * 1.5
+                rightPadding: Kirigami.Units.smallSpacing
+                topPadding: Kirigami.Units.smallSpacing
+                bottomPadding: Kirigami.Units.smallSpacing
                 background: Card {
                     interactive: true
                     hovered: card.hovered

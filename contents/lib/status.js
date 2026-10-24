@@ -96,3 +96,128 @@ function badgeSpec(attention) {
     default: return {key: "stopped", tone: "rose", variant: "outline", glyph: "", dot: false}
     }
 }
+
+/* ---- Timeline: when a container started, stopped or was created. ----
+   Times come from inspect (startedAtMs, finishedAtMs, createdMs, epoch ms).
+   Returns entries {kind, at, span}: kind "up" (started, still running),
+   "down" (stopped), "created" (created, never started or recreated recently).
+   `span` is a compact age ("7h 24m", "9d"); the QML side adds icons, dates
+   and words in tooltips. Empty when the engine gave no times. */
+
+function span(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000))
+    if (s < 60) return s + "s"
+    var m = Math.floor(s / 60)
+    if (m < 60) return m + "m"
+    var h = Math.floor(m / 60)
+    if (h < 24) return h + "h" + (m % 60 ? " " + (m % 60) + "m" : "")
+    var d = Math.floor(h / 24)
+    if (d < 7) return d + "d" + (h % 24 ? " " + (h % 24) + "h" : "")
+    if (d < 60) return d + "d"
+    if (d < 730) return Math.floor(d / 30) + "mo"
+    return Math.floor(d / 365) + "y"
+}
+
+function timeline(rec, now) {
+    if (!rec) return []
+    var state = String(rec.containerState || rec.state || "")
+    var started = Number(rec.startedAtMs || 0), finished = Number(rec.finishedAtMs || 0), created = Number(rec.createdMs || 0)
+    var out = []
+    if ((state === "running" || state === "paused" || state === "restarting") && started > 0)
+        out.push({kind: "up", at: started, span: span(now - started)})
+    else if ((state === "exited" || state === "dead") && finished > 0)
+        out.push({kind: "down", at: finished, span: span(now - finished)})
+    // Created on its own when never started; beside the uptime when the
+    // container was (re)created in the last month and restarted since.
+    if (state === "not-created" || created <= 0) return out
+    if (state === "created" || (started === 0 && out.length === 0))
+        out.push({kind: "created", at: created, span: span(now - created)})
+    else if (out.length > 0 && out[0].kind === "up" && now - created < 30 * 86400000 && started - created > 60000)
+        out.push({kind: "created", at: created, span: span(now - created)})
+    return out
+}
+
+/* What an exit code usually means, as a key (QML words it). A convention, not
+   proof: applications may use any code. */
+function exitMeaning(code, oom) {
+    if (oom) return "oom"
+    code = Number(code)
+    if (isNaN(code) || code < 0) return ""
+    if (code === 0) return "clean"
+    if (code === 137) return "killed"
+    if (code === 143) return "terminated"
+    if (code === 130) return "interrupted"
+    if (code === 125) return "engine"
+    if (code === 126) return "not-executable"
+    if (code === 127) return "not-found"
+    if (code === 139) return "segfault"
+    return code > 128 ? "signal" : "app"
+}
+
+/* Lines worth reading first in a log tail: errors, warnings, panics. At most `limit`, newest last. */
+function problemLines(text, limit) {
+    var lines = String(text || "").split("\n")
+    var out = []
+    for (var i = 0; i < lines.length; i++) {
+        if (/\b(error|err|fatal|panic|exception|fail(ed|ure)?|warn(ing)?|denied|refused|traceback|oom|killed)\b/i.test(lines[i])) out.push(lines[i])
+    }
+    return out.slice(-Math.max(1, limit || 20))
+}
+
+/*
+ * Log digest: what keeps going wrong in a tail of log lines, without reading
+ * every line. Lines are normalised (timestamps, numbers, hex ids, quoted
+ * values) so "request 41 took 80ms" and "request 42 took 9ms" count as one
+ * message. Returns {lines, errors, warnings, items}, where each item is
+ * {kind, level, count, sample, first, last}:
+ *   kind "loop"      the same message again and again in a row (a crash loop, a retry storm)
+ *   kind "recurring" the same message many times across the tail
+ *   kind "single"    an error or warning seen once or twice
+ * Ordered most important first. Counts describe the tail only.
+ */
+function logLevel(line) {
+    if (/\b(fatal|panic|critical|crit)\b/i.test(line)) return "error"
+    if (/\b(error|err|exception|traceback|failed|failure|denied|refused|killed|segfault)\b/i.test(line)) return "error"
+    if (/\b(warn|warning)\b/i.test(line)) return "warning"
+    return ""
+}
+function normaliseLine(line) {
+    return String(line)
+        .replace(/\u001b\[[0-9;]*[A-Za-z]/g, "")
+        .replace(/^\S*\d{4}-\d\d-\d\dT[0-9:.]+Z?\s*/, "")
+        .replace(/\b\d{4}[-/]\d\d[-/]\d\d[ T][0-9:.,+\-Z]+/g, "")
+        .replace(/\b[0-9a-f]{12,64}\b/gi, "<id>")
+        .replace(/\b\d+(\.\d+)?(ms|s|us|ns|kB|MB|GB|%)?\b/g, "<n>")
+        .replace(/"[^"]*"/g, "\"…\"")
+        .replace(/\s+/g, " ")
+        .trim()
+}
+function digestLogs(text) {
+    var lines = String(text || "").split("\n").filter(function (l) { return l.trim() !== "" })
+    var groups = {}, order = [], errors = 0, warnings = 0
+    lines.forEach(function (raw, index) {
+        var level = logLevel(raw)
+        if (level === "error") errors++
+        else if (level === "warning") warnings++
+        if (level === "") return
+        var key = normaliseLine(raw)
+        if (!groups[key]) { groups[key] = {key: key, level: level, count: 0, sample: raw.replace(/\u001b\[[0-9;]*[A-Za-z]/g, "").replace(/^\S*\d{4}-\d\d-\d\dT[0-9:.]+Z?\s*/, "").trim(), firstIndex: index, lastIndex: index, run: 0, bestRun: 0, runEnd: -1}; order.push(key) }
+        var g = groups[key]
+        if (level === "error") g.level = "error"
+        g.count++
+        g.lastIndex = index
+        g.run = g.runEnd === index - 1 ? g.run + 1 : 1
+        g.runEnd = index
+        if (g.run > g.bestRun) g.bestRun = g.run
+    })
+    var items = order.map(function (key) {
+        var g = groups[key]
+        var kind = g.bestRun >= 3 ? "loop" : g.count >= 5 ? "recurring" : "single"
+        return {kind: kind, level: g.level, count: g.count, run: g.bestRun, sample: g.sample, first: g.firstIndex, last: g.lastIndex}
+    })
+    var rank = {loop: 0, recurring: 1, single: 2}
+    items.sort(function (a, b) {
+        return rank[a.kind] - rank[b.kind] || (a.level === "error" ? 0 : 1) - (b.level === "error" ? 0 : 1) || b.count - a.count
+    })
+    return {lines: lines.length, errors: errors, warnings: warnings, items: items.slice(0, 12)}
+}

@@ -5,9 +5,11 @@ import QtCore
 import org.kde.kirigami as Kirigami
 
 import "../../lib/parsers.js" as Parsers
+import "../../lib/compose.js" as Compose
 import "../../lib/icons.js" as Icons
 import "../../lib/engines.js" as Engines
 import "../../lib/actions.js" as Actions
+import "../../lib/status.js" as Status
 
 /*
  * DockerBackend — everything the UI is allowed to know about Docker.
@@ -90,6 +92,8 @@ Item {
     /* What to call the engine in text the user reads. */
     readonly property string engineName: isPodman ? i18n("Podman") : i18n("Docker")
     property bool composeAvailable: false
+    /* The installed Compose accepts --dry-run (2.17+): previews show what would change. */
+    property bool composeDryRun: false
     property bool buildxAvailable: false
     property bool curlAvailable: false
     readonly property bool canUseCompose: composeAvailable && /^unix:/.test(endpointHost) && !isPodman
@@ -100,6 +104,8 @@ Item {
     DeploymentController { id: deploymentController; backend: deploymentController.parent }
     readonly property var deployment: deploymentController
     DoctorController {id:doctorController;backend:doctorController.parent}
+    SelectionController { id: selectionController; backend: selectionController.parent }
+    readonly property var selection: selectionController
     readonly property var doctor: doctorController
 
 
@@ -159,6 +165,9 @@ Item {
     readonly property bool busy: runner ? runner.busy : false
 
     signal refreshed()
+    /* Any menu or page asks for the Diagnose page; PopupView opens it. */
+    signal diagnoseRequested(string recordId)
+    signal mergedLogsRequested(string recordId)
     signal engineStateChanged(bool active)
     /* Emitted when something the user did finished (or failed) so the UI can
        surface a notification. */
@@ -291,7 +300,7 @@ Item {
         if (runner) runner.cancelAll()
         pendingTasks = 0; pendingActions = 0; refreshing = false
         records = []; lastListOut = ""; syncModel(); revision++
-        policyCache = ({}); statsCache = ({}); statsUpdatedMs = 0; statsInFlight=false; history = ({}); alertState = ({})
+        policyCache = ({}); timesCache = ({}); policyStateKey = ""; statsCache = ({}); statsUpdatedMs = 0; statsInFlight=false; history = ({}); alertState = ({})
         configuredServices = []; discoveryAt = 0; discoveryError = ""
         probeState = ({}); updateState = ({}); updateQueue = []; updateRunning = false; updateCount = 0
         lastSnapshot = null; engineInfo = ({}); diskUsage = []; diskUsageKnown = false
@@ -324,9 +333,12 @@ Item {
     function detectCapabilities() {
         var cmd = "if " + expand(cfg.composeCommand, {}) + " version >/dev/null 2>&1; then echo compose; fi; "
             + "if " + engineBinary + " buildx version >/dev/null 2>&1; then echo buildx; fi; "
-            + "if command -v curl >/dev/null 2>&1; then echo curl; fi"
+            + "if command -v curl >/dev/null 2>&1; then echo curl; fi; "
+            // --dry-run arrived in Compose 2.17; older ones reject the flag.
+            + "if " + expand(cfg.composeCommand, {}) + " --dry-run version >/dev/null 2>&1; then echo dryrun; fi"
         run(cmd, "capabilities", function (code, out) {
             backend.composeAvailable = /(^|\n)compose(\n|$)/.test(out)
+            backend.composeDryRun = backend.composeAvailable && /(^|\n)dryrun(\n|$)/.test(out)
             backend.buildxAvailable = !backend.isPodman && /(^|\n)buildx(\n|$)/.test(out)
             backend.curlAvailable = /(^|\n)curl(\n|$)/.test(out)
         })
@@ -679,6 +691,7 @@ Item {
                 mergeConfiguredServices()
                 discoverConfiguredServices(false)
                 Parsers.applyRestartPolicies(records, policyCache)
+                Parsers.applyLifeTimes(records, timesCache)
                 // Pinned first, then running, then alphabetical. Views may
                 // re-sort on top of this.
                 applyProbes(); applyUpdates(); applySort()
@@ -734,7 +747,15 @@ Item {
 
     /* Policies rarely change, so they are re-read on a slow timer — or at once
        when a container shows up that has no entry yet. */
+    /* Started/stopped/created times from the same inspect read (see parseLifeTimes). */
+    property var timesCache: ({})
+    /* Ids and states at the last policy read: a start, stop or recreate changes
+       the times, so it re-reads them; "Up 5 minutes" turning into "Up 6" does not. */
+    property string policyStateKey: ""
+
     function refreshRestartPoliciesIfNeeded() {
+        var key = records.map(function (r) { return r.id + ":" + r.state }).join(",")
+        if (key !== policyStateKey) { policyStateKey = key; fetchRestartPolicies(); return }
         var missing = false
         for (let i = 0; i < records.length; i++) {
             if (policyCache[Parsers.shortId(records[i].id)] === undefined) { missing = true; break }
@@ -750,7 +771,9 @@ Item {
         run(expand(cfg.restartPolicyCommand, {}), "policies", function (code, out) {
             if (code === 0) {
                 policyCache = Parsers.parseRestartPolicies(out)
+                timesCache = Parsers.parseLifeTimes(out)
                 Parsers.applyRestartPolicies(records, policyCache)
+                Parsers.applyLifeTimes(records, timesCache)
                 syncModel()
                 revision++
             }
@@ -809,6 +832,7 @@ Item {
         case "crashed": return i18n("%1 exited with code %2", ev.name, ev.code)
         case "restarting": return i18n("%1 is restarting", ev.name)
         case "unhealthy": return i18n("%1 became unhealthy", ev.name)
+        case "logissue": return i18n("%1: %2", ev.name, ev.text)
         case "recovered": return i18n("%1 is healthy again", ev.name)
         case "started": return i18n("%1 started", ev.name)
         case "stopped": return i18n("%1 stopped", ev.name)
@@ -1313,6 +1337,50 @@ Item {
         }
     }
 
+    /* Why an action is greyed out, in words for a tooltip ("" when it is possible). */
+    function actionReason(rec, action) {
+        void revision; void operationsRevision
+        switch (Actions.reason(rec, actionContext(rec), action)) {
+        case "": return ""
+        case "unknown": return i18n("This container is no longer listed")
+        case "read-only": return i18n("Read-only monitoring mode is on (Settings → General)")
+        case "engine": return i18n("%1 is not reachable", engineName)
+        case "busy": return i18n("Another action on %1 is still running", rec.name)
+        case "compose": return remoteEngine ? i18n("Compose actions need a local engine")
+            : !canUseCompose ? i18n("Needs Docker Compose") : i18n("%1 is not part of a Compose project", rec.name)
+        default: return i18n("Not possible while %1 is %2", rec.name, stateWord(rec))
+        }
+    }
+    /* What an exit code usually means, in words (lib/status.js exitMeaning). A convention, not proof. */
+    function exitWords(code, oom) {
+        switch (Status.exitMeaning(code, oom)) {
+        case "oom": return i18n("Killed for using too much memory (the kernel's out-of-memory killer)")
+        case "clean": return i18n("Exited normally (code 0)")
+        case "killed": return i18n("Code 137: killed with SIGKILL — by `docker kill`, a stop timeout, or the system")
+        case "terminated": return i18n("Code 143: stopped with SIGTERM — usually a normal stop")
+        case "interrupted": return i18n("Code 130: interrupted (Ctrl+C / SIGINT)")
+        case "engine": return i18n("Code 125: the engine could not run the container")
+        case "not-executable": return i18n("Code 126: the command exists but cannot be executed")
+        case "not-found": return i18n("Code 127: the command was not found in the image")
+        case "segfault": return i18n("Code 139: the program crashed (segmentation fault)")
+        case "signal": return i18n("Code %1: ended by signal %2", code, code - 128)
+        case "app": return i18n("Code %1: an error reported by the application itself", code)
+        default: return ""
+        }
+    }
+    /* "running", "paused", "stopped"… for sentences. */
+    function stateWord(rec) {
+        switch (String(rec && (rec.containerState || rec.state) || "")) {
+        case "running": return i18nc("container state in a sentence", "running")
+        case "paused": return i18nc("container state in a sentence", "paused")
+        case "restarting": return i18nc("container state in a sentence", "restarting")
+        case "created": return i18nc("container state in a sentence", "created but not started")
+        case "not-created": return i18nc("container state in a sentence", "not deployed")
+        case "dead": return i18nc("container state in a sentence", "dead")
+        default: return i18nc("container state in a sentence", "stopped")
+        }
+    }
+
     /* Run a direct action if it is allowed; refused actions do nothing. */
     function runAction(rec, action) {
         if (!rec || actionsFor(rec)[action] !== true) return false
@@ -1423,8 +1491,18 @@ Item {
         consumeOutputRequest(requestId)
         opts = opts || {}
         const cmd = cleanupCommand(opts)
-        run(cmd, "prune", function (code, out, err) {
-            var text = (out || "") + (err ? (out ? "\n" : "") + err : "")
+        // Measure disk use before and after: estimates count shared layers per
+        // image and can overstate what a cleanup frees, so report what changed.
+        const df = expand(cfg.systemDfCommand, {})
+        const marker = "@@dockmoid-df@@"
+        const measured = "{ " + df + " 2>/dev/null; echo " + marker + "; } ; " + cmd + "; status=$?; echo " + marker + "; " + df + " 2>/dev/null; exit $status"
+        run(measured, "prune", function (code, out, err) {
+            const parts = String(out || "").split(marker + "\n")
+            const before = Parsers.diskTotal(Parsers.parseSystemDf(parts[0] || "")), after = Parsers.diskTotal(Parsers.parseSystemDf(parts[2] || ""))
+            var text = (parts.length === 3 ? parts[1] : (out || "")) + (err ? "\n" + err : "")
+            text = text.trim()
+            if (before > 0 && after >= 0 && !isNaN(before - after))
+                text += (text ? "\n\n" : "") + i18n("Measured: %1 freed (engine disk use %2 → %3).", Parsers.formatBytes(Math.max(0, before - after)), Parsers.formatBytes(before), Parsers.formatBytes(after))
             backend.correlatedOutputReady("prune", "", epoch, requestId, 0,
                                           i18n("Prune"), text || i18n("(no output)"))
             backend.actionDone(engineName, code === 0 ? i18n("Prune finished") : i18n("Prune failed"), code === 0)
@@ -1916,6 +1994,62 @@ Item {
             Qt.callLater(runProbes)
     }
 
+    // =================================================== log watch ====
+    /*
+     * A few running containers' recent logs are read on a slow timer and
+     * digested (lib/status.js digestLogs). A new error loop or recurring error
+     * is announced once per message, not on every check; the latest digest per
+     * container is kept for the Diagnose page and Doctor. Bounded: a small tail,
+     * and at most four containers per check.
+     */
+    property var logIssues: ({})
+    property var logAlerted: ({})
+    property int logWatchCursor: 0
+    readonly property int logWatchMinutes: Math.max(0, Number(cfg.logWatchMinutes) || 0)
+    Timer {
+        id: logWatchTimer
+        interval: Math.max(1, backend.logWatchMinutes) * 60000
+        repeat: true
+        // Not tied to `refreshing`: that toggles every minute and would restart the countdown.
+        running: backend.engineActive && backend.logWatchMinutes > 0
+        onTriggered: if (!backend.refreshing) backend.runLogWatch()
+    }
+    function runLogWatch() {
+        const running = records.filter(function (r) { return r.isRunning && r.state === "running" })
+        if (running.length === 0) return
+        for (let i = 0; i < Math.min(4, running.length); i++) {
+            const rec = running[(logWatchCursor + i) % running.length]
+            tailLogs(rec, 300, function (text) { backend.recordLogDigest(rec, text) })
+        }
+        logWatchCursor = (logWatchCursor + 4) % running.length
+    }
+    function recordLogDigest(rec, text) {
+        const digest = Status.digestLogs(text)
+        // The first read of a container is a baseline: errors already in its log
+        // when Dockmoid starts are listed, not announced as new.
+        const baseline = logIssues[rec.id] === undefined
+        const entry = {at: Date.now(), lines: digest.lines, errors: digest.errors, warnings: digest.warnings, items: digest.items}
+        const next = Object.assign({}, logIssues)
+        next[rec.id] = entry
+        logIssues = next
+        const now = Date.now()
+        const fresh = digest.items.filter(function (item) {
+            return item.level === "error" && (item.kind === "loop" || item.kind === "recurring")
+        })
+        const alerted = Object.assign({}, logAlerted)
+        fresh.forEach(function (item) {
+            const signature = rec.name + "|" + item.sample.slice(0, 120)
+            if (now - (alerted[signature] || 0) < 6 * 3600 * 1000) return
+            alerted[signature] = now
+            if (baseline) return
+            const text = item.kind === "loop" ? i18n("error repeated %1 times in a row", item.run) : i18n("error repeated %1 times", item.count)
+            recordActivity([{kind: "logissue", id: rec.id, name: rec.name, text: text}])
+            if (cfg.useNotifications && cfg.notifyOnLogIssue)
+                notify(rec.name, i18n("%1: %2", text, item.sample.slice(0, 160)), "event")
+        })
+        logAlerted = alerted
+    }
+
     // ===================================================== image updates ====
 
     property var updateState: ({})
@@ -1955,8 +2089,10 @@ Item {
         for (let i = 0; i < records.length; i++) {
             let u = updateState[records[i].image]
             records[i].updateAvailable = !!u && u.state === "update"
-            records[i].updateState = updateRunning ? "checking" : u ? u.state : buildxAvailable ? "unchecked" : "unsupported"
+            records[i].updateState = !Parsers.isCheckableImage(records[i].image) ? "local"
+                : updateRunning ? "checking" : u ? u.state : buildxAvailable ? "unchecked" : "unsupported"
             records[i].imagePulled = !!u && u.pulled === true
+            records[i].updateCheckedAt = u && u.at ? u.at : 0
             if (records[i].updateAvailable) n++
         }
         updateCount = n
@@ -1988,7 +2124,7 @@ Item {
         if (used && template.indexOf("image inspect {image}") >= 0)
             cmd = cmd.replace("image inspect " + shellQuote(ref), "image inspect " + shellQuote(used.imageId))
         run(cmd, "update-check", function (code, out) {
-            updateState[ref] = { "state": code === 0 ? Parsers.compareDigests(out) : "unknown" }
+            updateState[ref] = { "state": code === 0 ? Parsers.compareDigests(out) : "unknown", "at": Date.now() }
             backend.nextUpdateCheck()
         })
     }
@@ -2147,7 +2283,9 @@ Item {
             + '"exitCode":{{json .State.ExitCode}},"error":{{json .State.Error}},"oom":{{json .State.OOMKilled}},'
             + '"memory":{{json .HostConfig.Memory}},"nanoCpus":{{json .HostConfig.NanoCpus}},'
             + '"networks":{{json .NetworkSettings.Networks}},"healthcheck":{{json (index .Config "Healthcheck")}},'
-            + '"user":{{json .Config.User}},"workdir":{{json .Config.WorkingDir}}}'
+            + '"user":{{json .Config.User}},"workdir":{{json .Config.WorkingDir}},'
+            // index, not .State.Health: absent (no healthcheck, older Podman) gives null, not an error.
+            + '"health":{{json (index .State "Health")}}}'
         run(engineBinary + " inspect --format " + shellQuote(format) + " " + id, "inspect-facts", function (code, out) {
             if (code !== 0) { done(null); return }
             try { done(Parsers.parseFacts(out)) } catch (e) { done(null) }
@@ -2175,6 +2313,109 @@ Item {
         if (!/^\/.+\.(ya?ml|json)$/i.test(path)) { done(false, i18n("No Compose file is recorded for this container.")); return }
         run("head -c 262144 " + shellQuote(path), "diagnostic-compose-file", function (code, out, err) {
             done(code === 0, code === 0 ? String(out || "") : backend.firstLine(err) || i18n("The file could not be read."))
+        })
+    }
+
+    /*
+     * A problem report to paste into an issue: versions, connection type and
+     * recent errors, with personal details redacted (Parsers.redact). It is
+     * shown for review; nothing is sent anywhere.
+     */
+    function problemReport(version, done) {
+        const cmd = "printf 'engine: '; " + engineBinary + " version --format '{{.Server.Version}} ({{.Server.Os}}/{{.Server.Arch}})' 2>&1 | head -1; "
+            + "printf 'compose: '; " + (isPodman ? "echo n/a" : expand(cfg.composeCommand, {}) + " version --short 2>&1 | head -1") + "; "
+            + "printf 'plasma: '; (plasmashell --version 2>/dev/null || echo unknown) | head -1; "
+            + "printf 'kernel: '; uname -sr; "
+            + "printf 'system: '; (. /etc/os-release 2>/dev/null && echo \"$PRETTY_NAME\") || echo unknown; "
+            + "printf 'python3: '; (python3 --version 2>&1 || echo missing) | head -1; "
+            + "printf 'home: '; printf '%s\\n' \"$HOME\"; printf 'user: '; id -un"
+        run(cmd, "diagnostic-report", function (code, out) {
+            const lines = String(out || "").split("\n")
+            const field = function (key) { const l = lines.find(function (x) { return x.indexOf(key + ": ") === 0 }); return l ? l.slice(key.length + 2).trim() : "" }
+            const home = field("home"), user = field("user")
+            const connection = remoteEngine ? (/^ssh:/.test(endpointHost) ? "remote (ssh)" : "remote (tcp)")
+                : /^unix:\/\/\/run\/user\//.test(endpointHost) ? "local rootless" : endpointHost !== "" ? "local" : "unknown"
+            const report = [
+                "Dockmoid " + version,
+                "Engine: " + engineName + " " + field("engine") + " · CLI " + engineBase.split(/\s+/)[0].split("/").pop(),
+                "Connection: " + connection + (contextName !== "" ? " · context set" : "") + (readOnly ? " · read-only" : ""),
+                "Compose: " + (field("compose") || "missing") + (composeDryRun ? " · dry-run" : "") + " · buildx: " + (buildxAvailable ? "yes" : "no"),
+                "Plasma: " + field("plasma") + " · " + field("system") + " · " + field("kernel"),
+                "Python: " + field("python3"),
+                "Containers: " + total + " (" + running + " running, " + problemCount + " need attention)",
+                "Engine reachable: " + (engineActive ? "yes" : "no") + (engineProblem !== "" ? " (" + engineProblem + ")" : ""),
+                "",
+                "Last error: " + (lastError || "none"),
+                "Last action error: " + (actionError || "none")
+            ].join("\n")
+            done(Parsers.redact(report, home, user) + "\n\n" + i18n("Review this before sharing it. Paths under your home, your user name, remote host names and IP addresses were replaced, but check the error lines yourself."))
+        })
+    }
+
+    /*
+     * Logs of several containers as one timeline: each line prefixed with its
+     * container, merged by the engine's timestamps, over a bounded window and
+     * capped in length. `since` is an engine duration such as "15m" or "1h".
+     */
+    function mergedLogs(recs, since, done) {
+        const ids = recs.filter(function (r) { return r && r.state !== "not-created" && /^[a-f0-9]+$/.test(Parsers.shortId(r.id)) })
+        if (ids.length === 0 || !/^[0-9]+[smh]$/.test(since)) { done(i18n("Choose at least one existing container.")); return }
+        const width = Math.min(24, Math.max.apply(null, ids.map(function (r) { return r.name.length })))
+        const parts = ids.map(function (r) {
+            const label = (r.name + " ".repeat(width)).slice(0, width)
+            // The label goes before the timestamp; sort then orders on the timestamp field.
+            return engineBinary + " logs --timestamps --since " + since + " " + Parsers.shortId(r.id) + " 2>&1 | sed " + shellQuote("s|^|" + label.replace(/[|\\&]/g, "") + " |")
+        })
+        run("{ " + parts.join("; ") + "; } | sort -s -b -k2,2 | tail -n 3000", "diagnostic-merged-logs", function (code, out) {
+            done(String(out || "").trim() || i18n("No log lines in this window."))
+        })
+    }
+
+    /* Can `a` reach `b`? Their networks, addresses, names and published ports, in words. */
+    function compareNetworks(a, b, done) {
+        const ida = a ? Parsers.shortId(a.id) : "", idb = b ? Parsers.shortId(b.id) : ""
+        if (!/^[a-f0-9]+$/.test(ida) || !/^[a-f0-9]+$/.test(idb)) { done(i18n("Both containers must exist.")); return }
+        const format = "{{json .Name}}\t{{json .NetworkSettings.Networks}}\t{{json .NetworkSettings.Ports}}"
+        run(engineBinary + " inspect --format " + shellQuote(format) + " " + ida + " " + idb, "diagnostic-network-compare", function (code, out, err) {
+            const c = code === 0 ? Parsers.compareNetworks(out) : null
+            if (!c) { done(firstLine(err) || i18n("The engine did not describe these containers.")); return }
+            const ports = function (side) {
+                if (side.published.length === 0) return i18n("%1 publishes no ports: only containers on a shared network can reach it.", side.name)
+                return side.name + ": " + side.published.map(function (p) {
+                    const where = p.hostIp === "" || p.hostIp === "0.0.0.0" || p.hostIp === "::" ? i18n("all interfaces") : p.hostIp === "127.0.0.1" || p.hostIp === "::1" ? i18n("this host only") : p.hostIp
+                    return i18n("host %1 → container %2 (%3)", p.hostPort, p.container, where)
+                }).join("; ")
+            }
+            const lines = [i18n("%1 ↔ %2", c.a.name, c.b.name), ""]
+            if (c.hostNetwork) lines.push(i18n("One of them uses the host's network: it shares the host's addresses and ports instead of a container network."), "")
+            if (c.shared.length > 0) {
+                lines.push(i18n("Shared networks:"))
+                c.shared.forEach(function (n) {
+                    const na = c.a.networks[n], nb = c.b.networks[n]
+                    lines.push("  " + n)
+                    lines.push("    " + i18n("%1: %2 · reachable as %3", c.a.name, na.ip || "?", na.names.join(", ") || c.a.name))
+                    lines.push("    " + i18n("%1: %2 · reachable as %3", c.b.name, nb.ip || "?", nb.names.join(", ") || c.b.name))
+                })
+                lines.push("", i18n("On a shared network each can reach the other by those names, on the container's own port (not the published host port)."))
+            } else {
+                lines.push(i18n("No shared network: they cannot reach each other by name. Connect one to the other's network (Resources → Networks), or go through a published host port."))
+            }
+            if (c.onlyA.length > 0) lines.push(i18n("Only %1: %2", c.a.name, c.onlyA.join(", ")))
+            if (c.onlyB.length > 0) lines.push(i18n("Only %1: %2", c.b.name, c.onlyB.join(", ")))
+            lines.push("", i18n("Published ports:"), "  " + ports(c.a), "  " + ports(c.b))
+            lines.push("", i18n("Inside a container, localhost is that container itself, not the host or another container."),
+                       i18n("This shows configuration; it does not prove a connection succeeds (firewalls, the app's listen address and credentials still apply)."))
+            done(lines.join("\n"))
+        })
+    }
+
+    /* What recreating `rec` keeps (its mounts) and loses (changes in its own filesystem). */
+    function recreateImpact(rec, done) {
+        const mounts = String(rec && rec.mounts || "").split(",").map(function (m) { return m.trim() }).filter(function (m) { return m !== "" })
+        const id = rec ? Parsers.shortId(rec.id) : ""
+        if (!rec || rec.state === "not-created" || !/^[a-f0-9]+$/.test(id)) { done({mounts: mounts, diff: null}); return }
+        run(engineBinary + " diff " + id, "diagnostic-diff-summary", function (code, out) {
+            done({mounts: mounts, diff: code === 0 ? Parsers.summarizeDiff(out) : null})
         })
     }
 
@@ -2209,7 +2450,8 @@ Item {
             return
         }
         const tracked = ["up","stop","restart","recreate","update","update-service-running","update-service-stopped","create-service",
-                         "start","pause","unpause","service-restart","service-recreate"].indexOf(verb) >= 0
+                         "start","pause","unpause","service-restart","service-recreate","apply","service-apply-running",
+                         "service-apply-stopped"].indexOf(verb) >= 0
         if (tracked && !beginOperation(rec, verb.indexOf("update") === 0 ? i18n("Pulling and recreating…") : i18n("Applying Compose action…"))) {
             if (done) done(false, i18n("An action is already running")); return
         }
@@ -2222,30 +2464,9 @@ Item {
                 if (done) done(false, reason)
                 return
             }
-            var base = backend.expand(backend.cfg.composeCommand, {}) + " -p " + rec.project + " "
-                + Parsers.composeFileArgs(rec.composeFiles, backend.shellQuote)
-            var steps = {
-                "create-service": Parsers.isSafeToken(rec.service) ? base + " up -d --no-deps " + rec.service : "",
-                up: base + " up -d", down: base + " down", pull: base + " pull", stop: base + " stop",
-                restart: base + " restart", ps: base + " ps -a",
-                logs: base + " logs --no-color --tail " + Math.max(1, Math.min(10000, Number(backend.cfg.logTailLines) || 200)),
-                recreate: base + " up -d --force-recreate",
-                start: base + " start", pause: base + " pause", unpause: base + " unpause",
-                images: base + " images", top: base + " top",
-                // Validates without printing the resolved file, which can hold secrets.
-                config: base + " config --quiet && echo " + backend.shellQuote(i18n("The Compose configuration is valid.")),
-                "service-restart": Parsers.isSafeToken(rec.service) ? base + " restart " + rec.service : "",
-                "service-recreate": Parsers.isSafeToken(rec.service) ? base + " up -d --no-deps --force-recreate " + rec.service : "",
-                "service-pull": Parsers.isSafeToken(rec.service) ? base + " pull " + rec.service : "",
-                "service-logs": Parsers.isSafeToken(rec.service)
-                    ? base + " logs --no-color --tail " + Math.max(1, Math.min(10000, Number(backend.cfg.logTailLines) || 200)) + " " + rec.service : "",
-                update: base + " pull && " + base + " up -d",
-                "update-service-running": Parsers.isSafeToken(rec.service)
-                    ? base + " pull " + rec.service + " && " + base + " up -d --no-deps --force-recreate " + rec.service : "",
-                "update-service-stopped": Parsers.isSafeToken(rec.service)
-                    ? base + " pull " + rec.service + " && " + base + " up --no-start --no-deps --force-recreate " + rec.service : ""
-            }
-            var cmd = steps[verb]
+            var cmd = Compose.recipe(verb, rec, {compose: backend.expand(backend.cfg.composeCommand, {}), quote: backend.shellQuote,
+                                                 tail: backend.cfg.logTailLines, dryRun: backend.composeDryRun})
+            if (verb === "config" && cmd) cmd += " && echo " + backend.shellQuote(i18n("The Compose configuration is valid."))
             if (!cmd) {
                 const unsupported = i18n("Unsupported action")
                 if (tracked) backend.finishOperation(rec, false, unsupported)

@@ -79,3 +79,15 @@ test("no record allows nothing", () => {
   const can = A.allowed(null, {});
   assert.deepEqual(Object.keys(can).filter((k) => can[k]), []);
 });
+
+test("a refused action says why, most fixable cause first", () => {
+  assert.equal(A.reason(rec("running"), {}, "stop"), "");
+  assert.equal(A.reason(rec("paused"), {}, "restart"), "state");
+  assert.equal(A.reason(rec("running"), { busy: true }, "stop"), "busy");
+  assert.equal(A.reason(rec("paused"), { busy: true }, "restart"), "state");
+  assert.equal(A.reason(rec("running"), { readOnly: true, busy: true }, "stop"), "read-only");
+  assert.equal(A.reason(rec("running"), { engineActive: false }, "stop"), "engine");
+  assert.equal(A.reason(rec("running"), { compose: false }, "recreate"), "compose");
+  assert.equal(A.reason(null, {}, "stop"), "unknown");
+  assert.equal(A.reason(rec("exited"), { readOnly: true }, "logs"), "");
+});

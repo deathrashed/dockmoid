@@ -23,8 +23,11 @@ Item {
     readonly property real cardHeight: Kirigami.Units.gridUnit *
         (detailLevel <= 0 ? 5 : detailLevel === 1 ? 8 : detailLevel === 2 ? 15 : 17)
 
+    /* The current delegate, untyped: the view only knows it as an Item. */
+    readonly property var currentEntry: grid.currentItem
+
     /* Bring proxy row `row` into view (view switches, Show in List). */
-    function reveal(row) { if (row >= 0 && row < grid.count) grid.positionViewAtIndex(row, GridView.Contain) }
+    function reveal(row) { if (row >= 0 && row < grid.count) { grid.currentIndex = row; grid.positionViewAtIndex(row, GridView.Contain) } }
 
     GridView {
         id: grid
@@ -36,8 +39,23 @@ Item {
         cellHeight: root.cardHeight + Kirigami.Units.smallSpacing
         boundsBehavior: Flickable.StopAtBounds
         cacheBuffer: Kirigami.Units.gridUnit * 4
+        // Keyboard: arrows select like a click (the inspector follows), Enter opens
+        // Details, the Menu key or Shift+F10 opens the actions menu.
+        currentIndex: -1
+        keyNavigationEnabled: true
+        activeFocusOnTab: true
+        onCurrentIndexChanged: { if (root.currentEntry && activeFocus) root.backend.previewContainer(root.currentEntry.containerKey, true) }
+        Keys.onReturnPressed: { if (root.currentEntry) root.openDetail(root.currentEntry.containerKey) }
+        Keys.onEnterPressed: { if (root.currentEntry) root.openDetail(root.currentEntry.containerKey) }
+        Keys.onPressed: function (event) {
+            if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier))) {
+                if (root.currentEntry) root.currentEntry.openMenu()
+                event.accepted = true
+            }
+        }
         delegate: Item {
             id: tile
+            function openMenu() { actions.popup(tile, Kirigami.Units.gridUnit, Kirigami.Units.gridUnit) }
             objectName: "containerGridCard"
             required property int index
             required property string containerKey
@@ -72,6 +90,15 @@ Item {
                 selected: root.backend.previewMode === "selection" && root.backend.previewRecordId === tile.containerKey
                 tone: Status.accentTone(tile.attention)
             }
+            // Keyboard focus, drawn apart from the selection wash.
+            Rectangle {
+                anchors.fill: parent
+                visible: grid.activeFocus && tile.GridView.isCurrentItem
+                color: "transparent"
+                radius: Kirigami.Units.smallSpacing
+                border.width: 2
+                border.color: Kirigami.Theme.focusColor
+            }
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.smallSpacing * 1.5
@@ -86,14 +113,23 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Kirigami.Units.smallSpacing / 2
+                            IconButton {
+                                // Selection mode: tick containers to act on several at once.
+                                visible: root.backend.selection.active
+                                glyph: root.backend.selection.picked[tile.containerKey] === true ? "square-check" : "square"
+                                text: root.backend.selection.picked[tile.containerKey] === true ? i18n("Unselect %1", tile.name) : i18n("Select %1", tile.name)
+                                implicitWidth: Kirigami.Units.gridUnit * 1.3
+                                onClicked: root.backend.selection.toggle(tile.containerKey)
+                            }
                             StateDot { containerState: tile.containerState; health: tile.health; showHealth: plasmoid.configuration.showHealth; failed: tile.attention === "failed" }
                             StatusLine {
-                                Layout.fillWidth: true
                                 status: tile.status; containerState: tile.containerState; runningFor: tile.record.runningFor || ""
                                 isRunning: tile.isRunning; attention: tile.attention
                                 operationLabel: tile.operation.label; operationOk: tile.operation.ok; operationBusy: tile.operation.busy
-                                glyphMode: "attention"; showBusy: true; badge: true; spelled: true
+                                glyphMode: "attention"; showBusy: true; badge: true; showText: tile.operation.label !== ""
+                                visible: tile.attention !== "running" && tile.attention !== "stopped" || tile.operation.label !== "" || tile.operation.busy
                             }
+                            Timeline { Layout.fillWidth: true; Layout.minimumWidth: 0; clip: true; record: tile.record }
                         }
                     }
                 }
@@ -132,9 +168,9 @@ Item {
                     spacing: 1
                     PlasmaComponents.Label {
                         Layout.fillWidth: true
-                        text: tile.containerState === "not-created" ? i18n("Defined in Compose, no container yet")
-                            : tile.containerState === "created" ? i18n("Created, never started")
-                            : tile.status
+                        // The timeline under the name already gives the times.
+                        visible: tile.containerState === "not-created"
+                        text: i18n("Defined in Compose, no container yet")
                         elide: Text.ElideRight
                         font: Kirigami.Theme.smallFont
                         opacity: Style.TEXT.strong
@@ -220,11 +256,11 @@ Item {
                     Item { Layout.fillWidth: true }
                     ActionToolButton { visible: root.detailLevel >= 3; glyph: tile.verboseExpanded ? "chevron-up" : "chevron-down"; text: tile.verboseExpanded ? i18n("Less diagnostics") : i18n("More diagnostics"); onClicked: tile.verboseExpanded = !tile.verboseExpanded }
                     ActionToolButton { glyph: "application-menu"; text: i18n("Other actions"); onClicked: actions.popup(this, 0, height) }
-                    ActionToolButton { readonly property var primary: root.backend.primaryActionFor(tile.record); text: primary.action === "create" ? i18n("Create and start") : primary.action === "stop" ? i18n("Stop") : i18n("Start"); glyph: primary.action === "stop" ? "media-playback-stop" : "media-playback-start"; enabled: primary.enabled; onClicked: root.backend.runAction(tile.record, primary.action) }
+                    ActionToolButton { readonly property var primary: root.backend.primaryActionFor(tile.record); text: primary.action === "create" ? i18n("Create and start %1", tile.name) : primary.action === "stop" ? i18n("Stop %1", tile.name) : i18n("Start %1", tile.name); glyph: primary.action === "stop" ? "media-playback-stop" : "media-playback-start"; blockedReason: root.backend.actionReason(tile.record, primary.action); onClicked: root.backend.runAction(tile.record, primary.action) }
                 }
             }
             HoverHandler { id: tileHover;onHoveredChanged:if(hovered)root.backend.previewContainer(tile.containerKey,false) }
-            TapHandler {onTapped:root.backend.previewContainer(tile.containerKey,true)}
+            TapHandler {onTapped:{ if (root.backend.selection.active) { root.backend.selection.toggle(tile.containerKey); return } root.backend.previewContainer(tile.containerKey,true); grid.currentIndex = tile.index }}
             TapHandler { onDoubleTapped: root.openDetail(tile.containerKey) }
             TapHandler { acceptedButtons: Qt.RightButton; onTapped: function(point) { actions.popup(tile, point.position.x, point.position.y) } }
             ActionsHost {

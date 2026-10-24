@@ -14,6 +14,23 @@ Item {
     property bool embedded: false
     property int initialTab: 0
     signal closeRequested()
+    signal openDetail(string recordId, int tab)
+    /* The container the last create produced, once a refresh lists it. */
+    readonly property var created: {
+        const revision = root.backend.revision
+        if (root.controller.activity !== "create" || root.controller.busy || root.controller.lastProject === "") return null
+        return root.backend.records.find(function (r) { return r.project === root.controller.lastProject && r.state !== "not-created" }) || null
+    }
+    /* Created, Running and Healthy are different outcomes; a finished command implies none of them. */
+    readonly property string createdState: {
+        if (!root.created) return root.controller.lastCreated ? i18n("Created · waiting for the container list") : ""
+        const health = String(root.created.health || "")
+        if (root.created.state === "running")
+            return health === "healthy" ? i18n("Running · healthy") : health === "starting" ? i18n("Running · health check starting")
+                : health === "unhealthy" ? i18n("Running · unhealthy") : i18n("Running")
+        if (root.created.state === "exited" && root.controller.lastStarted) return i18n("Exited right after starting: check its logs")
+        return root.created.state === "created" ? i18n("Created, not started") : root.created.state
+    }
     readonly property var controller: backend.deployment
     readonly property var restartPolicies: [{label:i18n("Manual start"),value:"no"},{label:i18n("On failure"),value:"on-failure"},{label:i18n("Unless stopped"),value:"unless-stopped"},{label:i18n("Always"),value:"always"}]
     property var reviewed: null
@@ -61,6 +78,33 @@ Item {
     function input() {
         return Object.assign({}, importedOptions, {name:projectName.text,image:imageName.text,ports:ports.text,mounts:mounts.text,environment:environment.text,command:command.text,network:network.text,restart:restart.currentValue,managedData:managedData.checked,dataTarget:dataTarget.text})
     }
+    /* The form as typed, without imported options (they come back with the fields). */
+    function formState() {
+        return {name:projectName.text,image:imageName.text,ports:ports.text,mounts:mounts.text,environment:environment.text,command:command.text,
+                network:network.text,restart:restart.currentIndex,managedData:managedData.checked,dataTarget:dataTarget.text,startNow:startNow.checked,
+                imported:importedOptions}
+    }
+    readonly property bool formTouched: projectName.text !== "" || imageName.text !== "" || ports.text !== "" || mounts.text !== ""
+        || environment.text !== "" || command.text !== ""
+    function restoreDraft(d) {
+        projectName.text=d.name;imageName.text=d.image;ports.text=d.ports;mounts.text=d.mounts;environment.text=d.environment;command.text=d.command
+        network.text=d.network;restart.currentIndex=d.restart;managedData.checked=d.managedData;dataTarget.text=d.dataTarget;startNow.checked=d.startNow
+        importedOptions=d.imported||({})
+    }
+    function discardDraft() {
+        controller.draft=null
+        projectName.text="";imageName.text="";ports.text="";mounts.text="";environment.text="";command.text="";importedOptions=({});formError=""
+        network.text=root.backend.cfg.deploymentNetwork||""
+    }
+    // Keep what is typed as it changes, so closing the page cannot lose it, and
+    // restore it when the page opens again. Saving starts after the restore.
+    property bool draftReady: false
+    readonly property var liveDraft: root.formTouched ? root.formState() : null
+    onLiveDraftChanged: if (root.draftReady && controller) controller.draft = root.liveDraft
+    Component.onCompleted: Qt.callLater(function () {
+        if (controller && controller.draft) root.restoreDraft(controller.draft)
+        root.draftReady = true
+    })
     function review() {
         try { root.reviewed=controller.preview(input());root.formError="";reviewDialog.open() }
         catch(e){root.formError=String(e)}
@@ -284,6 +328,8 @@ Item {
                         Layout.fillWidth:true
                         spacing:Kirigami.Units.largeSpacing
                         Controls.CheckBox{id:startNow;text:i18n("Start the container after creating it");checked:true}
+                        Components.DockButton{visible:root.formTouched;glyph:"eraser";text:i18n("Discard Draft");onClicked:root.discardDraft()
+                            PlasmaComponents.ToolTip.text:i18n("Clear the form. Drafts are kept only while Plasma runs and never saved to disk.");PlasmaComponents.ToolTip.visible:hovered;PlasmaComponents.ToolTip.delay:Kirigami.Units.toolTipDelay}
                         PlasmaComponents.Label {Layout.fillWidth:true;text:i18n("Existing project files are never overwritten.");wrapMode:Text.Wrap;font:Kirigami.Theme.smallFont;color:Kirigami.Theme.disabledTextColor}
                     }
                 }
@@ -351,6 +397,50 @@ Item {
                 onPressed: function(mouse) { startSceneY = mapToItem(null, mouse.x, mouse.y).y; startHeight = root.outputPanelHeight }
                 onPositionChanged: function(mouse) {
                     if (pressed) root.outputPanelHeight = Math.max(64, Math.min(250, startHeight + startSceneY - mapToItem(null, mouse.x, mouse.y).y))
+                }
+            }
+        }
+        // After a create: what now exists and the next useful step. On failure the
+        // project files stay where they were written, so offer those instead.
+        Components.Card {
+            objectName: "deploymentResult"
+            Layout.fillWidth: true
+            visible: root.controller.activity === "create" && !root.controller.busy && root.controller.lastProject !== ""
+                && (root.controller.lastCreated || root.controller.failed)
+            tone: root.controller.failed ? "bad" : root.created && root.created.state === "running" ? "ok" : ""
+            padding: Kirigami.Units.smallSpacing * 1.5
+            ColumnLayout {
+                spacing: Kirigami.Units.smallSpacing
+                PlasmaComponents.Label {
+                    Layout.fillWidth: true
+                    font.bold: true
+                    elide: Text.ElideRight
+                    text: root.controller.failed ? i18n("%1 was not created", root.controller.lastProject) : root.controller.lastProject
+                }
+                PlasmaComponents.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    font: Kirigami.Theme.smallFont
+                    color: Kirigami.Theme.disabledTextColor
+                    text: root.controller.failed ? i18n("Its project files are kept in %1. Fix the options and review again, or remove the folder.", root.controller.lastFolder)
+                        : root.createdState
+                }
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+                    Components.DockButton { visible: !!root.created; glyph: "badge-info"; text: i18n("Details"); onClicked: root.openDetail(root.created.id, 0) }
+                    Components.DockButton { visible: !!root.created; glyph: "scroll-text"; text: i18n("Logs"); onClicked: root.openDetail(root.created.id, 1) }
+                    Components.DockButton {
+                        readonly property var links: root.created && root.created.state === "running" ? root.backend.linksFor(root.created) : []
+                        visible: links.length > 0
+                        glyph: "globe"; text: i18n("Web")
+                        onClicked: root.backend.openLink(links[0])
+                    }
+                    Components.DockButton {
+                        visible: root.controller.lastFolder !== "" && !root.backend.remoteEngine
+                        glyph: "folder-open"; text: i18n("Project Folder")
+                        onClicked: Qt.openUrlExternally("file://" + root.controller.lastFolder)
+                    }
                 }
             }
         }

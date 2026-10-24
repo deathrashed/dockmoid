@@ -14,7 +14,13 @@ Item {
     required property var backend
     /* True when shown inside the main page's dock. */
     property bool embedded: false
-    signal openDetail(string recordId)
+    signal openDetail(string recordId, int tab)
+    /* A crash, restart or health change opens on Logs, where the cause usually is. */
+    function open(entry) {
+        if (!entry.id || !root.backend.findRecord(entry.id)) return
+        root.backend.previewContainer(entry.id, true)
+        root.openDetail(entry.id, ["crashed", "restarting", "unhealthy"].indexOf(entry.kind) >= 0 ? 1 : 0)
+    }
 
     readonly property var kinds: ({
         crashed: {glyph: "circle-x", tone: "bad"},
@@ -60,7 +66,8 @@ Item {
                 readonly property var look: root.kinds[row.modelData.kind] || ({glyph: "info", tone: "muted"})
                 width: ListView.view.width
                 padding: Kirigami.Units.smallSpacing * 1.5
-                interactive: row.modelData.id !== ""
+                // Only while the container still exists; a removed one has nothing to open.
+                interactive: row.modelData.id !== "" && root.backend.revision >= 0 && !!root.backend.findRecord(row.modelData.id)
                 hovered: hover.hovered
                 tone: row.look.tone === "muted" ? "" : row.look.tone
 
@@ -78,13 +85,16 @@ Item {
                         elide: Text.ElideRight
                     }
                     PlasmaComponents.Label {
-                        text: Qt.formatDateTime(new Date(row.modelData.time), "hh:mm:ss")
+                        text: new Date(row.modelData.time).toDateString() === new Date().toDateString()
+                            ? Qt.formatTime(new Date(row.modelData.time), "hh:mm:ss")
+                            : Qt.formatDateTime(new Date(row.modelData.time), "MMM d hh:mm")
                         font: Kirigami.Theme.smallFont
                         color: Kirigami.Theme.disabledTextColor
                     }
                 }
                 HoverHandler { id: hover; cursorShape: row.interactive ? Qt.PointingHandCursor : Qt.ArrowCursor }
-                TapHandler { enabled: row.interactive; onTapped: root.openDetail(row.modelData.id) }
+                TapHandler { enabled: row.interactive; onTapped: root.open(row.modelData) }
+                Components.Tip { text: row.interactive ? (["crashed", "restarting", "unhealthy"].indexOf(row.modelData.kind) >= 0 ? i18n("Open %1 on its logs", row.modelData.name) : i18n("Open %1", row.modelData.name)) : "" }
             }
 
             Kirigami.PlaceholderMessage {

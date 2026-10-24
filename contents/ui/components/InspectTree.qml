@@ -15,7 +15,6 @@ Item {
     property string emptyText: i18n("No inspect output yet.")
     property string needle: ""
     property string viewMode: "tree"
-    property string formattedJson: ""
     property var expandedPaths: ({"$": true})
     property var rows: []
     property string error: ""
@@ -40,23 +39,42 @@ Item {
         return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key)
             ? parentPath + "." + key : parentPath + "[" + JSON.stringify(key) + "]"
     }
-    function copyJson() { clipboard.content = root.formattedJson || root.text }
-    function copyValue(serializedValue) { clipboard.content = serializedValue }
+    function copyJson() { clipboard.content = root.formatted() || root.text }
+    function copyValue(index) { clipboard.content = root.rawAt(index) }
     function copyPath(path) { clipboard.content = path }
+
+    /*
+     * The text is parsed once per change; rows are built by walking only the
+     * open branches (a search walks everything, but never serialises it).
+     * A row's JSON is produced only when its tooltip or Copy asks for it, and
+     * the list view creates delegates only for rows on screen.
+     */
+    property var parsed: undefined
+    property var nodeValues: []
+    function rawAt(index) { const v = root.nodeValues[index]; return v === undefined ? "" : JSON.stringify(v, null, 2) }
+    function formatted() { return root.parsed === undefined ? "" : JSON.stringify(root.parsed, null, 2) }
+    readonly property string formattedJson: root.viewMode === "raw" && root.parsed !== undefined ? root.formatted() : ""
+    function parse() {
+        root.parsed = undefined
+        if (root.text.trim() === "") { root.error = ""; return }
+        try { root.parsed = JSON.parse(root.text); root.error = "" } catch (e) { root.error = String(e) }
+    }
     function setAllExpanded(expanded) {
-        if (root.text.trim() === "") return
-        var parsed
-        try { parsed = JSON.parse(root.text) } catch (e) { return }
-        var next = ({})
+        if (root.parsed === undefined) return
+        if (!expanded) { root.expandedPaths = ({"$": true}); root.rebuild(); return }
+        const next = {}
         function collect(value, path) {
-            var keys = root.childrenOf(value)
-            if (keys.length === 0) return
-            next[path] = expanded
-            keys.forEach(function (key) {
-                collect(root.childValue(value, key), root.childPath(path, key, Array.isArray(value)))
-            })
+            if (value === null || typeof value !== "object") return
+            next[path] = true
+            const array = Array.isArray(value)
+            const keys = array ? null : Object.keys(value)
+            const n = array ? value.length : keys.length
+            for (let i = 0; i < n; i++) {
+                const k = array ? String(i) : keys[i]
+                collect(array ? value[i] : value[k], root.childPath(path, k, array))
+            }
         }
-        collect(parsed, "$")
+        collect(root.parsed, "$")
         root.expandedPaths = next
         root.rebuild()
     }
@@ -67,32 +85,36 @@ Item {
         return Kirigami.Theme.textColor
     }
     function rebuild() {
-        if (root.text.trim() === "") { root.error = ""; root.formattedJson = ""; root.rows = []; return }
-        var parsed
-        try {
-            parsed = JSON.parse(root.text)
-            root.error = ""
-            root.formattedJson = JSON.stringify(parsed, null, 2)
-        } catch (e) { root.error = String(e); root.formattedJson = root.text; root.rows = []; return }
-        var out = [], query = root.needle.toLowerCase()
-        function walk(value, key, path, depth, parentOpen) {
-            var kids = root.childrenOf(value), expandable = kids.length > 0
-            var ownMatch = query === "" || String(key).toLowerCase().indexOf(query) >= 0 || path.toLowerCase().indexOf(query) >= 0
-            var childRows = []
-            if (expandable) {
-                kids.forEach(function (k) {
-                    var childPath = root.childPath(path, k, Array.isArray(value))
-                    childRows.push.apply(childRows, walk(root.childValue(value, k), k, childPath, depth + 1, true))
-                })
-            }
-            var hasMatch = ownMatch || childRows.length > 0
-            var showChildren = query !== "" ? hasMatch : !!root.expandedPaths[path]
-            var type = root.typeName(value)
-            var row = { key:String(key), path:path, depth:depth, value:root.valueText(value), raw:JSON.stringify(value, null, 2), expandable:expandable, expanded:showChildren, type:type, valueColor:root.valueColor(type) }
-            if (!parentOpen || (query !== "" && !hasMatch)) return []
-            return [row].concat(showChildren ? childRows : [])
+        if (root.parsed === undefined) { root.rows = []; root.nodeValues = []; return }
+        const query = root.appliedNeedle.toLowerCase(), values = [], expanded = root.expandedPaths
+        function makeRow(value, key, path, depth, open) {
+            const type = root.typeName(value)
+            values.push(value)
+            return {key: String(key), path: path, depth: depth, value: root.valueText(value), index: values.length - 1,
+                    expandable: value !== null && typeof value === "object" && root.childrenOf(value).length > 0,
+                    expanded: open, type: type, valueColor: root.valueColor(type)}
         }
-        out = walk(parsed, "$", "$", 0, true)
+        // Browsing: rows for open branches only.
+        function browse(value, key, path, depth, out) {
+            const open = !!expanded[path]
+            out.push(makeRow(value, key, path, depth, open))
+            if (!open) return
+            const array = Array.isArray(value)
+            root.childrenOf(value).forEach(function (k) { browse(array ? value[Number(k)] : value[k], k, root.childPath(path, k, array), depth + 1, out) })
+        }
+        // Searching: a branch shows when it or anything below it matches.
+        function search(value, key, path, depth, out) {
+            const own = String(key).toLowerCase().indexOf(query) >= 0 || path.toLowerCase().indexOf(query) >= 0
+            const below = []
+            const array = Array.isArray(value)
+            root.childrenOf(value).forEach(function (k) { search(array ? value[Number(k)] : value[k], k, root.childPath(path, k, array), depth + 1, below) })
+            if (!own && below.length === 0) return
+            out.push(makeRow(value, key, path, depth, below.length > 0))
+            for (let i = 0; i < below.length; i++) out.push(below[i])
+        }
+        const out = []
+        if (query === "") browse(root.parsed, "$", "$", 0, out); else search(root.parsed, "$", "$", 0, out)
+        root.nodeValues = values
         root.rows = out
     }
     function toggle(path) {
@@ -101,9 +123,11 @@ Item {
         root.expandedPaths = next
         root.rebuild()
     }
-    onTextChanged: rebuild()
-    onNeedleChanged: rebuild()
-    Component.onCompleted: rebuild()
+    property string appliedNeedle: ""
+    Timer { id: needleDebounce; interval: 150; onTriggered: { root.appliedNeedle = root.needle; root.rebuild() } }
+    onNeedleChanged: if (root.needle === "") { needleDebounce.stop(); root.appliedNeedle = ""; root.rebuild() } else needleDebounce.restart()
+    onTextChanged: { root.parse(); root.rebuild() }
+    Component.onCompleted: { root.parse(); root.rebuild() }
 
     ColumnLayout {
         anchors.fill: parent
@@ -133,44 +157,49 @@ Item {
             text: i18n("Inspect output is not valid JSON: %1", root.error)
             color: Kirigami.Theme.negativeTextColor
         }
-        QQC2.ScrollView {
+        ListView {
+            id: treeList
             visible: root.viewMode === "tree"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            background: null
-            ColumnLayout {
-                width: parent.width
-                spacing: 0
-                Repeater {
-                    model: root.rows
-                    delegate: RowLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-                        PlasmaComponents.ToolButton {
-                            Layout.leftMargin: modelData.depth * Kirigami.Units.largeSpacing
-                            visible: modelData.expandable
-                            text: modelData.expanded ? "▾" : "▸"
-                            display: PlasmaComponents.AbstractButton.TextOnly
-                            onClicked: root.toggle(modelData.path)
-                        }
-                        Item { visible: !modelData.expandable; Layout.preferredWidth: Kirigami.Units.iconSizes.small + modelData.depth * Kirigami.Units.largeSpacing }
-                        PlasmaComponents.Label { text: modelData.key; font.bold: true; color: Kirigami.Theme.linkColor; elide: Text.ElideRight }
-                        PlasmaComponents.Label { text: ":"; opacity: 0.6 }
-                        PlasmaComponents.Label { id: valueLabel; Layout.fillWidth: true; Layout.minimumWidth: 0; text: modelData.value; color: modelData.valueColor; font.family: Kirigami.Theme.fixedWidthFont.family; elide: Text.ElideRight; PlasmaComponents.ToolTip { text: modelData.raw } }
-                        PlasmaComponents.ToolButton { text: i18n("Value"); onClicked: root.copyValue(modelData.raw); PlasmaComponents.ToolTip { text: i18n("Copy value") } }
-                        PlasmaComponents.ToolButton { text: i18n("Path"); onClicked: root.copyPath(modelData.path); PlasmaComponents.ToolTip { text: i18n("Copy JSON path") } }
-                    }
+            clip: true
+            model: root.rows
+            reuseItems: true
+            boundsBehavior: Flickable.StopAtBounds
+            QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+            delegate: RowLayout {
+                required property var modelData
+                width: treeList.width
+                spacing: Kirigami.Units.smallSpacing
+                PlasmaComponents.ToolButton {
+                    Layout.leftMargin: modelData.depth * Kirigami.Units.largeSpacing
+                    visible: modelData.expandable
+                    text: modelData.expanded ? "▾" : "▸"
+                    display: PlasmaComponents.AbstractButton.TextOnly
+                    onClicked: root.toggle(modelData.path)
                 }
-                PlasmaComponents.Label { visible: root.rows.length === 0 && root.error === ""; Layout.margins: Kirigami.Units.largeSpacing; text: root.needle ? i18n("No matching keys.") : root.emptyText; opacity: 0.7 }
+                Item { visible: !modelData.expandable; Layout.preferredWidth: Kirigami.Units.iconSizes.small + modelData.depth * Kirigami.Units.largeSpacing }
+                PlasmaComponents.Label { text: modelData.key; font.bold: true; color: Kirigami.Theme.linkColor; elide: Text.ElideRight }
+                PlasmaComponents.Label { text: ":"; opacity: 0.6 }
+                PlasmaComponents.Label {
+                    Layout.fillWidth: true; Layout.minimumWidth: 0
+                    text: modelData.value; color: modelData.valueColor
+                    font.family: Kirigami.Theme.fixedWidthFont.family; elide: Text.ElideRight
+                    // Built only when the pointer rests here: a branch's JSON can be large.
+                    HoverHandler { id: valueHover }
+                    PlasmaComponents.ToolTip { visible: valueHover.hovered; delay: 600; text: visible ? root.rawAt(modelData.index).slice(0, 2000) : "" }
+                }
+                PlasmaComponents.ToolButton { text: i18n("Value"); onClicked: root.copyValue(modelData.index) }
+                PlasmaComponents.ToolButton { text: i18n("Path"); onClicked: root.copyPath(modelData.path) }
             }
+            PlasmaComponents.Label { anchors.centerIn: parent; visible: root.rows.length === 0 && root.error === ""; text: root.needle ? i18n("No matching keys.") : root.emptyText; opacity: 0.7 }
         }
         QQC2.TextArea {
             objectName: "inspectRawJson"
             visible: root.viewMode === "raw"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            text: root.formattedJson || root.text
+            text: root.formattedJson || (root.viewMode === "raw" ? root.text : "")
             readOnly: true
             selectByMouse: true
             wrapMode: TextEdit.NoWrap

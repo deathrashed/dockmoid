@@ -265,6 +265,25 @@ function parseSystemDf(stdout) {
     });
 }
 
+/* "1.2GB", "512.3MB", "4.1kB", "0B" (decimal, as `docker system df` prints) -> bytes; NaN when unknown. */
+function sizeBytes(text) {
+    var m = /^([0-9.]+)\s*([kKMGT]?i?)B$/.exec(String(text || "").trim());
+    if (!m) return NaN;
+    var unit = m[2].replace("i", "").toUpperCase();
+    var power = {"": 0, K: 1, M: 2, G: 3, T: 4}[unit];
+    return Number(m[1]) * Math.pow(m[2].indexOf("i") >= 0 ? 1024 : 1000, power);
+}
+/* Total size of every `system df` row, in bytes; NaN if any row is unreadable. */
+function diskTotal(rows) {
+    return (rows || []).reduce(function (sum, r) { return sum + sizeBytes(r.size); }, 0);
+}
+function formatBytes(n) {
+    if (!(n >= 0)) return "";
+    var units = ["B", "kB", "MB", "GB", "TB"], i = 0;
+    while (n >= 1000 && i < units.length - 1) { n /= 1000; i++; }
+    return (i === 0 ? String(Math.round(n)) : n.toFixed(n < 10 ? 2 : 1)) + units[i];
+}
+
 /* Aggregate per-container stats into engine-wide CPU / memory figures. */
 function aggregate(containers) {
     var running = 0, cpuSum = 0, memSum = 0, pids = 0, unhealthy = 0, paused = 0;
@@ -454,6 +473,111 @@ function applyRestartPolicies(containers, policies) {
         containers[i].restartPolicy = policies[shortId(containers[i].id)] || "";
     }
     return containers;
+}
+
+/*
+ * The same inspect output can carry the container's times after the policy:
+ *   ... {{.State.StartedAt}} {{.State.FinishedAt}} {{.Created}}
+ * -> { <12 char id>: {startedAt, finishedAt, created} } in epoch ms, 0 when
+ * Docker reports its zero time (never started / never stopped). Lines from an
+ * older, policy-only command simply carry no times.
+ */
+function parseLifeTimes(stdout) {
+    var map = {};
+    var lines = String(stdout || "").split("\n");
+    for (var i = 0; i < lines.length; i++) {
+        var f = lines[i].trim().split(/\s+/);
+        if (f.length < 1 || f[0] === "") continue;
+        var stamps = f.slice(1).filter(function (t) { return /^\d{4}-\d\d-\d\dT/.test(t); }).map(function (t) {
+            var ms = Date.parse(t.replace(/(\.\d{3})\d+/, "$1"));
+            return isNaN(ms) || ms < Date.UTC(1971, 0, 1) ? 0 : ms;
+        });
+        if (stamps.length === 3) map[shortId(f[0])] = {startedAt: stamps[0], finishedAt: stamps[1], created: stamps[2]};
+    }
+    return map;
+}
+
+function applyLifeTimes(containers, times) {
+    for (var i = 0; i < containers.length; i++) {
+        var t = times[shortId(containers[i].id)];
+        containers[i].startedAtMs = t ? t.startedAt : 0;
+        containers[i].finishedAtMs = t ? t.finishedAt : 0;
+        containers[i].createdMs = t ? t.created : 0;
+    }
+    return containers;
+}
+
+/*
+ * `docker diff` output (A/C/D path lines) -> {total, added, changed, deleted,
+ * sample}: what a recreate would throw away from the container's own
+ * filesystem. Paths only; it says nothing about whether they matter.
+ */
+function summarizeDiff(text) {
+    var out = {total: 0, added: 0, changed: 0, deleted: 0, sample: []};
+    String(text || "").split("\n").forEach(function (line) {
+        var m = /^([ACD])\s+(\/.*)$/.exec(line.trim());
+        if (!m) return;
+        out.total++;
+        if (m[1] === "A") out.added++; else if (m[1] === "C") out.changed++; else out.deleted++;
+        if (out.sample.length < 6) out.sample.push(m[2]);
+    });
+    return out;
+}
+
+/*
+ * Make text safe to paste into a public bug report: the home folder becomes ~,
+ * the user name <user>, host names in ssh:// or tcp:// endpoints <host>, and
+ * IPv4 addresses other than loopback <ip>. A best effort, so the report is
+ * shown for review before anyone copies it.
+ */
+function redact(text, home, user) {
+    var out = String(text || "");
+    if (home && home.length > 1) out = out.split(home).join("~");
+    out = out.replace(/((?:ssh|tcp|https?):\/\/)(?:[^@\s\/]+@)?[^:\/\s]+/g, "$1<host>");
+    out = out.replace(/\b(?!127\.)(\d{1,3}\.){3}\d{1,3}\b/g, "<ip>");
+    if (user && user.length > 1) out = out.replace(new RegExp("\\b" + user.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g"), "<user>");
+    return out;
+}
+
+/*
+ * Two lines of
+ *   {{json .Name}} TAB {{json .NetworkSettings.Networks}} TAB {{json .NetworkSettings.Ports}}
+ * -> what the two containers share: networks (with each side's address and
+ * the names the other can use), networks only one has, and published ports.
+ * Configuration only: a shared network does not prove a connection works.
+ */
+function parseNetworkSide(line) {
+    var parts = String(line || "").split("\t");
+    if (parts.length < 3) return null;
+    try {
+        var name = String(JSON.parse(parts[0]) || "").replace(/^\//, "");
+        var nets = JSON.parse(parts[1]) || {};
+        var ports = JSON.parse(parts[2]) || {};
+        var networks = {};
+        Object.keys(nets).forEach(function (n) {
+            var v = nets[n] || {};
+            var names = [].concat(v.DNSNames || [], v.Aliases || []).filter(function (x, i, all) { return x && all.indexOf(x) === i && !/^[0-9a-f]{12}$/.test(x); });
+            networks[n] = {ip: v.IPAddress || "", names: names};
+        });
+        var published = [];
+        Object.keys(ports).forEach(function (p) {
+            (ports[p] || []).forEach(function (b) { published.push({container: p, hostIp: b.HostIp || "", hostPort: b.HostPort || ""}); });
+        });
+        return {name: name, networks: networks, published: published};
+    } catch (e) { return null; }
+}
+function compareNetworks(text) {
+    var lines = String(text || "").split("\n").filter(function (l) { return l.trim() !== ""; });
+    var a = parseNetworkSide(lines[0]), b = parseNetworkSide(lines[1]);
+    if (!a || !b) return null;
+    var an = Object.keys(a.networks), bn = Object.keys(b.networks);
+    return {
+        a: a, b: b,
+        shared: an.filter(function (n) { return bn.indexOf(n) >= 0 && n !== "host" && n !== "none"; }),
+        onlyA: an.filter(function (n) { return bn.indexOf(n) < 0; }),
+        onlyB: bn.filter(function (n) { return an.indexOf(n) < 0; }),
+        hostNetwork: an.indexOf("host") >= 0 || bn.indexOf("host") >= 0
+    };
 }
 
 /* True when Docker itself will bring the container back after a reboot. */
@@ -795,6 +919,19 @@ function parseFacts(text) {
         healthCheck: check,
         healthInterval: hc ? seconds(hc.Interval) : 0,
         user: String(d.user || ""),
-        workdir: String(d.workdir || "")
+        workdir: String(d.workdir || ""),
+        // The engine's health record: status, failing streak and the last probe.
+        health: (function (h) {
+            if (!h || typeof h !== "object") return null;
+            var log = Array.isArray(h.Log) ? h.Log : [];
+            var last = log.length ? log[log.length - 1] : null;
+            return {
+                status: String(h.Status || ""),
+                failingStreak: Number(h.FailingStreak) || 0,
+                lastExit: last ? Number(last.ExitCode) : -1,
+                lastAt: last ? when(last.End) : 0,
+                lastOutput: last ? String(last.Output || "").trim().slice(-400) : ""
+            };
+        })(d.health)
     };
 }

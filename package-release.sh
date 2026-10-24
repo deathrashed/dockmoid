@@ -35,7 +35,7 @@ copy_runtime() {
 copy_runtime "$stage/package"
 copy_runtime "$stage/source/dockmoid-$version"
 cp -- "$src/README.md" "$src/RELEASE_CHECKLIST.md" "$src/install.sh" "$src/package-release.sh" "$stage/source/dockmoid-$version/"
-for entry in po docs tests translate packaging .github .gitattributes .gitignore CHANGELOG.md CONTRIBUTING.md SECURITY.md; do
+for entry in po docs tests translate packaging .gitattributes .gitignore CHANGELOG.md CONTRIBUTING.md SECURITY.md; do
     if [ -e "$src/$entry" ]; then cp -R -- "$src/$entry" "$stage/source/dockmoid-$version/"; fi
 done
 # Source distributions contain development checks, not their generated caches.

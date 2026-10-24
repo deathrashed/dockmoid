@@ -48,9 +48,7 @@ Item {
     property int tab: 0        // 0 overview, 1 logs, 2 inspect, 3 run
     property string runText: ""
     property bool runBusy: false
-    property string logsRequestId: ""
     property string inspectRequestId: ""
-    property int logsSequence: 0
     property int inspectSequence: 0
 
     /* Restarts, last exit, addresses and limits; read when the state changes. */
@@ -87,7 +85,6 @@ Item {
     Component.onCompleted: {
         pageGeneration = backend.generation
         if (!root.isNotCreated) {
-            logsRequestId = backend.newOutputRequest("logs", recordId)
             inspectRequestId = backend.newOutputRequest("inspect", recordId)
         }
         // Opened straight on a tab (Full Logs, Doctor): onTabChanged ran before
@@ -106,7 +103,14 @@ Item {
             root.runBusy = false
         })
     }
-    property string logsText: ""
+    /* The Logs tab's tail: one session owns its requests and follows it while the tab is shown. */
+    Components.LogSession {
+        id: logSession
+        backend: root.backend
+        recordId: root.isNotCreated ? "" : root.recordId
+        active: root.visible && root.navigator.currentItem === root && root.tab === 1 && root.pageGeneration === root.backend.generation
+    }
+    readonly property string logsText: logSession.text
     property string inspectText: ""
 
     /* Raised by the overflow menu; PopupView connects this to its own
@@ -116,7 +120,7 @@ Item {
 
     function refreshLogs() {
         if (!root.hasRecord || root.isNotCreated || root.pageGeneration !== root.backend.generation) return
-        root.backend.fetchLogs(root.record, root.cfg.logTailLines, logsRequestId, pageGeneration)
+        logSession.refresh()
     }
 
     function refreshInspect() {
@@ -135,10 +139,6 @@ Item {
         function onRecordOutput(kind, id, contextGeneration, requestId, sequence, content) {
             if (id !== root.recordId || contextGeneration !== root.pageGeneration
                     || root.pageGeneration !== root.backend.generation) return
-            if (kind === "logs" && requestId === root.logsRequestId && sequence > root.logsSequence) {
-                root.logsSequence = sequence
-                root.logsText = content
-            }
             if (kind === "inspect" && requestId === root.inspectRequestId && sequence > root.inspectSequence) {
                 root.inspectSequence = sequence
                 root.inspectText = content
@@ -146,15 +146,6 @@ Item {
         }
     }
 
-    Timer {
-        // Follow the tail while the logs tab is open. Same cadence as the
-        // stats poll, so the two do not fight over the command runner.
-        interval: Math.max(2, root.cfg.usageInterval) * 1000
-        repeat: true
-        running: root.visible && root.navigator.currentItem === root
-            && root.tab === 1 && root.hasRecord && root.pageGeneration === root.backend.generation
-        onTriggered: root.refreshLogs()
-    }
 
     // =========================================================== chrome ====
 
@@ -179,6 +170,22 @@ Item {
         return root.stateWord
     }
     readonly property var badgeInfo: Status.badgeSpec(root.attention)
+    /* Created → Running → health starting → healthy, or no healthcheck at all. */
+    readonly property string healthText: {
+        if (!root.hasRecord || root.isNotCreated) return ""
+        const h = root.facts ? root.facts.health : null
+        if (root.facts && root.facts.healthCheck === "" && !h) return i18n("no healthcheck configured")
+        if (!root.record.isRunning) return h && h.status ? i18n("%1 (when it last ran)", h.status) : ""
+        const status = h && h.status ? h.status : String(root.record.health || "")
+        if (status === "starting") return i18n("starting · waiting for the first passing check")
+        if (status === "unhealthy") return h && h.failingStreak > 0 ? i18np("unhealthy · %1 failed check in a row", "unhealthy · %1 failed checks in a row", h.failingStreak) : i18n("unhealthy")
+        if (status === "healthy") return i18n("healthy")
+        return root.facts ? "" : root.shown(status === "none" ? "" : status)
+    }
+    readonly property string healthTone: {
+        const status = root.facts && root.facts.health ? root.facts.health.status : String(root.hasRecord ? root.record.health || "" : "")
+        return status === "healthy" ? "ok" : status === "unhealthy" ? "bad" : status === "starting" ? "warn" : "muted"
+    }
     readonly property string stateTone: root.attention === "not-created" ? "cyan"
         : root.attention === "stopped" ? "slate"
         : Status.glyphTone(root.attention, root.hasRecord && root.record.isRunning === true)
@@ -223,7 +230,7 @@ Item {
             // (lib/actions.js, shared with the menu and the list).
             Components.DockButton {
                 visible: root.hasRecord && root.stateCan[root.primary.action] === true
-                enabled: root.primary.enabled
+                blockedReason: root.backend.actionReason(root.record, root.primary.action)
                 variant: root.primary.action === "stop" ? "default" : "primary"
                 iconOnly: root.narrow
                 glyph: root.primary.action === "stop" ? "media-playback-stop" : "media-playback-start"
@@ -232,7 +239,7 @@ Item {
             }
             Components.DockButton {
                 visible: root.stateCan.restart === true
-                enabled: root.can.restart === true
+                blockedReason: root.backend.actionReason(root.record, "restart")
                 iconOnly: root.narrow
                 glyph: "view-refresh"
                 text: i18n("Restart")
@@ -240,7 +247,7 @@ Item {
             }
             Components.DockButton {
                 visible: root.stateCan.pause === true || root.stateCan.resume === true
-                enabled: root.can.pause === true || root.can.resume === true
+                blockedReason: root.backend.actionReason(root.record, root.stateCan.resume ? "resume" : "pause")
                 iconOnly: root.narrow
                 glyph: root.stateCan.resume ? "media-playback-start" : "media-playback-pause"
                 text: root.stateCan.resume ? i18n("Resume") : i18n("Pause")
@@ -248,7 +255,7 @@ Item {
             }
             Components.DockButton {
                 visible: root.stateCan.kill === true
-                enabled: root.can.kill === true
+                blockedReason: root.backend.actionReason(root.record, "kill")
                 iconOnly: root.narrow
                 variant: "danger"
                 glyph: "process-stop"
@@ -260,7 +267,7 @@ Item {
             }
             Components.DockButton {
                 visible: root.stateCan.update === true
-                enabled: root.can.update === true
+                blockedReason: root.backend.actionReason(root.record, "update")
                 iconOnly: root.narrow
                 glyph: "cloud-download"
                 // Violet when the registry has a newer image; otherwise a plain pull-and-recreate.
@@ -359,6 +366,16 @@ Item {
                 checked: root.tab === 0
                 onClicked: root.tab = 0
             }
+            // Diagnose sits second, where a problem is read first. Its number stays 4.
+            Components.SectionTabButton {
+                id: tabDiagnose
+                objectName: "detailDiagnoseTab"
+                visible: root.hasRecord && !root.isNotCreated
+                text: i18n("Diagnose")
+                checkable: true
+                checked: root.tab === 4
+                onClicked: root.tab = 4
+            }
             Components.SectionTabButton {
                 id: tabLogs
                 objectName: "detailLogsTab"
@@ -427,7 +444,8 @@ Item {
                 ? null
                 : (root.tab === 1 ? logsComponent
                    : (root.tab === 2 ? inspectComponent
-                   : (root.tab === 3 ? runComponent : overviewComponent)))
+                   : (root.tab === 3 ? runComponent
+                   : (root.tab === 4 ? diagnoseComponent : overviewComponent))))
         }
     }
 
@@ -443,6 +461,17 @@ Item {
         return root.shown(value).split(/,\s*(?![^\[]*\])/).map(function (v) { return v.trim() })
             .filter(function (v, i, all) { return v !== "" && all.indexOf(v) === i }).join("\n")
     }
+    Component {
+        id: diagnoseComponent
+        DiagnosePage {
+            backend: root.backend
+            dialogs: root.dialogs
+            recordId: root.recordId
+            embedded: true
+            onOpenDetail: function (id, tab) { root.tab = tab }
+        }
+    }
+
     /* Remembered while the page is open, so switching tabs keeps folds. */
     property var folded: ({})
     function setFolded(key, value) {
@@ -539,7 +568,21 @@ Item {
                             titleGlyph: "badge-info"
                             titleHint: root.shown(root.record.status)
                             Components.FieldRow { Layout.fillWidth: true; glyph: "activity"; label: i18n("Status"); value: root.shown(root.record.status) }
-                            Components.FieldRow { Layout.fillWidth: true; glyph: "heart-pulse"; label: i18n("Health"); value: root.record.health !== "none" ? root.shown(root.record.health) : "" }
+                            // Running is not the same as ready: say where the healthcheck stands.
+                            Components.FieldRow {
+                                Layout.fillWidth: true; glyph: "heart-pulse"; label: i18n("Health"); wrap: true
+                                glyphTone: root.healthTone
+                                value: root.healthText
+                            }
+                            Components.FieldRow {
+                                Layout.fillWidth: true; glyph: "stethoscope"; label: i18n("Last check"); wrap: true
+                                glyphTone: root.facts && root.facts.health && root.facts.health.lastExit > 0 ? "bad" : "muted"
+                                value: root.facts && root.facts.health && root.facts.health.lastAt > 0
+                                    ? (root.facts.health.lastExit === 0 ? i18n("passed · %1", root.since(root.facts.health.lastAt))
+                                       : i18n("failed (exit %1) · %2", root.facts.health.lastExit, root.since(root.facts.health.lastAt)))
+                                      + (root.facts.health.lastOutput !== "" ? "\n" + root.facts.health.lastOutput.split("\n").slice(-2).join("\n") : "")
+                                    : ""
+                            }
                             Components.FieldRow { Layout.fillWidth: true; glyph: "play"; label: i18n("Started"); value: root.facts && root.record.isRunning ? root.since(root.facts.startedAt) : "" }
                             Components.FieldRow {
                                 Layout.fillWidth: true; glyph: "rotate-cw"; label: i18n("Restarts")
@@ -590,9 +633,22 @@ Item {
                             Components.FieldRow {
                                 Layout.fillWidth: true
                                 glyph: "cloud-download"
-                                glyphTone: "violet"
                                 label: i18n("Image update")
-                                value: root.record.updateAvailable ? i18n("a newer version is available") : ""
+                                glyphTone: root.record.updateAvailable ? "violet" : root.record.updateState === "unknown" ? "warn" : "muted"
+                                // What the badge means: checked and newer, checked and current, not
+                                // checked yet, the check failed, or the engine cannot check.
+                                value: {
+                                    const at = root.record.updateCheckedAt > 0 ? root.since(root.record.updateCheckedAt) : ""
+                                    switch (root.record.updateAvailable === true ? "update" : root.record.updateState) {
+                                    case "update": return at ? i18n("a newer image is available · checked %1", at) : i18n("a newer image is available")
+                                    case "current": return at ? i18n("up to date · checked %1", at) : i18n("up to date")
+                                    case "unknown": return at ? i18n("the check failed · %1", at) : i18n("the check failed")
+                                    case "checking": return i18n("checking…")
+                                    case "unsupported": return i18n("not checked: needs docker buildx")
+                                    case "local": return i18n("not checked: a local or pinned image")
+                                    default: return root.backend.cfg.checkImageUpdates ? i18n("not checked yet") : i18n("checks are off (Settings → Monitoring)")
+                                    }
+                                }
                             }
                         }
 

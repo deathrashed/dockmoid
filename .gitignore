@@ -4,13 +4,37 @@ scratch/
 outputs/
 node_modules/
 __pycache__/
+.pytest_cache/
 *.pyc
 *.qmlc
 *.jsc
 .env
 .env.*
 !.env.example
+
+# Release artefacts (built outside the tree by package-release.sh)
 *.plasmoid
 *-source.zip
 SHA256SUMS
+dist/
+release/
+
+# Desktop and editor files
+.directory
 .DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+*.orig
+*.rej
+.vscode/
+.idea/
+*.kate-swp
+.kdev4/
+*.kdev4
+
+# Assistant/agent workspaces
+.claude/
+.codex/
+.cursor/

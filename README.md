@@ -49,43 +49,52 @@ linked here because its public URL has not been assigned. Remove Dockmoid using 
 
 | Workflow | Available controls |
 | --- | --- |
-| Containers | List, Table, Grid and Groups; Minimal, Normal, Detailed and Verbose information |
-| Main view | Resizable Running, Needs attention and Inactive panes; Cards, List or Icons for Inactive |
-| Preview | Cached summary on hover or selection; optional embedded Doctor, New and Resources panes |
-| Diagnosis | Doctor findings, evidence, selected repair plans, command previews and visible results |
-| Details | Resource graphs, ports, mounts, Compose identity, logs, Inspect Tree/Raw and Run tab |
-| Images | Framed Docker Hub results, star/download counts, Official filter, sort and related searches |
-| Resources | Images, volumes and networks; existing-container use distinguished from Compose references |
-| Monitoring | Health/crash alerts, resource thresholds, web probes and configurable polling intervals |
-| Desktop | Panel and system tray support, detachable window, saved views and per-view pane sizes |
+| Containers | List, Table, Grid and Groups; Minimal, Normal, Detailed and Verbose information; collapsible state sections |
+| Inspector | A dock under the list for the selected container: Overview, live Logs, Events and its Compose file |
+| Actions | Start, Stop, Restart, Pause, Kill, Update and Apply Compose Changes everywhere, with one set of rules and a reason when greyed out |
+| Details | Overview, usage graphs, ports, networks, mounts, logs, Inspect Tree/Raw and a Run tab |
+| Deploy | Docker Hub search with star/download counts, an Official filter, guided Compose deployment and import |
+| Resources | Images, volumes and networks, with what uses each one, cleanup and image pulls |
+| Diagnosis | Doctor insights and checks, a Diagnose tab per container with a log digest, background log watch, network comparison, merged logs and a redacted problem report |
+| Bulk actions | Select Several, then review exactly which containers Start/Stop/Restart/Update apply to |
+| Monitoring | Health and crash alerts, resource thresholds, web probes, an Activity log and event-driven refresh |
+| Desktop | Panel and system tray, a detachable window, saved views and settings shared between widgets |
 
-Compose discovery keeps configured services visible as **Not created** when their containers have been
-removed. **Stopped** starts an existing container; **Not created** creates and starts only the chosen
-service. Nothing starts every configured service automatically.
+Compose discovery keeps configured services visible as **Undeployed** (Pending Deployment) when their
+containers have been removed. **Start** starts an existing container; **Create and start** creates only
+the chosen service. Nothing starts every configured service automatically.
 
 ## <img src="docs/assets/headers/image.svg" height="22" alt="Screenshots"> Screenshots
 
 These previews render the production QML with demonstration records, without exposing a personal host.
 
-![Dockmoid container overview with vertically stacked service sections](docs/assets/overview.png)
+![Dockmoid container list with the inspector dock below it](docs/assets/overview.png)
 
 <details>
-<summary><strong>Images, deployment and Doctor</strong></summary>
+<summary><strong>Grid, details, deployment, resources and a narrow tray popup</strong></summary>
 
-![Images and new containers page with collapsible command output](docs/assets/new-containers.png)
+![Grid view with state, usage and actions on each card](docs/assets/grid.png)
 
-![Doctor with evidence and reviewable actions](docs/assets/doctor.png)
+![Container details with overview, usage, container and network sections](docs/assets/detail.png)
+
+![Deploy page with Docker Hub search results](docs/assets/deploy.png)
+
+![Resources page listing images and what uses them](docs/assets/resources.png)
+
+<p align="center"><img src="docs/assets/narrow.png" width="360" alt="The same view in a narrow system tray popup"></p>
 
 </details>
 
 ## <img src="docs/assets/headers/settings.svg" height="22" alt="Configure"> Configure
 
-The gear beside **Services** controls the main-page preview and embedded tools. Drag the section
-separators to resize; sizes, expansion, density and inactive presentation are saved per view.
-At narrow widths, preview moves below the services and toolbar actions move into **More**.
+Pick the view and detail level from **View** and **Detail** in the toolbar. Filter, Sort and Select sit
+beside them. Search, the inspector's tabs (including Health) and Home sit on the strip under the list; drag the divider to size the inspector, or collapse it. Sizes,
+collapsed sections and the inspector tab are saved per view. Right-click a container for every action,
+its links and its Compose project. At narrow widths, toolbar actions move into **More**.
 
-In **Settings**, configure the connection, storage paths, monitoring and command presets.
-See the [user guide](docs/USER_GUIDE.md) for cleanup choices, logs, connection troubleshooting and refresh behavior.
+In **Settings**, configure the connection, panel appearance, storage paths, monitoring and command
+presets. See the [user guide](docs/USER_GUIDE.md) for cleanup choices, logs, connection troubleshooting
+and refresh behavior.
 
 > [!NOTE]
 > Cleanup preserves stopped containers and volumes by default. Removing stopped containers is an
@@ -98,6 +107,8 @@ See the [user guide](docs/USER_GUIDE.md) for cleanup choices, logs, connection t
 - Podman supports container listing, stats, events, logs, inspect, direct controls, pull and read-only
   image/volume/network inventories. Compose, registry digest checks, restart-policy editing, full disk
   summaries and system-service controls are not enabled for Podman.
+- With a remote engine (SSH or TCP), Compose files are not read or edited locally: their paths name
+  files on the remote host.
 - Metrics depend on engine output; unavailable metrics are not evidence of zero usage.
 - Image search sorts the first 50 returned Docker Hub results. Popular is not a global ranking, and
   Similar searches by repository name. Docker Hub requires an internet connection.
@@ -116,12 +127,13 @@ contents/
   assets/      # Bundled interface and service artwork, with licenses
 tests/         # Isolated regression and packaging checks
 docs/          # User guide, screenshots and Store submission text
+translate/     # Translation template extraction and build
 packaging/     # AppStream metadata and package manifest
 ```
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites and checks, [SECURITY.md](SECURITY.md)
 for reporting guidance, and [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for packaging and upload steps.
-The [2.4.0 release notes](docs/RELEASE_NOTES.md) describe this release; artifact creation does not upload it.
+[CHANGELOG.md](CHANGELOG.md) lists changes since the [2.4.0 release notes](docs/RELEASE_NOTES.md).
 
 Bundled artwork licenses and historical attribution are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 

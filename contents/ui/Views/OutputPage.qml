@@ -27,7 +27,6 @@ Item {
     property string requestKind: ""
     property string requestId: ""
     property int requestGeneration: -1
-    property int lastSequence: 0
 
     /* Lets PopupView recognise an already-open output page and update it in
        place instead of pushing a second copy. */
@@ -41,20 +40,17 @@ Item {
         requestKind = kind || ""
         requestId = token || ""
         requestGeneration = generation
-        lastSequence = 0
     }
 
-    Component.onCompleted: {
-        if (live) refresh()
+    /* A live log is one LogSession; every other kind arrives once, by request token. */
+    Components.LogSession {
+        id: liveLogs
+        backend: root.backend
+        recordId: root.live && root.requestKind === "logs" && root.requestGeneration === root.backend.generation ? root.recordId : ""
+        active: root.visible && root.navigator.currentItem === root
+        onTextChanged: if (text !== "") root.content = text
     }
-
-    function refresh() {
-        if (requestKind !== "logs" || recordId === ""
-                || requestGeneration !== backend.generation) return
-        var rec = backend.findRecord(recordId)
-        if (rec) backend.fetchLogs(rec, plasmoid.configuration.logTailLines,
-                                   requestId, requestGeneration)
-    }
+    function refresh() { liveLogs.refresh() }
 
     Connections {
         target: root.backend
@@ -62,10 +58,7 @@ Item {
             if (kind !== root.requestKind || id !== root.recordId
                     || contextGeneration !== root.requestGeneration
                     || contextGeneration !== root.backend.generation || token !== root.requestId) return
-            if (kind === "logs") {
-                if (sequence <= root.lastSequence) return
-                root.lastSequence = sequence
-            }
+            if (kind === "logs") return  // the LogSession above owns these
             root.content = text
         }
         function onOutputReady(_title, text) {
@@ -77,14 +70,6 @@ Item {
         }
     }
 
-    Timer {
-        interval: Math.max(2, plasmoid.configuration.usageInterval) * 1000
-        repeat: true
-        running: root.visible && root.navigator.currentItem === root
-            && root.live && root.requestKind === "logs" && root.recordId !== ""
-            && root.requestGeneration === root.backend.generation
-        onTriggered: root.refresh()
-    }
 
     // ============================================================ view =====
 

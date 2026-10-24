@@ -34,6 +34,10 @@ ev = P.diffStates({}, {a: mk("running","none")}); assert.strictEqual(ev.length, 
 // restart policies
 const pol = P.parseRestartPolicies("abcdefabcdef1234 unless-stopped 0\n123456789012ffff  0\n");
 assert.strictEqual(pol.abcdefabcdef, "unless-stopped"); assert.strictEqual(pol["123456789012"], "no");
+// container times from the same inspect line; policy-only lines carry none
+const times = P.parseLifeTimes("abcdefabcdef1234 unless-stopped 0 2026-10-24T04:36:00.123456789Z 0001-01-01T00:00:00Z 2026-10-23T05:00:00Z\n123456789012ffff  0 2026-10-01T00:00:00Z 2026-10-15T08:00:00.5Z 2026-09-30T00:00:00Z\nfedcba987654 no 0\n");
+assert.strictEqual(times.abcdefabcdef.startedAt, Date.UTC(2026, 9, 24, 4, 36, 0, 123)); assert.strictEqual(times.abcdefabcdef.finishedAt, 0);
+assert.strictEqual(times["123456789012"].finishedAt, Date.UTC(2026, 9, 15, 8, 0, 0, 500)); assert.strictEqual(times.fedcba987654, undefined);
 
 // launchers
 const l = P.parseLaunchers("# c\nKonsole|konsole|container|konsole -e docker exec -it {id} {shell}\nbad|line\nCode|code|project|code {dir}");
@@ -86,4 +90,19 @@ console.log("parsers (extended) ok");
  assert.equal(f.healthCheck,'curl -f localhost');assert.equal(f.healthInterval,30);
  assert.equal(P.parseFacts(JSON.stringify({healthcheck:{Test:['NONE']}})).healthCheck,'');
  assert.equal(P.parseFacts(JSON.stringify({healthcheck:null})).healthCheck,'');
+}
+
+// health record from inspect facts: status, streak and the last probe; null without a healthcheck
+{
+  const f = P.parseFacts(JSON.stringify({restarts: 0, health: {Status: "unhealthy", FailingStreak: 3, Log: [{ExitCode: 0, End: "2026-10-24T10:00:00Z", Output: "ok"}, {ExitCode: 1, End: "2026-10-24T10:00:30Z", Output: "curl: (7) refused\n"}]}}));
+  assert.strictEqual(f.health.status, "unhealthy"); assert.strictEqual(f.health.failingStreak, 3);
+  assert.strictEqual(f.health.lastExit, 1); assert.strictEqual(f.health.lastOutput, "curl: (7) refused");
+  assert.strictEqual(f.health.lastAt, Date.UTC(2026, 9, 24, 10, 0, 30));
+  assert.strictEqual(P.parseFacts(JSON.stringify({health: null})).health, null);
+}
+
+// problem reports: home, user, remote hosts and non-loopback IPs are redacted
+{
+  const r = P.redact("Error: open /home/riley/docker/app/compose.yaml: riley denied via ssh://riley@nas.local:22 at 192.168.1.20 and 127.0.0.1", "/home/riley", "riley");
+  assert.strictEqual(r, "Error: open ~/docker/app/compose.yaml: <user> denied via ssh://<host>:22 at <ip> and 127.0.0.1");
 }

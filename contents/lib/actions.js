@@ -64,3 +64,26 @@ function primary(rec, ctx) {
         : s === "not-created" ? "create" : "start";
     return { action: action, enabled: can[action] === true };
 }
+
+/*
+ * Why `action` is not possible right now, as a key the QML side words:
+ *   ""             it is possible
+ *   "unknown"      no container (gone, or not loaded yet)
+ *   "read-only"    monitoring mode is on
+ *   "engine"       the engine does not answer
+ *   "busy"         another action on this container is still running
+ *   "compose"      needs Docker Compose and the container's project
+ *   "state"        not possible in the container's current state
+ * The order matches what the user can fix first.
+ */
+function reason(rec, ctx, action) {
+    ctx = ctx || {};
+    var can = allowed(rec, ctx);
+    if (can[action] === true) return "";
+    if (!rec || !rec.id) return "unknown";
+    if (ctx.readOnly && action !== "details" && action !== "logs" && action !== "inspect") return "read-only";
+    if (ctx.engineActive === false) return "engine";
+    if (ctx.busy && allowed(rec, Object.assign({}, ctx, {busy: false}))[action] === true) return "busy";
+    if (action === "recreate" && ctx.compose !== true) return "compose";
+    return "state";
+}
