@@ -87,9 +87,10 @@ These previews render the production QML with demonstration records, without exp
 
 ## <img src="docs/assets/headers/settings.svg" height="22" alt="Configure"> Configure
 
-Pick the view and detail level from **View** and **Detail** in the toolbar. Filter, Sort and Select sit
-beside them. Search, the inspector's tabs (including Health) and Home sit on the strip under the list; drag the divider to size the inspector, or collapse it. Sizes,
-collapsed sections and the inspector tab are saved per view. Right-click a container for every action,
+Pick the view and detail level from **View** and **Detail** in the toolbar; Filter and Sort sit beside
+them. Select, the inspector's tabs (including Health) and Search sit on the inspector strip, which can
+go below the list or beside it; drag the divider to size the inspector, or collapse it. Refresh and
+Home are at the two ends of the footer. Sizes, collapsed sections and the inspector tab are saved. Right-click a container for every action,
 its links and its Compose project. At narrow widths, toolbar actions move into **More**.
 
 In **Settings**, configure the connection, panel appearance, storage paths, monitoring and command

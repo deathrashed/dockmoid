@@ -58,7 +58,7 @@ Rectangle {
  function grid(){popup.selectView(3)}
  function tick(){var r=backend.records;for(var i=0;i<r.length;i++){if(r[i].isRunning){r[i].cpuPct=(r[i].cpuPct*7+i)%9;r[i].cpu=r[i].cpuPct.toFixed(2)+'%';r[i].memPct=(r[i].memPct*5+i)%7;r[i].mem=r[i].memPct.toFixed(2)+'%'}}backend.syncModel();backend.recomputeTotals();backend.revision++}
  function typeSearch(t){popup.searchText=t}
- function showPage(name){popup.selectView(name==='side'?4:0);if(name==='doctor')popup.showDoctor(0);else if(name==='diagnose')popup.showDetail(backend.records[8].id,4);else if(name==='resources')popup.showResources();else if(name==='deploy')popup.showDeployment();else if(name==='deploy-form')popup.showDeployment(1);else if(name==='deploy-results'){popup.showDeployment();backend.deployment.searchPerformed=true;backend.deployment.results=[{name:'linuxserver/sonarr',stars:1903,pulls:2372530000,official:false,description:'A Sonarr container, brought to you by LinuxServer.io.'},{name:'linuxserver/radarr',stars:1802,pulls:2372530000,official:false,description:'A Radarr container, brought to you by LinuxServer.io.'},{name:'nginx',stars:20500,pulls:1000000000,official:true,description:'Official build of Nginx.'},{name:'linuxserver/qbittorrent',stars:1687,pulls:346571000,official:false,description:''},{name:'example/very-long-repository-name-for-layout',stars:3,pulls:null,official:false,description:'A deliberately long description that should wrap onto a second line and then be elided after it so every card keeps the same height.'}]}else if(name==='activity')popup.showActivity();else if(name==='detail')popup.showDetail('000000000000',0);else if(name==='detail1')popup.showDetail('000000000009',0)}
+ function showPage(name){popup.selectView(0);if(name==='doctor')popup.showDoctor(0);else if(name==='diagnose')popup.showDetail(backend.records[8].id,4);else if(name==='resources')popup.showResources();else if(name==='deploy')popup.showDeployment();else if(name==='deploy-form')popup.showDeployment(1);else if(name==='deploy-results'){popup.showDeployment();backend.deployment.searchPerformed=true;backend.deployment.results=[{name:'linuxserver/sonarr',stars:1903,pulls:2372530000,official:false,description:'A Sonarr container, brought to you by LinuxServer.io.'},{name:'linuxserver/radarr',stars:1802,pulls:2372530000,official:false,description:'A Radarr container, brought to you by LinuxServer.io.'},{name:'nginx',stars:20500,pulls:1000000000,official:true,description:'Official build of Nginx.'},{name:'linuxserver/qbittorrent',stars:1687,pulls:346571000,official:false,description:''},{name:'example/very-long-repository-name-for-layout',stars:3,pulls:null,official:false,description:'A deliberately long description that should wrap onto a second line and then be elided after it so every card keeps the same height.'}]}else if(name==='activity')popup.showActivity();else if(name==='detail')popup.showDetail('000000000000',0);else if(name==='detail1')popup.showDetail('000000000009',0)}
  function presentation(mode,level){popup.selectView(mode);popup.selectDetail(level)}
  function level(){return popup.detailLevel}
  function mode(){return popup.viewMode}
@@ -74,7 +74,7 @@ Rectangle {
   backend.activity=[{time:Date.now(),kind:'crashed',id:'000000000002',name:'lidarr',text:'lidarr exited with code 1'},{time:Date.now()-60000,kind:'restarting',id:'000000000001',name:'deemix',text:'deemix is restarting'},{time:Date.now()-180000,kind:'recovered',id:'000000000000',name:'caddy',text:'caddy is healthy again'},{time:Date.now()-900000,kind:'started',id:'000000000003',name:'navidrome',text:'navidrome started'},{time:Date.now()-1200000,kind:'stopped',id:'',name:'beets',text:'beets stopped'}]
   backend.resourceUpdatedAt={images:Date.now()+1e9,volumes:Date.now()+1e9,networks:Date.now()+1e9}
   backend.resourceLists={images:[{id:'sha256:a1',ref:'caddy:2',repository:'caddy',tag:'2',size:'94.6MB',created:'2 weeks ago',containers:1},{id:'sha256:a2',ref:'amir20/dozzle:latest',repository:'amir20/dozzle',tag:'latest',size:'98.8MB',created:'10 days ago',containers:0},{id:'sha256:a3',ref:'ghcr.io/home-assistant/home-assistant:stable',repository:'ghcr.io/home-assistant/home-assistant',tag:'stable',size:'3.4GB',created:'12 days ago',containers:2}],volumes:[{name:'dozzle_data',driver:'local',size:'1.147kB',links:0},{name:'komodo_keys',driver:'local',size:'464B',links:2}],networks:[{name:'media_net',driver:'bridge',scope:'local'},{name:'host',driver:'host',scope:'local',builtin:true}]}
-  backend.applySort();backend.recomputeTotals();backend.syncModel();backend.revision++;backend.updateCount=3;backend.lastUpdatedMs=Date.now()
+  backend.applySort();backend.recomputeTotals();backend.syncModel();backend.revision++;backend.updates.updateCount=3;backend.lastUpdatedMs=Date.now()
  }
 }'''
 
@@ -142,6 +142,41 @@ def continuity():
  fields=[x for x in root.findChildren(QObject) if x.objectName()=='searchField']
  if not ((panel and panel[0].property('opened')) or (fields and fields[0].property('visible') and fields[0].property('activeFocus'))):failures.append('Ctrl+F did not open search')
  QTest.keyClick(view,Qt.Key_Escape);QTest.qWait(80)
+ # The strip's layout button puts the inspector beside the list; a narrow popup stacks it.
+ home.setDock('side',True);QTest.qWait(150)
+ if not home.property('sideBySide'):failures.append('inspector did not move beside the list')
+ # The upright divider drags: pulling it left widens the inspector.
+ dock=[x for x in root.findChildren(QObject) if x.objectName()=='dockPanel'][0]
+ from PySide6.QtCore import QPoint,QPointF
+ edge=dock.mapToScene(QPointF(0,dock.property('height')/3));w0=dock.property('width');start=QPoint(int(edge.x())-3,int(edge.y()))
+ QTest.mousePress(view,Qt.LeftButton,Qt.NoModifier,start);QTest.qWait(30)
+ for step in range(1,9):QTest.mouseMove(view,start-QPoint(step*10,0));QTest.qWait(15)
+ QTest.mouseRelease(view,Qt.LeftButton,Qt.NoModifier,start-QPoint(80,0));QTest.qWait(150)
+ if dock.property('width')<w0+40:failures.append(('side divider did not resize the inspector',w0,dock.property('width')))
+ # With search open the strip still fits its own buttons.
+ home.openSearch();QTest.qWait(250)
+ strip=[x for x in root.findChildren(QObject) if x.objectName()=='dockStrip'][0];side=[x for x in root.findChildren(QObject) if x.objectName()=='dockSideButton'][0]
+ if side.mapToItem(strip,QPointF(side.property('width'),0)).x()>strip.property('width')+1:failures.append('open search pushed the strip buttons off the edge')
+ QTest.keyClick(view,Qt.Key_Escape);QTest.qWait(150)
+ # Hidden while beside the list: it folds to the strip below the list, no empty column.
+ home.setDock('expanded',False);QTest.qWait(200)
+ if home.property('sideBySide') or dock.property('height')>home.property('dockHeaderHeight')+2:failures.append(('collapsed side inspector left a column',dock.property('width'),dock.property('height')))
+ home.setDock('expanded',True);QTest.qWait(150)
+ if not home.property('sideBySide'):failures.append('showing the inspector did not return it beside the list')
+ view.resize(360,760);QTest.qWait(250)
+ if home.property('sideBySide'):failures.append('narrow popup did not stack the inspector')
+ view.resize(1050,760);home.setDock('side',False);QTest.qWait(250)
+ # The scope icon inside the search field opens the scope menu and keeps the field open.
+ from PySide6.QtQuick import QQuickItem
+ ds=[x for x in root.findChildren(QObject) if x.objectName()=='dockSearch'][0]
+ QMetaObject.invokeMethod(ds,'open');QTest.qWait(400)
+ sb=[x for x in root.findChildren(QQuickItem) if x.objectName()=='searchScopeButton'][0]
+ c=sb.mapToScene(QPointF(sb.width()/2,sb.height()/2));QTest.mouseClick(view,Qt.LeftButton,Qt.NoModifier,QPoint(round(c.x()),round(c.y())));QTest.qWait(300)
+ menu=[x for x in root.findChildren(QObject) if x.objectName()=='searchScopeMenu']
+ if not menu or not menu[0].property('opened'):failures.append('scope icon did not open its menu')
+ if not ds.property('fieldOpen'):failures.append('scope icon closed the search field')
+ if menu:menu[0].setProperty('visible',False)
+ QTest.keyClick(view,Qt.Key_Escape);QTest.qWait(100)
  # Selection mode: picks survive filtering; the review runs only where the rules allow.
  info=json.loads(root.selectionCheck());QTest.qWait(200)
  if info['picked']!=2 or info['targets']!=[info['run']] or info['skipped']!=[info['stopped']]:failures.append(('selection plan',info))
@@ -176,7 +211,9 @@ PAGES=[(n,w) for n in (os.environ.get('DOCKMOID_UI_ONLY') or 'side,doctor,diagno
 def pages(i):
  if i==len(PAGES):app.quit();return
  n,w=PAGES[i];view.resize(w,760)
- if n.startswith('dock-'):
+ if n=='side':
+  home=view.rootObject().findChild(QObject,"homeSectionPage");home.setDock("side",True);home.setDock("expanded",True)
+ elif n.startswith('dock-'):
   home=view.rootObject().findChild(QObject,"homeSectionPage");home.setDock("page",n[5:]);home.setDock("expanded",True)
   if n=='dock-preview':QTest.mouseClick(view,Qt.LeftButton,Qt.NoModifier,QPoint(120,200))
   if n=='dock-search':
@@ -185,7 +222,7 @@ def pages(i):
  else:view.rootObject().showPage(n)
  def grab():
   folder=pathlib.Path(os.environ.get('DOCKMOID_UI_CAPTURE_DIR') or out);folder.mkdir(parents=True,exist_ok=True)
-  view.grabWindow().save(str(folder/f'page-{n}-w{w}.png'));view.rootObject().presentation(0,1);(view.rootObject().findChild(QObject,'homeSectionPage').setDock('page','preview') if n.startswith('dock-') else None);QTimer.singleShot(150,safe(lambda:pages(i+1)))
+  view.grabWindow().save(str(folder/f'page-{n}-w{w}.png'));view.rootObject().presentation(0,1);(view.rootObject().findChild(QObject,'homeSectionPage').setDock('page','preview') if n.startswith('dock-') else None);(view.rootObject().findChild(QObject,'homeSectionPage').setDock('side',False) if n=='side' else None);QTimer.singleShot(150,safe(lambda:pages(i+1)))
  QTimer.singleShot(700,safe(grab))
 
 def perf():

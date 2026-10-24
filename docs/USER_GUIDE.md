@@ -20,13 +20,15 @@ Under each name, clock icons show how long a container has been up, when it stop
 recent recreate) its age; hover for exact dates and the image. Less frequent toolbar actions live in
 More, and hidden toolbar actions move there at narrow widths.
 
-The inspector sits under the list and follows the selected container: **Overview** (state, actions and
-key facts), **Logs** (live tail; Full Logs opens Details on its Logs tab), **Events** (Dockmoid alerts
-and engine events) and **Compose** (the service's Compose file, with Validate and Edit). Filter, Sort
-and Search are on the same strip, and Home (bottom right of the footer) goes back to the default view.
-Drag the divider to size the inspector, or collapse it. Pressing the open tab again hides the pane. The
-Health tab lists what needs attention across all containers, with the fixes that apply, and the recent
-events.
+The inspector follows the selected container: **Overview** (state, actions and key facts), **Logs**
+(live tail; Full Logs opens Details on its Logs tab), **Events** (Dockmoid alerts and engine events),
+**Compose** (the service's Compose file, with Validate, Preview, Apply and Edit) and **Health** (its
+healthcheck, restarts, last exit, what its logs repeat, recent events and the fixes that apply). Its
+tabs sit on a strip at the bottom with Select at the left and Search at the right. Pressing the open
+tab again hides the pane; the chevron does the same. The layout button on the strip puts the inspector
+below the list or beside it (when the popup is wide enough); drag the divider to size it either way.
+A hidden inspector folds to the strip below the list. Home (bottom right of the footer) goes back to
+the default view with no filters or selection, and leaves the inspector as it was.
 Switching view keeps the selected container in sight; arrow keys in the list move the inspector with
 them. When a filter hides the inspected container, the inspector says so and offers Show in List.
 
@@ -46,13 +48,13 @@ service stays stopped). Update pulls a newer image and recreates the service. Re
 container: its mounts are kept, files written inside it are not, and the confirmation lists both.
 With Compose 2.17 or newer, Preview Changes shows what Apply would do without doing it.
 
-**Select** (the toolbar toggle, or a container's menu) adds tick boxes to every view. Picks survive
+**Select** (left end of the inspector strip, or a container's menu) adds tick boxes to every view. Picks survive
 filtering; the bar says how many are hidden. Start, Stop, Restart and Update each open a review that
 lists the containers they apply to and those skipped, with the reason. Results appear per container.
 Removal is not offered in bulk.
 
-Search is pinned at the right of the inspector strip. Its look and scope are chosen in Settings → Appearance;
-the icon at the left of its field opens the scope choices. Looks:
+Search is pinned at the right of the inspector strip. Its look, icon-only and scope are set in More → Search
+or Settings → Appearance; the icon inside the field opens the scope choices. Looks:
 a button that opens a box above the strip (press it again to close), a button that becomes a field, or a
 field always shown. Scope **Containers** filters the list; **Go to** opens a page or container;
 **Images** searches Docker Hub and opens the results on Deploy. The scope can also be switched inside the

@@ -154,6 +154,32 @@ function exitMeaning(code, oom) {
     return code > 128 ? "signal" : "app"
 }
 
+/*
+ * A container's health, as a key the QML side words (DockerBackend
+ * healthWords). `facts` is the inspect read (Parsers.parseFacts) or null;
+ * `factsRead` says whether that read has answered. Returns
+ * {key, tone, streak, status}:
+ *   key "none" (no container), "not-created", "reading" (inspect pending),
+ *   "unknown" (inspect answered with nothing), "no-check" (no healthcheck
+ *   configured), "no-result" (configured, no result yet), "healthy",
+ *   "starting", "unhealthy", or "other" (an engine status word, in `status`).
+ * Until inspect answers, the list's own health word stands in.
+ */
+function healthTone(status) {
+    return status === "healthy" ? "ok" : status === "unhealthy" ? "bad" : status === "starting" ? "warn" : "muted"
+}
+function healthState(facts, record, factsRead) {
+    var h = facts ? facts.health : null
+    var status = h ? String(h.status || "") : String(record && record.health || "")
+    var state = {key: "", tone: healthTone(status), streak: h ? Number(h.failingStreak) || 0 : 0, status: status}
+    if (!record) state.key = "none"
+    else if (record.state === "not-created") state.key = "not-created"
+    else if (!facts) state.key = status !== "" && status !== "none" ? "other" : factsRead ? "unknown" : "reading"
+    else if (!h) state.key = facts.healthCheck === "" ? "no-check" : "no-result"
+    else state.key = ["healthy", "starting", "unhealthy"].indexOf(status) >= 0 ? status : "other"
+    return state
+}
+
 /* Lines worth reading first in a log tail: errors, warnings, panics. At most `limit`, newest last. */
 function problemLines(text, limit) {
     var lines = String(text || "").split("\n")

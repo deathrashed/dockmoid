@@ -121,7 +121,7 @@ ColumnLayout {
             model: [
                 {label: i18n("Paused containers"), value: String(root.backend.pausedCount), show: root.backend.pausedCount > 0},
                 {label: i18n("Unhealthy containers"), value: String(root.backend.unhealthy), show: root.cfg.showHealth && root.backend.unhealthy > 0, warning: true},
-                {label: i18n("Image updates available"), value: String(root.backend.updateCount), show: root.cfg.checkImageUpdates && root.backend.updateCount > 0},
+                {label: i18n("Image updates available"), value: String(root.backend.updates.updateCount), show: root.cfg.checkImageUpdates && root.backend.updates.updateCount > 0},
                 {label: i18n("Local images"), value: String(root.info.images || 0), show: root.info.images !== undefined},
                 {label: i18n("Container CPU usage"), value: i18n("%1%", root.backend.cpuSum.toFixed(1)), show: root.usageKnown},
                 {label: i18n("Container memory usage"), value: i18n("%1% of host RAM", root.backend.memSum.toFixed(1)), show: root.usageKnown},

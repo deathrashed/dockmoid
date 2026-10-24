@@ -107,6 +107,8 @@ Item {
     SelectionController { id: selectionController; backend: selectionController.parent }
     readonly property var selection: selectionController
     readonly property var doctor: doctorController
+    UpdateController { id: updateController; backend: updateController.parent }
+    readonly property var updates: updateController
 
 
     property int running: 0
@@ -292,17 +294,13 @@ Item {
         if (!initialized) return
         generation++
         operations = ({}); operationsRevision++
-        if (batchUpdating) {
-            batchUpdating = false
-            batchStatus = i18n("Update batch cancelled because the connection changed")
-            batchResults = batchResults.concat([batchStatus])
-        }
+        updates.cancelBatch()
         if (runner) runner.cancelAll()
         pendingTasks = 0; pendingActions = 0; refreshing = false
         records = []; lastListOut = ""; syncModel(); revision++
         policyCache = ({}); timesCache = ({}); policyStateKey = ""; statsCache = ({}); statsUpdatedMs = 0; statsInFlight=false; history = ({}); alertState = ({})
         configuredServices = []; discoveryAt = 0; discoveryError = ""
-        probeState = ({}); updateState = ({}); updateQueue = []; updateRunning = false; updateCount = 0
+        probeState = ({}); updates.reset()
         lastSnapshot = null; engineInfo = ({}); diskUsage = []; diskUsageKnown = false
         engineKnown = false; engineActive = false; dataStale = false
         lastInfoMs = 0; lastDiskMs = 0; lastUpdatedMs = 0; lastLabelIds = ""; labelCache = ({})
@@ -310,7 +308,7 @@ Item {
         resourcesBusy = false; lastFullMs = 0; lastEventSec = 0; eventsFailedMs = 0
         dropEventWait(); eventWaitFailedMs = 0
         detectContextHost(); detectCapabilities(); reloadIconLibrary()
-        loadUpdateCache()
+        updates.loadUpdateCache()
         refresh({force: true, withStats: true})
     }
 
@@ -678,7 +676,7 @@ Item {
                 dataStale = false
                 lastError = ""
                 lastUpdatedMs = Date.now()
-                if (updatesDue()) Qt.callLater(startUpdateCheck)
+                if (updates.updatesDue()) Qt.callLater(updates.startUpdateCheck)
                 discoverConfiguredServices(false)
                 refreshRestartPoliciesIfNeeded()
             } else {
@@ -694,7 +692,7 @@ Item {
                 Parsers.applyLifeTimes(records, timesCache)
                 // Pinned first, then running, then alphabetical. Views may
                 // re-sort on top of this.
-                applyProbes(); applyUpdates(); applySort()
+                applyProbes(); updates.applyUpdates(); applySort()
                 applyStatsToRecords()
                 syncModel()
                 recomputeTotals()
@@ -713,7 +711,7 @@ Item {
         var ids = records.map(function (r) { return Parsers.shortId(r.id) }).filter(function (id) { return /^[a-f0-9]+$/.test(id) })
         var key = ids.slice().sort().join(" ")
         if (key === "") return
-        if (key === lastLabelIds) { applyStructuredLabels(); if (updatesDue()) Qt.callLater(startUpdateCheck); return }
+        if (key === lastLabelIds) { applyStructuredLabels(); if (updates.updatesDue()) Qt.callLater(updates.startUpdateCheck); return }
         lastLabelIds = key
         var format = "{\"Id\":{{json .Id}},\"Labels\":{{json .Config.Labels}},\"ImageId\":{{json .Image}},\"ImageRef\":{{json .Config.Image}}}"
         beginTask()
@@ -722,7 +720,7 @@ Item {
                 backend.labelCache = ({})
                 Parsers.jsonRecords(out).forEach(function (r) { backend.labelCache[Parsers.shortId(r.Id)] = r })
                 backend.applyStructuredLabels(); backend.syncModel(); backend.revision++
-                if (backend.updatesDue()) backend.startUpdateCheck()
+                if (backend.updates.updatesDue()) backend.updates.startUpdateCheck()
             } else { backend.lastLabelIds = ""; backend.lastListOut = "" }
             backend.endTask()
         })
@@ -1368,6 +1366,21 @@ Item {
         default: return ""
         }
     }
+    /* A container's health in words, from lib/status.js healthState. Health and Diagnose both read it. */
+    function healthWords(state) {
+        switch (state ? state.key : "") {
+        case "not-created": return i18n("Not deployed yet")
+        case "reading": return i18n("Reading…")
+        case "unknown": return i18n("Unknown: the engine did not describe this container")
+        case "no-check": return i18n("No healthcheck is configured for this container")
+        case "no-result": return i18n("No healthcheck result")
+        case "healthy": return i18n("Healthy")
+        case "starting": return i18n("Starting: waiting for the first passing check")
+        case "unhealthy": return state.streak > 0 ? i18np("Unhealthy: %1 failed check in a row", "Unhealthy: %1 failed checks in a row", state.streak) : i18n("Unhealthy")
+        case "other": return state.status
+        default: return ""
+        }
+    }
     /* "running", "paused", "stopped"… for sentences. */
     function stateWord(rec) {
         switch (String(rec && (rec.containerState || rec.state) || "")) {
@@ -1460,9 +1473,9 @@ Item {
             backend.actionDone(rec.name, code === 0 ? i18n("Image pulled. Existing containers keep their current image until recreated.")
                 : firstLine(err) || i18n("Pull failed (exit %1)", code), code === 0)
             if (code === 0) {
-                backend.invalidateImage(rec.image)
-                backend.updateState[rec.image] = {state: "unchecked", pulled: true}
-                backend.saveUpdateCache()
+                backend.updates.invalidateImage(rec.image)
+                backend.updates.updateState[rec.image] = {state: "unchecked", pulled: true}
+                backend.updates.saveUpdateCache()
             }
             if (done) done(code === 0, text)
             backend.refresh({ "withStats": false })
@@ -2052,153 +2065,7 @@ Item {
 
     // ===================================================== image updates ====
 
-    property var updateState: ({})
-    property var updateQueue: []
-    property bool updateRunning: false
-    property int updateCount: 0
-
-    function loadUpdateCache() {
-        try {
-            let data = JSON.parse(String(cfg.updateCache || "{}"))
-            updateState = data.__hosts && data.__hosts[engineBinary] ? data.__hosts[engineBinary] : ({})
-        } catch (e) { updateState = ({}) }
-    }
-
-    function saveUpdateCache() {
-        var data
-        try { data = JSON.parse(String(cfg.updateCache || "{}")) } catch (e) { data = {} }
-        if (!data.__hosts) data = {__hosts: {}}
-        data.__hosts[engineBinary] = updateState
-        cfg.updateCache = JSON.stringify(data)
-    }
-
-    function invalidateImage(image) {
-        delete updateState[image]
-        updateState.__checked = 0
-        saveUpdateCache(); applyUpdates(); syncModel(); revision++
-    }
-
-    function updatesDue() {
-        if (!cfg.checkImageUpdates || !buildxAvailable || updateRunning) return false
-        var every = Math.max(1, cfg.updateCheckHours) * 3600 * 1000
-        return Date.now() - (updateState["__checked"] || 0) >= every
-    }
-
-    function applyUpdates() {
-        var n = 0
-        for (let i = 0; i < records.length; i++) {
-            let u = updateState[records[i].image]
-            records[i].updateAvailable = !!u && u.state === "update"
-            records[i].updateState = !Parsers.isCheckableImage(records[i].image) ? "local"
-                : updateRunning ? "checking" : u ? u.state : buildxAvailable ? "unchecked" : "unsupported"
-            records[i].imagePulled = !!u && u.pulled === true
-            records[i].updateCheckedAt = u && u.at ? u.at : 0
-            if (records[i].updateAvailable) n++
-        }
-        updateCount = n
-    }
-
-    /* Ask the registry about each distinct image, one at a time, and only on a
-       slow schedule: a check is a network round trip per image. */
-    function startUpdateCheck(force) {
-        if (updateRunning || (!cfg.checkImageUpdates && !force) || !buildxAvailable) return
-        var refs = []
-        records.forEach(function (r) {
-            if (Parsers.isCheckableImage(r.image) && refs.indexOf(r.image) < 0) refs.push(r.image)
-        })
-        if (refs.length === 0) return
-        updateQueue = refs
-        updateRunning = true
-        applyUpdates(); syncModel(); revision++
-        updateState["__before"] = Object.keys(updateState).filter(function (k) { return updateState[k] && updateState[k].state === "update" }).join("\n")
-        nextUpdateCheck()
-    }
-
-    function nextUpdateCheck() {
-        if (updateQueue.length === 0) { finishUpdateCheck(); return }
-        var ref = updateQueue[0]
-        updateQueue = updateQueue.slice(1)
-        var used = records.find(function (r) { return r.image === ref && r.imageId })
-        var template = String(cfg.updateCheckCommand || "")
-        var cmd = expand(template, { "image": shellQuote(ref) })
-        if (used && template.indexOf("image inspect {image}") >= 0)
-            cmd = cmd.replace("image inspect " + shellQuote(ref), "image inspect " + shellQuote(used.imageId))
-        run(cmd, "update-check", function (code, out) {
-            updateState[ref] = { "state": code === 0 ? Parsers.compareDigests(out) : "unknown", "at": Date.now() }
-            backend.nextUpdateCheck()
-        })
-    }
-
-    function finishUpdateCheck() {
-        var before = String(updateState["__before"] || "").split("\n")
-        delete updateState["__before"]
-        updateState["__checked"] = Date.now()
-        updateRunning = false
-        var fresh = Object.keys(updateState).filter(function (k) {
-            return k.indexOf("__") !== 0 && updateState[k] && updateState[k].state === "update" && before.indexOf(k) < 0
-        })
-        try { saveUpdateCache() } catch (e) { /* cache is optional */ }
-        applyUpdates(); syncModel(); revision++
-        if (fresh.length > 0 && cfg.useNotifications && cfg.notifyOnUpdate)
-            notify(engineName, i18np("A newer image is available: %2", "Newer images are available: %2", fresh.length, fresh.slice(0, 4).join(", ")), "update")
-    }
-
-    /* "Update": pull the newer image and recreate the container from it. */
-    function updateContainer(rec, done) {
-        if (!rec || readOnly) { if (done) done(false, i18n("Read-only mode is enabled")); return }
-        muteContainer(rec.id)
-        if (rec.project && rec.service && canUseCompose) {
-            composeRun(rec, rec.isRunning ? "update-service-running" : "update-service-stopped", rec.name, done)
-        } else {
-            // A standalone container has no saved Compose recipe from which to
-            // recreate it safely. Pulling the image is the only lossless action.
-            const message = i18n("Pull and recreate requires an accessible Compose service. Use Pull image only, then recreate with the original deployment configuration.")
-            actionDone(rec.name, message, false)
-            if (done) done(false, message)
-        }
-    }
-
-    property bool batchUpdating: false
-    property string batchStatus: ""
-    property var batchResults: []
-
-    function updateTargets(allRunning, includeStopped) {
-        var seen = {}
-        return records.filter(function (r) {
-            var key = r.project && r.service ? r.project + "/" + r.service : r.id
-            if (r.state === "not-created" || (!r.isRunning && !includeStopped) || (!allRunning && !r.updateAvailable) || seen[key]) return false
-            seen[key] = true
-            return true
-        })
-    }
-
-    function updateMany(targets) {
-        if (readOnly || batchUpdating || targets.length === 0) return
-        batchUpdating = true; batchResults = []
-        var queue = targets.slice()
-        var count = queue.length
-        var epoch = generation
-        function next() {
-            if (epoch !== backend.generation) return
-            if (queue.length === 0) {
-                backend.batchUpdating = false
-                backend.batchStatus = i18n("Finished %1 selected actions", count)
-                backend.outputReady(i18n("Update results"), backend.batchResults.join("\n\n"))
-                backend.refresh({force: true, withStats: false})
-                return
-            }
-            var rec = queue.shift()
-            const recreate = rec.project && rec.service && backend.canUseCompose
-            backend.batchStatus = i18n("Processing %1 (%2 of %3)", rec.name, count - queue.length, count)
-            const perform = recreate ? backend.updateContainer : backend.pullImage
-            perform(rec, function (ok, text) {
-                if (epoch !== backend.generation) return
-                backend.batchResults = backend.batchResults.concat([(ok ? "✓ " : "✗ ") + rec.name + " — " + (recreate ? i18n("Pull and recreate") : i18n("Pull image only")) + "\n" + text])
-                Qt.callLater(next)
-            })
-        }
-        next()
-    }
+    // Image update checks live in UpdateController (backend.updates).
 
     // ======================================================== compose ======
 
@@ -2299,6 +2166,34 @@ Item {
         run(expand(cfg.logsCommand, containerVars(rec, { "tail": Math.max(10, Math.min(5000, Number(lines) || 200)) })), "logs", function (code, out, err) {
             if (epoch !== backend.generation) return
             done((out || "") + (err ? (out ? "\n" : "") + err : ""))
+        })
+    }
+
+    /*
+     * One read of a container's trouble for Inspector · Health and Diagnose:
+     * the inspect facts and the last 300 log lines, digested (lib/status.js
+     * digestLogs) as the log watch does. `caller` names the reader
+     * ("health", "diagnose"); a newer call from the same reader, or one with no
+     * record, drops the replies still on their way. done(result) runs as each
+     * half arrives, with what is known so far:
+     * {facts, factsRead, logs, digest, logsRead}.
+     */
+    property var troubleTokens: ({})
+    function readTrouble(rec, caller, done) {
+        const token = (troubleTokens[caller] || 0) + 1
+        troubleTokens[caller] = token
+        if (!rec || rec.state === "not-created") return
+        const result = {facts: null, factsRead: false, logs: "", digest: null, logsRead: false}
+        const current = function () { return backend.troubleTokens[caller] === token }
+        fetchFacts(rec, function (f) {
+            if (!current()) return
+            result.facts = f; result.factsRead = true
+            done(result)
+        })
+        tailLogs(rec, 300, function (text) {
+            if (!current()) return
+            result.logs = text; result.digest = Status.digestLogs(text); result.logsRead = true
+            done(result)
         })
     }
 
@@ -2483,7 +2378,7 @@ Item {
                                               title, text || i18n("(no output)"))
                 if (tracked) backend.finishOperation(rec, code === 0, code === 0 ? (verb === "update-service-stopped" ? i18n("Updated · left stopped") : i18n("Completed")) : backend.firstLine(err) || i18n("Failed"))
                 backend.actionDone(label || rec.project, code === 0 ? i18n("Done") : backend.firstLine(err) || i18n("Failed — see the output"), code === 0)
-                if (code === 0) { backend.lastLabelIds = ""; backend.lastListOut = ""; backend.invalidateImage(rec.image) }
+                if (code === 0) { backend.lastLabelIds = ""; backend.lastListOut = ""; backend.updates.invalidateImage(rec.image) }
                 if (done) done(code === 0, text)
                 backend.refresh({withStats: false})
             }, {timeout: 15 * 60 * 1000})
@@ -2584,7 +2479,7 @@ Item {
         run(engineBinary + " pull " + shellQuote(ref), "pull-image", function (code, out, err) {
             backend.reportResult(ref, i18n("Image is up to date"), i18n("Pull failed"), code, out, err)
             backend.fetchResources("images", true)
-            backend.invalidateImage(ref)
+            backend.updates.invalidateImage(ref)
         }, {timeout: 15 * 60 * 1000})
     }
 
@@ -2675,7 +2570,7 @@ Item {
         initialized = true
         detectCapabilities()
         reloadIconLibrary()
-        loadUpdateCache()
+        updates.loadUpdateCache()
         detectContextHost()
         detectTools()
         detectHosts()

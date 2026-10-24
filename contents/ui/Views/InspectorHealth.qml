@@ -23,6 +23,8 @@ Item {
     /* The inspect read answered (with facts, or with nothing). */
     property bool factsRead: false
     property var digest: null
+    /* lib/status.js healthState: the key DockerBackend.healthWords words. */
+    readonly property var health: Status.healthState(root.facts, root.record, root.factsRead)
     property string shownId: ""
     readonly property var events: {
         const rec = root.record
@@ -33,32 +35,14 @@ Item {
     readonly property var logDigest: root.digest ? root.digest : (root.record && root.backend.logIssues[root.record.id] ? root.backend.logIssues[root.record.id] : null)
 
     function load() {
-        const rec = root.record
         root.facts = null; root.digest = null; root.factsRead = false
-        if (!rec || rec.state === "not-created") return
-        const id = rec.id
-        root.backend.fetchFacts(rec, function (f) { if (root.record && root.record.id === id) { root.facts = f; root.factsRead = true } })
-        root.backend.tailLogs(rec, 300, function (text) { if (root.record && root.record.id === id) root.digest = Status.digestLogs(text) })
+        root.backend.readTrouble(root.record, "health", function (r) {
+            if (r.factsRead) { root.facts = r.facts; root.factsRead = true }
+            if (r.logsRead) root.digest = r.digest
+        })
     }
     onRecordChanged: { const id = root.record ? root.record.id : ""; if (id !== root.shownId) { root.shownId = id; root.load() } }
     Component.onCompleted: { root.shownId = root.record ? root.record.id : ""; root.load() }
-
-    function healthLine() {
-        const h = root.facts ? root.facts.health : null
-        if (!root.record || root.record.state === "not-created") return i18n("Not deployed yet")
-        if (!root.facts) return root.record.health && root.record.health !== "none" ? root.record.health
-            : root.factsRead ? i18n("Unknown: the engine did not describe this container") : i18n("Reading…")
-        if (!h) return root.facts && root.facts.healthCheck === "" ? i18n("No healthcheck is configured for this container") : i18n("No healthcheck result")
-        if (h.status === "healthy") return i18n("Healthy")
-        if (h.status === "starting") return i18n("Starting: waiting for the first passing check")
-        if (h.status === "unhealthy") return h.failingStreak > 0 ? i18np("Unhealthy: %1 failed check in a row", "Unhealthy: %1 failed checks in a row", h.failingStreak) : i18n("Unhealthy")
-        return h.status
-    }
-    function healthTone() {
-        const h = root.facts ? root.facts.health : null
-        const status = h ? h.status : (root.record ? root.record.health : "")
-        return status === "healthy" ? "ok" : status === "unhealthy" ? "bad" : status === "starting" ? "warn" : "muted"
-    }
 
     Controls.ScrollView {
         anchors.fill: parent
@@ -95,10 +79,10 @@ Item {
                 prominentTitle: true
                 title: i18n("Health")
                 titleGlyph: "heart-pulse"
-                titleTone: root.healthTone() === "bad" ? "bad" : "slate"
+                titleTone: root.health.tone === "bad" ? "bad" : "slate"
                 Components.FieldRow {
                     Layout.fillWidth: true; glyph: "heart-pulse"; label: i18n("Healthcheck"); wrap: true
-                    glyphTone: root.healthTone(); value: root.healthLine()
+                    glyphTone: root.health.tone; value: root.backend.healthWords(root.health)
                 }
                 Components.FieldRow {
                     Layout.fillWidth: true; glyph: "stethoscope"; label: i18n("Last check"); wrap: true

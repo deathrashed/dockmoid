@@ -50,10 +50,20 @@ PlasmaComponents.Button {
     spacing: Kirigami.Units.smallSpacing * 1.5
 
     flat: control.iconOnly || control.variant === "flat"
+    // Plasma's Button ties the theme to `flat` (inherit when flat, its own Button
+    // colours otherwise). A button that turns flat and back after creation, as
+    // an inspector header's do while its width settles, could keep the wrong
+    // colours: a dark fill, label and icon on a dark theme. The surface is
+    // drawn here over the parent's background, so the parent's colours fit.
+    Kirigami.Theme.inherit: true
     topPadding: Kirigami.Units.smallSpacing
     bottomPadding: Kirigami.Units.smallSpacing
     background: ButtonSurface {
         control: control
+        textColor: control.Kirigami.Theme.textColor
+        accentColor: control.Kirigami.Theme.highlightColor
+        focusColor: control.Kirigami.Theme.focusColor
+        negativeColor: control.Kirigami.Theme.negativeTextColor
         emphasised: control.primary || control.checked || control.menuOpen
         flat: control.flat
         danger: control.variant === "danger"

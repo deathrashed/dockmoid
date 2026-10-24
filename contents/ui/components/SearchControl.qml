@@ -4,6 +4,7 @@ import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "../../lib/fuzzy.js" as Fuzzy
+import "../../lib/pages.js" as Pages
 
 /*
  * SearchControl — search for the bottom strip, pinned to its right end.
@@ -24,7 +25,7 @@ Item {
     required property var backend
     /* Owned by the list: what the Containers scope filters by. */
     property string containerText: ""
-    /* The room the strip has: the field opens into what is left, never past the edge. */
+    /* The room the strip leaves for the search (0: unknown): the field opens into it, never past it. */
     property real available: 0
     signal containerTextEdited(string text)
     signal pageRequested(string key)
@@ -33,14 +34,17 @@ Item {
 
     readonly property int style: Math.max(0, Math.min(2, Number(plasmoid.configuration.searchStyle) || 0))
     /* No room for a usable field (a narrow strip): open the box instead, whatever the setting. */
-    readonly property bool roomForField: root.available === 0 || root.available - Kirigami.Units.gridUnit * 20 >= Kirigami.Units.gridUnit * 6
+    readonly property bool roomForField: root.available === 0 || root.available - button.implicitWidth >= Kirigami.Units.gridUnit * 6
     readonly property int look: root.style !== 0 && !root.roomForField ? 0 : root.style
     // The strip narrowed while the field was open: the field is gone, so is its open state.
     onLookChanged: if (root.look === 0 && root.fieldOpen) root.fieldOpen = false
+    // With a field, the box only lists Go to results or the Docker Hub hint, and only while the field is open.
+    onFieldOpenChanged: if (!root.fieldOpen && root.look === 1) panel.close()
+    onScopeChanged: if (root.look !== 0 && root.scope === "containers") panel.close()
     readonly property string scope: ["containers", "goto", "images"].indexOf(String(plasmoid.configuration.searchScope)) >= 0
         ? String(plasmoid.configuration.searchScope) : "containers"
     /* The label goes when asked, or when the strip is too narrow for it. */
-    readonly property bool iconOnly: plasmoid.configuration.searchIconOnly === true || (root.available > 0 && root.available < Kirigami.Units.gridUnit * 34)
+    readonly property bool iconOnly: plasmoid.configuration.searchIconOnly === true || (root.available > 0 && root.available < Kirigami.Units.gridUnit * 16)
     /* Field open: pressed open (style 1) or always (style 2). */
     property bool fieldOpen: false
     readonly property bool expanded: root.look === 2 || (root.look === 1 && root.fieldOpen)
@@ -81,21 +85,20 @@ Item {
         }
     }
 
+    /* The words for pages.js's pages, here so xgettext finds them. */
+    readonly property var pageLabels: ({
+        containers: i18n("Containers"), deploy: i18n("Deploy"), resources: i18n("Resources"),
+        health: i18n("Health"), doctor: i18n("Doctor"), activity: i18n("Activity"),
+        problem: i18n("Problem Report"), settings: i18n("Settings")
+    })
     /* Pages and containers for a Go to query, best match first. */
     readonly property var gotoResults: {
         if (root.scope !== "goto") return []
         const revision = root.backend.revision
         const q = root.otherText.trim()
-        const pages = [
-            {label: i18n("Containers"), glyph: "boxes", key: "containers"},
-            {label: i18n("Deploy"), glyph: "package-plus", key: "deploy"},
-            {label: i18n("Resources"), glyph: "drive-harddisk", key: "resources"},
-            {label: i18n("Health"), glyph: "heart-pulse", key: "health"},
-            {label: i18n("Doctor"), glyph: "stethoscope", key: "doctor"},
-            {label: i18n("Activity"), glyph: "bell-ring", key: "activity"},
-            {label: i18n("Problem Report"), glyph: "bug", key: "problem"},
-            {label: i18n("Settings"), glyph: "configure", key: "settings"}
-        ]
+        const pages = Pages.list().map(function (page) {
+            return {label: root.pageLabels[page.key] || page.label, glyph: page.glyph, key: page.key}
+        })
         if (q === "") return pages
         const containers = root.backend.records.map(function (r) {
             return {label: r.name, hint: r.project && r.project !== r.name ? r.project : "", glyph: r.isRunning ? "circle-play" : "circle-stop", recordId: r.id, text: r.name + " " + (r.project || "")}
@@ -119,35 +122,43 @@ Item {
         // The field slides out to the left of the button.
         Item {
             id: fieldSlot
-            Layout.preferredWidth: root.expanded ? Math.max(Kirigami.Units.gridUnit * 3, Math.min(Kirigami.Units.gridUnit * 14, root.available - Kirigami.Units.gridUnit * 20)) : 0
+            Layout.preferredWidth: !root.expanded ? 0 : root.available === 0 ? Kirigami.Units.gridUnit * 14
+                : Math.max(Kirigami.Units.gridUnit * 3, Math.min(Kirigami.Units.gridUnit * 14, root.available - (button.visible ? button.implicitWidth : 0)))
             Layout.fillHeight: true
             clip: true
             visible: Layout.preferredWidth > 0
             Behavior on Layout.preferredWidth { NumberAnimation { duration: Kirigami.Units.shortDuration } }
-            RowLayout {
+            // The scope icon sits inside the field, at its left; pressing it picks what to search.
+            PlasmaComponents.TextField {
+                id: inlineField
+                objectName: "searchField"
                 anchors.fill: parent
-                spacing: Kirigami.Units.smallSpacing / 2
-                DockButton {
-                    id: scopeButton
-                    objectName: "searchScopeButton"
-                    iconOnly: true
-                    flat: true
-                    glyph: root.scopeGlyph
-                    text: i18n("Search in: %1", root.scopeLabel)
-                    onClicked: scopeMenu.popup(scopeButton, 0, scopeButton.height)
-                }
-                PlasmaComponents.TextField {
-                    id: inlineField
-                    objectName: "searchField"
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    placeholderText: root.placeholder
-                    text: root.fieldText
-                    onTextEdited: root.edited(text)
-                    onAccepted: root.submit()
-                    onActiveFocusChanged: if (!activeFocus && root.look === 1 && text === "" && !panel.opened) root.fieldOpen = false
-                    Keys.onEscapePressed: { clear(); root.edited(""); root.close() }
-                }
+                leftPadding: scopeButton.width + Kirigami.Units.smallSpacing
+                placeholderText: root.placeholder
+                text: root.fieldText
+                onTextEdited: root.edited(text)
+                onAccepted: root.submit()
+                // Checked a moment later: pressing the scope icon or opening its menu
+                // moves focus briefly, and that must not fold the field away.
+                onActiveFocusChanged: if (!activeFocus) Qt.callLater(function () {
+                    if (!inlineField.activeFocus && root.look === 1 && inlineField.text === "" && !panel.visible && !scopeMenu.visible) root.fieldOpen = false
+                })
+                Keys.onEscapePressed: { clear(); root.edited(""); root.close() }
+            }
+            DockButton {
+                id: scopeButton
+                objectName: "searchScopeButton"
+                anchors.left: parent.left
+                anchors.leftMargin: 2
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height - 4
+                width: height
+                iconOnly: true
+                focusPolicy: Qt.NoFocus
+                variant: scopeMenu.opened ? "primary" : "flat"
+                glyph: root.scopeGlyph
+                text: i18n("Search in: %1 (press to change)", root.scopeLabel)
+                onClicked: scopeMenu.popup(scopeButton, 0, scopeButton.height)
             }
         }
 
@@ -170,6 +181,8 @@ Item {
     PlasmaComponents.Menu {
         id: scopeMenu
         objectName: "searchScopeMenu"
+        // Back to typing once a scope is picked.
+        onClosed: if (root.expanded) inlineField.forceActiveFocus()
         title: i18n("Search In")
         Repeater {
             model: [{key: "containers", label: i18n("Containers")}, {key: "goto", label: i18n("Go to")}, {key: "images", label: i18n("Docker Hub Images")}]

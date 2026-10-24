@@ -26,6 +26,13 @@ It must not modify real containers. Validate real narrow/wide layouts separately
 is not proof of rendering or native tray activation. Test logs, inspect, settings and all four detail
 levels when changing shared components. Document untested engine/version behavior accurately.
 
+Where the rules live: container actions in `contents/lib/actions.js`, status and health wording keys
+in `contents/lib/status.js`, the inspector layout in `contents/lib/inspectorLayout.js`, and the page
+list for navigation and Go to in `contents/lib/pages.js`; each has Node tests. The backend
+(`contents/ui/Backend/DockerBackend.qml`) owns engine reads; image update checks, deployment, Doctor
+and multi-select live in their own controllers beside it. Prefer adding a rule to one of these
+modules, with a test, over adding logic to a view.
+
 Translations use `translate/extract.sh` and `translate/build.sh`; gettext is needed for those tools.
 Do not commit host configuration, credentials, generated artifacts, runtime logs or personal screenshots.
 Changes to dependencies, bundled artwork or licensing must update the applicable notices.

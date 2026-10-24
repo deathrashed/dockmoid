@@ -42,7 +42,7 @@ Item {
         })
         const restarting = recent("restarting", 1).length
         if (restarting > 0) out.push({severity: "warning", title: i18np("%1 restart in the last hour", "%1 restarts in the last hour", restarting), detail: i18n("Repeated restarts usually mean a crash loop. Diagnose names the container."), id: "", tab: 0})
-        if (backend.updateCount > 0) out.push({severity: "info", title: i18np("%1 image has a newer version", "%1 images have newer versions", backend.updateCount), detail: i18n("A newer image is not automatically a safe update: check its changes first."), id: "", tab: 0})
+        if (backend.updates.updateCount > 0) out.push({severity: "info", title: i18np("%1 image has a newer version", "%1 images have newer versions", backend.updates.updateCount), detail: i18n("A newer image is not automatically a safe update: check its changes first."), id: "", tab: 0})
         if (backend.notCreated > 0) out.push({severity: "info", title: i18np("%1 Compose service is not deployed", "%1 Compose services are not deployed", backend.notCreated), detail: i18n("Services behind a profile are optional by design. Others may be waiting for a deploy."), id: "", tab: 0})
         if (!backend.engineActive) out.push({severity: "error", title: i18n("The engine does not answer"), detail: backend.lastError || i18n("Nothing else can be checked until it does."), id: "", tab: 0})
         if (backend.logWatchMinutes === 0) out.push({severity: "info", title: i18n("The log watch is off"), detail: i18n("Turn it on in Settings → Monitoring to be told about error loops in container logs."), id: "", tab: 0})

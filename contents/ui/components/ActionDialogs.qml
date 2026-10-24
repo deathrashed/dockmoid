@@ -38,7 +38,7 @@ Item {
 
     function confirmUpdate(rec) {
         const recreate = rec.project && rec.service && backend.canUseCompose
-        const go = function () { if (recreate) root.backend.updateContainer(rec); else root.backend.pullImage(rec) }
+        const go = function () { if (recreate) root.backend.updates.updateContainer(rec); else root.backend.pullImage(rec) }
         if (!recreate) {
             confirm(i18n("Pull latest image for %1?", rec.name),
                 i18n("Host: %1\nImage: %2\nOnly the newer image is downloaded. The existing container keeps its current image until recreated using its deployment configuration.", backend.engineBinary, rec.image), go)

@@ -9,6 +9,7 @@ import org.kde.plasma.extras as PlasmaExtras
 
 import "../components" as Components
 import "../../lib/style.js" as Style
+import "../../lib/inspectorLayout.js" as InspectorLayout
 
 /*
  * The main page: the container list, and under it an inspector for the
@@ -39,10 +40,7 @@ Item {
     signal imageSearchRequested(string query)
     function openSearch() { search.open() }
     /* A bottom tab: the open one hides the pane, any other opens its page. */
-    function tabPressed(key) {
-        if (root.dockExpanded && root.dockPage === key) root.setDock("expanded", false)
-        else { root.setDock("page", key); root.setDock("expanded", true) }
-    }
+    function tabPressed(key) { root.saveDock(InspectorLayout.pressTab(root.storedDock(), key)) }
     property string stateFilterLabel: ""
     property string stateFilterKey: "all"
     property string stateFilterIcon: ""
@@ -83,18 +81,25 @@ Item {
         all[viewKey] = prefs
         cfg.serviceSectionSettings = JSON.stringify(all)
     }
-    /* The dock is shared by every view. */
+    /* The dock (the inspector's settings) is shared by every view; its rules live
+       in inspectorLayout.js, and saveDock is the one place that stores it. */
     function dockSetting(key, fallback) { const dock = settingsCache.dock || ({}); return dock[key] === undefined ? fallback : dock[key] }
-    function setDock(key, value) {
+    function storedDock() { return parsedSettings().dock || ({}) }
+    function saveDock(dock) {
         const all = parsedSettings()
-        const dock = all.dock || ({})
-        dock[key] = value
         all.dock = dock
         cfg.serviceSectionSettings = JSON.stringify(all)
     }
-    /* Older settings may name a page that moved to the toolbar. */
-    readonly property string dockPage: { const page = String(dockSetting("page", "preview")); return ["preview", "logs", "events", "compose", "health"].indexOf(page) >= 0 ? page : "preview" }
-    readonly property bool dockExpanded: dockSetting("expanded", true) === true
+    function setDock(key, value) {
+        const dock = root.storedDock()
+        dock[key] = value
+        root.saveDock(dock)
+    }
+    readonly property int dockHeaderHeight: Kirigami.Units.gridUnit * 2.4
+    /* Page, shown, side by side and the panes' sizes, from the stored dock and the popup's size. */
+    readonly property var layout: InspectorLayout.layout(root.settingsCache.dock, {width: root.width, height: root.height, gridUnit: Kirigami.Units.gridUnit, headerHeight: root.dockHeaderHeight})
+    readonly property string dockPage: root.layout.page
+    readonly property bool dockExpanded: root.layout.shown
     function previewMode() { return String(dockSetting("previewMode", "selection")) }
 
     Binding {
@@ -103,10 +108,6 @@ Item {
         value: root.visible && root.dockExpanded ? root.previewMode() : "off"
     }
 
-    readonly property int dockHeaderHeight: Kirigami.Units.gridUnit * 2.4
-    /* Preview is a glance; the other pages need room to work in. */
-    readonly property real dockDefaultHeight: root.dockPage === "preview" ? Kirigami.Units.gridUnit * 12 : root.height * 0.55
-    readonly property real dockWantedHeight: Number(dockSetting("height_" + root.dockPage, root.dockDefaultHeight))
 
     // ------------------------------------------------------ inspector pages ---
     readonly property var dockTabs: [
@@ -199,12 +200,13 @@ Item {
             onOpenOutput: function(title, content, live, recordId) { root.openOutput(title, content, live, recordId) }
         }
     }
-    /* Side by side shows the list's rows (with their pills) beside the inspector;
-       a popup too narrow for two panes stacks them as usual. */
-    readonly property bool sideBySide: viewMode === 4 && root.width >= Kirigami.Units.gridUnit * 40
+    /* The inspector sits below the list, or to its right when the strip's
+       layout button says so; a popup too narrow for two panes stacks them. */
+    readonly property bool roomForSide: root.layout.roomForSide
+    readonly property bool sidePreferred: root.layout.sidePreferred
+    readonly property bool sideBySide: root.layout.sideBySide
     readonly property var selectedViewComponent: viewMode === 1 ? tableComponent
         : viewMode === 2 ? groupComponent : viewMode === 3 ? gridComponent
-        : viewMode === 4 ? listComponent
         : detailLevel === 0 ? minimalComponent : listComponent
 
     ColumnLayout {
@@ -219,19 +221,28 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumHeight: 0
-            orientation: root.sideBySide ? Qt.Horizontal : Qt.Vertical
+            orientation: root.layout.orientation === "horizontal" ? Qt.Horizontal : Qt.Vertical
+            // Draggable either way: a bar across when stacked, upright when side by side.
             handle: Item {
                 implicitHeight: 7
+                implicitWidth: 7
                 Rectangle {
                     anchors.centerIn: parent
-                    width: parent.width
-                    height: 2
+                    width: panes.orientation === Qt.Horizontal ? 2 : parent.width
+                    height: panes.orientation === Qt.Horizontal ? parent.height : 2
                     radius: 1
                     color: Controls.SplitHandle.pressed || Controls.SplitHandle.hovered ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.border)
                 }
             }
             property bool wasResizing: false
-            onResizingChanged: { if (resizing) wasResizing = true; else if (wasResizing) { wasResizing = false; if (root.dockExpanded && !root.sideBySide) root.setDock("height_" + root.dockPage, Math.round(dockPanel.height)) } }
+            onResizingChanged: {
+                if (resizing) { wasResizing = true; return }
+                if (!wasResizing) return
+                wasResizing = false
+                const dock = root.storedDock()
+                const next = InspectorLayout.resized(dock, root.layout, dockPanel.width, dockPanel.height)
+                if (next !== dock) root.saveDock(next)
+            }
 
             // ---- top: what the selection asks for
             Rectangle {
@@ -239,8 +250,8 @@ Item {
                 objectName: "containerListPane"
                 Controls.SplitView.fillWidth: true
                 Controls.SplitView.fillHeight: true
-                Controls.SplitView.minimumHeight: Kirigami.Units.gridUnit * 6
-                Controls.SplitView.minimumWidth: root.sideBySide ? Kirigami.Units.gridUnit * 14 : 0
+                Controls.SplitView.minimumHeight: root.layout.listMinH
+                Controls.SplitView.minimumWidth: root.layout.listMinW
                 color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
                 border.width: 1
                 border.color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
@@ -356,14 +367,14 @@ Item {
             Rectangle {
                 id: dockPanel
                 objectName: "dockPanel"
-                // Below the list (vertical) or to its right (side by side). Collapsed, only the strip shows.
-                Controls.SplitView.fillWidth: true
-                Controls.SplitView.minimumHeight: root.sideBySide ? 0 : root.dockHeaderHeight
-                Controls.SplitView.maximumHeight: root.sideBySide || root.dockExpanded ? 16777215 : root.dockHeaderHeight
-                Controls.SplitView.preferredHeight: root.dockExpanded ? Math.max(Kirigami.Units.gridUnit * 4, root.dockWantedHeight) : root.dockHeaderHeight
-                Controls.SplitView.minimumWidth: root.sideBySide ? Kirigami.Units.gridUnit * 24 : 0
-                Controls.SplitView.maximumWidth: root.sideBySide && !root.dockExpanded ? Kirigami.Units.gridUnit * 24 : 16777215
-                Controls.SplitView.preferredWidth: root.sideBySide ? Kirigami.Units.gridUnit * 30 : -1
+                // Below the list (vertical) or to its right (side by side, only while
+                // shown). Collapsed, only the strip shows, below the list. The list
+                // fills what is left, so dragging the divider sizes this pane.
+                Controls.SplitView.minimumHeight: root.layout.pane.minH
+                Controls.SplitView.maximumHeight: root.layout.pane.maxH
+                Controls.SplitView.preferredHeight: root.layout.pane.prefH
+                Controls.SplitView.minimumWidth: root.layout.pane.minW
+                Controls.SplitView.preferredWidth: root.layout.pane.prefW
                 color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.surface1)
                 border.width: 1
                 border.color: Qt.alpha(Kirigami.Theme.textColor, Style.ALPHA.borderFaint)
@@ -411,6 +422,9 @@ Item {
                             anchors.leftMargin: Kirigami.Units.smallSpacing
                             anchors.rightMargin: Kirigami.Units.smallSpacing
                             spacing: Kirigami.Units.smallSpacing / 2
+                            RowLayout {
+                            id: stripTabs
+                            spacing: Kirigami.Units.smallSpacing / 2
                             // Select: ticks on every container, for acting on several at once.
                             Components.DockButton {
                                 objectName: "selectButton"
@@ -433,6 +447,7 @@ Item {
                                     onClicked: root.tabPressed(modelData.key)
                                 }
                             }
+                            }
                             Item { Layout.fillWidth: true }
                             // Search, pinned right; its look is set in Settings → Appearance.
                             Components.SearchControl {
@@ -440,18 +455,30 @@ Item {
                                 objectName: "dockSearch"
                                 backend: root.backend
                                 containerText: root.searchText
-                                available: dockStrip.width
+                                // What the tabs and the buttons after it leave, so an open field never pushes them off the strip.
+                                available: dockStrip.width - Kirigami.Units.smallSpacing * 4 - stripTabs.implicitWidth
+                                    - (sideButton.visible ? sideButton.implicitWidth : 0) - foldButton.implicitWidth
                                 Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                                 onContainerTextEdited: function (text) { root.searchEdited(text) }
                                 onPageRequested: function (key) { root.pageRequested(key) }
                                 onContainerRequested: function (recordId) { root.openDetail(recordId, 0) }
                                 onImageSearchRequested: function (query) { root.imageSearchRequested(query) }
                             }
+                            // Below the list, or to its right; drag the divider to resize either way.
                             Components.ActionToolButton {
-                                glyph: root.sideBySide ? (root.dockExpanded ? "chevron-right" : "chevron-left")
+                                id: sideButton
+                                objectName: "dockSideButton"
+                                visible: root.roomForSide
+                                glyph: root.sidePreferred ? "layout-panel-top" : "layout-panel-left"
+                                text: root.sidePreferred ? i18n("Put the inspector below the list") : i18n("Put the inspector beside the list")
+                                onClicked: root.saveDock(InspectorLayout.toggleSide(root.storedDock(), root.roomForSide))
+                            }
+                            Components.ActionToolButton {
+                                id: foldButton
+                                glyph: root.sidePreferred ? (root.dockExpanded ? "chevron-right" : "chevron-left")
                                     : (root.dockExpanded ? "chevron-down" : "chevron-up")
                                 text: root.dockExpanded ? i18n("Hide the inspector") : i18n("Show the inspector")
-                                onClicked: root.setDock("expanded", !root.dockExpanded)
+                                onClicked: root.saveDock(InspectorLayout.toggleShown(root.storedDock()))
                             }
                         }
                     }

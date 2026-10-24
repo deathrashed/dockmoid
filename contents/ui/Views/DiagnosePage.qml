@@ -27,6 +27,10 @@ Item {
 
     readonly property var record: { const revision = root.backend.revision; return root.backend.findRecord(root.recordId) }
     property var facts: null
+    /* The inspect read answered (with facts, or with nothing). */
+    property bool factsRead: false
+    /* lib/status.js healthState: the key DockerBackend.healthWords words, as on Inspector · Health. */
+    readonly property var health: Status.healthState(root.facts, root.record, root.factsRead)
     property string events: ""
     property string logs: ""
     property var digest: null
@@ -36,17 +40,17 @@ Item {
 
     function load() {
         const rec = root.record
-        if (!rec || rec.state === "not-created") return
-        const id = rec.id
-        root.loading = true
-        root.backend.fetchFacts(rec, function (f) { if (root.recordId === id) root.facts = f })
-        root.backend.diagnose(rec, "events", "", undefined, function (text) { if (root.recordId === id) root.events = text })
-        root.backend.tailLogs(rec, 300, function (text) {
-            if (root.recordId !== id) return
-            root.logs = text; root.digest = Status.digestLogs(text); root.loading = false
+        root.loading = !!rec && rec.state !== "not-created"
+        root.backend.readTrouble(rec, "diagnose", function (r) {
+            if (r.factsRead) { root.facts = r.facts; root.factsRead = true }
+            if (r.logsRead) { root.logs = r.logs; root.digest = r.digest; root.loading = false }
         })
+        if (!root.loading) return
+        const id = rec.id
+        root.backend.diagnose(rec, "events", "", undefined, function (text) { if (root.recordId === id) root.events = text })
     }
     Component.onCompleted: load()
+    onRecordIdChanged: load()
 
     function exitText(code, oom) { return root.backend.exitWords(code, oom) }
 
@@ -91,10 +95,9 @@ Item {
                     }
                     Components.FieldRow {
                         Layout.fillWidth: true; glyph: "heart-pulse"; label: i18n("Health"); wrap: true
-                        glyphTone: root.facts && root.facts.health && root.facts.health.status === "unhealthy" ? "bad" : "muted"
-                        value: !root.facts ? "" : !root.facts.health ? (root.facts.healthCheck === "" ? i18n("no healthcheck configured") : "")
-                            : root.facts.health.status + (root.facts.health.failingStreak > 0 ? " · " + i18np("%1 failed check in a row", "%1 failed checks in a row", root.facts.health.failingStreak) : "")
-                              + (root.facts.health.lastOutput !== "" ? "\n" + root.facts.health.lastOutput.split("\n").slice(-2).join("\n") : "")
+                        glyphTone: root.health.tone
+                        value: root.backend.healthWords(root.health)
+                            + (root.facts && root.facts.health && root.facts.health.lastOutput !== "" ? "\n" + root.facts.health.lastOutput.split("\n").slice(-2).join("\n") : "")
                     }
                     Components.FieldRow {
                         Layout.fillWidth: true; glyph: "memory-stick"; label: i18n("Memory limit")

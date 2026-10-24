@@ -2,12 +2,17 @@
 
 ## Unreleased
 
-- Side by Side view (View menu): the list's rows with their pills on the left, the inspector on the
-  right, with its tabs, Select and search along its foot. A popup too narrow for two panes stacks them;
-  a strip too narrow for the search field opens the search box instead.
+- The inspector can sit below the list or beside it: the layout button on the inspector strip
+  switches, and the divider resizes it either way (sizes are remembered). Hidden while beside the list,
+  it folds to the strip below the list. A popup too narrow for two panes stacks them; the search field
+  only takes the room the strip's tabs and buttons leave, and opens a box instead when there is none.
 - Search sits pinned at the right of the inspector strip and slides out to the left; its icon shows the
   scope and opens the choices (Containers, Go to, Docker Hub Images). It reads "Search" unless the
-  icon-only setting is on. Go to matches loosely: "dpl" finds Deploy. Search left the More menu.
+  icon-only setting is on. Go to matches loosely: "dpl" finds Deploy. More → Search sets its look,
+  icon-only and scope.
+- Fixed: buttons in inspector page headers (Compose, Health) drew a dark fill, label and icon on a dark
+  theme. They turn icon-only and back as the pane settles, and Plasma's button kept its own colours
+  after that; Dockmoid buttons now always follow the colours around them.
 - Refresh moved to the far left of the footer; Select moved to the inspector bar before Overview.
 - The Health tab shows the selected container's health: its healthcheck, last check and output,
   restarts, last exit, what its logs repeat, its events and the fixes that apply to it.
@@ -18,7 +23,12 @@
   by default; the key is set in Settings → Appearance.
 - The inspector tabs toggle: pressing the open tab again hides the pane. The Health tab lists what needs
   attention across containers, with Diagnose, Restart, Logs and Details buttons, and the recent events.
-- Home in the footer returns to the default view with no filter, selection or open page.
+- Home in the footer returns to the default view with no filter, selection or open page; the
+  inspector stays as it was.
+- Labelled toolbar buttons have more room at each side, so their labels no longer run together.
+- Diagnose words health the same way as the Health tab; Go to → Health shows the inspector if it was hidden.
+- Internal: the inspector layout rules, the page list and the health/log read each live in one tested
+  module, and the image update check moved out of the engine backend into its own controller.
 - The Table's Detail button is Columns: presets (Compact, Standard, Everything) instead of levels.
 
 - Toolbar: Filter, Sort, Search and a Select toggle sit with View and Detail. The strip under the list

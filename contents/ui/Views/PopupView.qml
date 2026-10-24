@@ -13,6 +13,7 @@ import "../components" as Components
 import "../../lib/profiles.js" as Profiles
 import "../../lib/actionIcons.js" as ActionIcons
 import "../../lib/style.js" as Style
+import "../../lib/pages.js" as Pages
 
 /*
  * PopupView — the whole expanded UI, in a form that works unchanged both
@@ -69,7 +70,7 @@ PlasmaExtras.Representation {
         {key:"stopped",name:i18n("Stopped"),icon:"circle-stop",count:backend.stopped},
         {key:"not-created",name:i18n("Pending Deployment"),icon:"circle-plus",count:backend.notCreated},
         {key:"attention",name:i18n("Needs Attention"),icon:"circle-alert",count:backend.problemCount},
-        {key:"updates",name:i18n("Updates Available"),icon:"cloud-download",count:backend.updateCount},
+        {key:"updates",name:i18n("Updates Available"),icon:"cloud-download",count:backend.updates.updateCount},
         {key:"paused",name:i18n("Paused"),icon:"pause"},
         {key:"restarting",name:i18n("Restarting"),icon:"rotate-cw"},
         {key:"created",name:i18n("Not Started"),icon:"square"},
@@ -130,8 +131,7 @@ PlasmaExtras.Representation {
         {mode:0, icon:"view-list-text", label:i18n("List")},
         {mode:1, icon:"view-list-details", label:i18n("Table")},
         {mode:3, icon:"view-grid", label:i18n("Grid")},
-        {mode:2, icon:"view-list-tree", label:i18n("Groups")},
-        {mode:4, icon:"layout-panel-left", label:i18n("Side by Side")}
+        {mode:2, icon:"view-list-tree", label:i18n("Groups")}
     ]
     readonly property var sortChoices: [
         {role:"sortKey", label:i18n("By State, in Sections"), glyph:"layers"},
@@ -239,20 +239,21 @@ PlasmaExtras.Representation {
         root.backend.selection.active = false
         root.selectView(root.cfg.defaultViewMode)
         root.selectDetail(root.cfg.defaultDetailLevel)
-        homePage.setDock("page", "preview")
-        homePage.setDock("expanded", true)
     }
-    /* Go to and Docker Hub search from the strip's search. */
+    /* Go to and Docker Hub search from the strip's search; pages.js lists the pages. */
     function goToPage(key) {
         if (stack.depth > 1) stack.pop(stack.get(0))
-        if (key === "containers") return
-        if (key === "deploy") root.showDeployment()
-        else if (key === "resources") root.showResources()
-        else if (key === "health") homePage.setDock("page", "health")
-        else if (key === "doctor") root.showDoctor(0)
-        else if (key === "activity") root.showActivity()
-        else if (key === "problem") root.showProblemReport()
-        else if (key === "settings") root.applet.configure()
+        const page = Pages.find(key)
+        if (!page) return
+        // An inspector tab: open it, showing the pane if it was hidden.
+        if (page.kind === "inspector") { homePage.setDock("page", key); homePage.setDock("expanded", true) }
+        else if (page.kind === "settings") root.applet.configure()
+        else if (page.kind === "stack") {
+            const show = {deploy: function () { root.showDeployment() }, resources: function () { root.showResources() },
+                doctor: function () { root.showDoctor(0) }, activity: function () { root.showActivity() },
+                problem: function () { root.showProblemReport() }}
+            if (show[key]) show[key]()
+        }
     }
     function searchImages(query) {
         root.showDeployment(0)
@@ -293,8 +294,8 @@ PlasmaExtras.Representation {
         if (page) page.openDetail.connect(function(id, tab) { root.showDetail(id, tab) })
     }
     function checkUpdates() {
-        root.backend.updateState["__checked"] = 0
-        root.backend.startUpdateCheck(true)
+        root.backend.updates.updateState["__checked"] = 0
+        root.backend.updates.startUpdateCheck(true)
     }
 
     Components.LazyMenu {
@@ -331,8 +332,8 @@ PlasmaExtras.Representation {
             objectName: "maintenanceMenu"
             delegate: Components.ActionMenuDelegate {width:parent?parent.width:implicitWidth}
             Components.ActionMenuDelegate {text:i18n("Updates");enabled:false}
-            Components.ActionMenuDelegate {text:i18n("Check for Updates");icon.source:Qt.resolvedUrl(ActionIcons.path("package-search"));enabled:root.backend.engineActive&&root.backend.buildxAvailable&&!root.backend.updateRunning;onTriggered:root.checkUpdates()}
-            Components.ActionMenuDelegate {text:i18n("Review Updates…");icon.source:Qt.resolvedUrl(ActionIcons.path("package-check"));enabled:root.backend.engineActive&&!root.backend.batchUpdating;onTriggered:root.openReviewUpdates()}
+            Components.ActionMenuDelegate {text:i18n("Check for Updates");icon.source:Qt.resolvedUrl(ActionIcons.path("package-search"));enabled:root.backend.engineActive&&root.backend.buildxAvailable&&!root.backend.updates.updateRunning;onTriggered:root.checkUpdates()}
+            Components.ActionMenuDelegate {text:i18n("Review Updates…");icon.source:Qt.resolvedUrl(ActionIcons.path("package-check"));enabled:root.backend.engineActive&&!root.backend.updates.batchUpdating;onTriggered:root.openReviewUpdates()}
             Components.ActionMenuDelegate {text:i18n("Pull Images…");icon.source:Qt.resolvedUrl(ActionIcons.path("system-download"));enabled:root.backend.engineActive&&!root.backend.readOnly;onTriggered:root.showDoctor(1)}
             PlasmaComponents.MenuSeparator {}
             Components.ActionMenuDelegate {text:i18n("Diagnostics");enabled:false}
@@ -462,7 +463,7 @@ PlasmaExtras.Representation {
         }
     }
 
-    readonly property var candidateTargets: backend.revision >= 0 ? backend.updateTargets(root.reviewAllRunning, root.reviewIncludeStopped) : []
+    readonly property var candidateTargets: backend.revision >= 0 ? backend.updates.updateTargets(root.reviewAllRunning, root.reviewIncludeStopped) : []
     property var updateSelection: ({})
     readonly property var reviewedTargets: candidateTargets.filter(function(rec) { return root.updateSelection[rec.id] !== false })
     function canRecreate(rec) { return !!(rec.project && rec.service && backend.canUseCompose) }
@@ -470,7 +471,7 @@ PlasmaExtras.Representation {
         const dialog = reviewLoader.item as QQC2.Dialog
         if (!dialog || !dialog.opened) return
         const button = dialog.standardButton(QQC2.Dialog.Ok)
-        button.enabled = reviewedTargets.length > 0 && !backend.batchUpdating && !backend.readOnly
+        button.enabled = reviewedTargets.length > 0 && !backend.updates.batchUpdating && !backend.readOnly
         const recreates = reviewedTargets.filter(canRecreate).length
         button.text = recreates === reviewedTargets.length ? i18np("Update %1 container", "Update %1 containers", recreates)
             : recreates === 0 ? i18np("Pull %1 image", "Pull %1 images", reviewedTargets.length)
@@ -502,21 +503,21 @@ PlasmaExtras.Representation {
                     var generation = root.backend.generation
                     var requestId = root.backend.newOutputRequest("batch", "")
                     root.showOutput(i18n("Update results"), i18n("Starting…"), false, "", "batch", requestId, generation)
-                    root.backend.updateMany(root.reviewedTargets)
+                    root.backend.updates.updateMany(root.reviewedTargets)
                 }
                 contentItem: ColumnLayout {
                     RowLayout {
                         Layout.fillWidth: true
                         PlasmaComponents.Label {
                             Layout.fillWidth: true; Layout.minimumWidth: 0
-                            text: root.backend.updateRunning ? i18n("Checking image updates…") : root.backend.updateState.__checked
-                                ? i18n("Last checked: %1", new Date(root.backend.updateState.__checked).toLocaleString()) : i18n("Not checked yet")
+                            text: root.backend.updates.updateRunning ? i18n("Checking image updates…") : root.backend.updates.updateState.__checked
+                                ? i18n("Last checked: %1", new Date(root.backend.updates.updateState.__checked).toLocaleString()) : i18n("Not checked yet")
                             wrapMode: Text.Wrap
                             font: Kirigami.Theme.smallFont
                         }
                         Components.ActionButton {
                             text: i18n("Check now"); glyph: "package-search"
-                            enabled: root.backend.engineActive && root.backend.buildxAvailable && !root.backend.updateRunning
+                            enabled: root.backend.engineActive && root.backend.buildxAvailable && !root.backend.updates.updateRunning
                             onClicked: root.checkUpdates()
                         }
                     }
@@ -555,7 +556,7 @@ PlasmaExtras.Representation {
                             Kirigami.PlaceholderMessage {
                                 anchors.centerIn: parent; width: parent.width - 16
                                 visible: updateRows.count === 0
-                                text: root.backend.updateRunning ? i18n("Checking…") : i18n("No update candidates. Check now or include containers without a badge.")
+                                text: root.backend.updates.updateRunning ? i18n("Checking…") : i18n("No update candidates. Check now or include containers without a badge.")
                             }
                         }
                     }
@@ -758,7 +759,7 @@ PlasmaExtras.Representation {
         target: root.backend
         function onBatchStatusChanged() {
             if (root.outputPageRef && root.outputPageRef.pageTitle === i18n("Update results"))
-                root.outputPageRef.content = root.backend.batchResults.join("\n\n") + "\n\n" + root.backend.batchStatus
+                root.outputPageRef.content = root.backend.updates.batchResults.join("\n\n") + "\n\n" + root.backend.updates.batchStatus
         }
     }
 
@@ -1217,6 +1218,43 @@ PlasmaExtras.Representation {
                                     text: i18n("Activity")
                                     icon.source: Qt.resolvedUrl(ActionIcons.path("bell-ring"))
                                     onTriggered: root.showActivity()
+                                }
+                                // How search looks on the strip and what it searches; the same as Settings → Appearance.
+                                PlasmaComponents.Menu {
+                                    id: searchStyleMenu
+                                    title: i18n("Search")
+                                    icon.name: ""
+                                    icon.source: Qt.resolvedUrl(ActionIcons.path("search"))
+                                    delegate: Components.ActionMenuDelegate { width: parent ? parent.width : implicitWidth }
+                                    Repeater {
+                                        model: [{key: 0, label: i18n("Button That Opens a Box")}, {key: 1, label: i18n("Button That Slides Out a Field")}, {key: 2, label: i18n("Field Always Shown")}]
+                                        delegate: Components.ActionMenuDelegate {
+                                            required property var modelData
+                                            text: modelData.label
+                                            checkable: true
+                                            autoExclusive: true
+                                            checked: Number(root.cfg.searchStyle) === modelData.key
+                                            onTriggered: root.cfg.searchStyle = modelData.key
+                                        }
+                                    }
+                                    Components.ActionMenuDelegate {
+                                        text: i18n("Icon Only")
+                                        checkable: true
+                                        checked: root.cfg.searchIconOnly === true
+                                        onTriggered: root.cfg.searchIconOnly = !root.cfg.searchIconOnly
+                                    }
+                                    PlasmaComponents.MenuSeparator {}
+                                    Repeater {
+                                        model: [{key: "containers", label: i18n("Search Containers")}, {key: "goto", label: i18n("Go to a Page or Container")}, {key: "images", label: i18n("Search Docker Hub Images")}]
+                                        delegate: Components.ActionMenuDelegate {
+                                            required property var modelData
+                                            text: modelData.label
+                                            checkable: true
+                                            autoExclusive: true
+                                            checked: root.cfg.searchScope === modelData.key
+                                            onTriggered: root.cfg.searchScope = modelData.key
+                                        }
+                                    }
                                 }
                                 PlasmaComponents.Menu {
                                     id: previewMenu

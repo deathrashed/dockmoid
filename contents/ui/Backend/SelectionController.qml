@@ -80,7 +80,7 @@ Item {
         root.waitingFor = id
         root.waitingSince = Date.now()
         let started = true
-        if (root.currentAction === "update") root.backend.updateContainer(rec)
+        if (root.currentAction === "update") root.backend.updates.updateContainer(rec)
         else started = root.backend.runAction(rec, root.currentAction)
         if (!started) {
             root.results = root.results.concat([{name: rec.name, ok: false, text: i18n("refused")}])

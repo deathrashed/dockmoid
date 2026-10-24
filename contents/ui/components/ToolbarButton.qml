@@ -21,10 +21,17 @@ PlasmaComponents.ToolButton {
     // A toolbar toggle that is on (a filter applied, search open) reads like a selected tab.
     background: ButtonSurface {
         control: control
+        textColor: control.Kirigami.Theme.textColor
+        accentColor: control.Kirigami.Theme.highlightColor
+        focusColor: control.Kirigami.Theme.focusColor
+        negativeColor: control.Kirigami.Theme.negativeTextColor
         flat: true
         emphasised: control.checked || control.menuOpen
     }
     readonly property bool stacked: presentation === 3
+    // Labelled buttons get room at each side, so neighbouring labels read as separate words.
+    leftPadding: showLabel ? Kirigami.Units.smallSpacing * 2 : Kirigami.Units.smallSpacing
+    rightPadding: showLabel ? Kirigami.Units.smallSpacing * 2 : Kirigami.Units.smallSpacing
     readonly property bool showIcon: presentation !== 2
     readonly property bool showLabel: presentation !== 0
     readonly property real idealWidth: Math.max(background ? background.implicitWidth : 0,

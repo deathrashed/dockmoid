@@ -124,3 +124,27 @@ assert.deepEqual(Array.from(context.problemLines("ok\nERROR: db refused\ninfo\nw
   for (let i = 0; i < 6; i++) { spread.push("ERROR upstream timeout"); spread.push("INFO tick " + i); }
   assert.equal(context.digestLogs(spread.join("\n")).items[0].kind, "recurring");
 }
+
+// Health: one key, tone and streak for Inspector · Health and Diagnose
+{
+  const hs = (facts, record, read) => JSON.parse(JSON.stringify(context.healthState(facts, record, read)));
+  const running = {id: "abc", state: "running", health: ""};
+  const facts = (health, check) => ({healthCheck: check === undefined ? "curl -f localhost" : check, health: health});
+  assert.deepEqual(hs(facts({status: "healthy", failingStreak: 0}), running, true), {key: "healthy", tone: "ok", streak: 0, status: "healthy"});
+  assert.deepEqual(hs(facts({status: "starting", failingStreak: 0}), running, true), {key: "starting", tone: "warn", streak: 0, status: "starting"});
+  assert.deepEqual(hs(facts({status: "unhealthy", failingStreak: 3}), running, true), {key: "unhealthy", tone: "bad", streak: 3, status: "unhealthy"});
+  assert.equal(hs(facts({status: "unhealthy", failingStreak: 0}), running, true).streak, 0);
+  assert.equal(hs(facts({status: "weird", failingStreak: 0}), running, true).key, "other");
+  // No healthcheck configured, or configured without a result yet.
+  assert.deepEqual(hs(facts(null, ""), running, true), {key: "no-check", tone: "muted", streak: 0, status: ""});
+  assert.equal(hs(facts(null), running, true).key, "no-result");
+  // Not deployed, no container, inspect pending or answered with nothing.
+  assert.equal(hs(null, {id: "x", state: "not-created"}, false).key, "not-created");
+  assert.equal(hs(null, null, false).key, "none");
+  assert.equal(hs(null, running, false).key, "reading");
+  assert.deepEqual(hs(null, running, true), {key: "unknown", tone: "muted", streak: 0, status: ""});
+  assert.equal(hs(null, Object.assign({}, running, {health: "none"}), true).key, "unknown");
+  // Until inspect answers, the list's health word stands in.
+  assert.deepEqual(hs(null, Object.assign({}, running, {health: "unhealthy"}), false), {key: "other", tone: "bad", streak: 0, status: "unhealthy"});
+  console.log("health state ok");
+}
