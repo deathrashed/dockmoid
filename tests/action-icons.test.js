@@ -23,9 +23,10 @@ for(const glyph of ['document-view','document-properties','configure','preferenc
   assert.doesNotMatch(colored, /currentColor/, 'SVG has an explicit renderer-independent colour');
 }
 
-for(const svg of fs.readdirSync(path.join(__dirname,'../contents/assets/lucide')).filter(n=>n.endsWith('.svg'))) {
-  const original=fs.readFileSync(path.join(__dirname,'../contents/assets/lucide',svg),'utf8').replace('stroke="#000000"','stroke="currentColor"');
-  assert.equal(svgContext.artwork[svg.slice(0,-4)],original, `${svg} stays in sync with the generated colour-safe artwork`);
+// Only the icons the code names are embedded; each must match its bundled file.
+for(const name of Object.keys(svgContext.artwork).filter(n=>!n.startsWith('logo-'))) {
+  const original=fs.readFileSync(path.join(__dirname,'../contents/assets/lucide',name+'.svg'),'utf8').replace('stroke="#000000"','stroke="currentColor"');
+  assert.equal(svgContext.artwork[name],original, `${name}.svg stays in sync with the generated colour-safe artwork`);
 }
 
 for (const layer of ['ring','whale']) {

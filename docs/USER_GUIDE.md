@@ -3,13 +3,38 @@
 ## Setup and permissions
 
 Install with `./install.sh` or `kpackagetool6 -t Plasma/Applet -i package.plasmoid`. Add Dockmoid to a
-panel, desktop or System Tray. Existing settings use the stable package ID `dockmoid.plasmoid`.
+panel, desktop or System Tray. The package ID is `com.github.deathrashed.dockmoid`; earlier versions
+used `dockmoid.plasmoid` (see Upgrading from dockmoid.plasmoid below).
 An update may require reloading the widget or signing out and back in. Dockmoid does not install an engine.
 
 Select Docker/Podman and the connection context in Settings. Test the same command in a terminal as the
 same user. For an unreachable engine, open Doctor to inspect its connection evidence. Do not grant
 blanket privileges just to bypass a socket error. Remote Compose discovery/deployment is not supported;
 local discovery runs Docker Compose against the configured project directory.
+
+### Upgrading from dockmoid.plasmoid
+
+Earlier versions were installed under the package ID `dockmoid.plasmoid`; it is now
+`com.github.deathrashed.dockmoid`, the reverse-domain form Plasma widgets use. Plasma treats the two as
+different widgets, so installing this version does not replace the old one, and widgets you placed
+before keep running the old package. To move them, with their settings, to the new package:
+
+```sh
+./install.sh                                    # or: kpackagetool6 -t Plasma/Applet -i dockmoid-<version>.plasmoid
+systemctl --user stop plasma-plasmashell.service
+cp ~/.config/plasma-org.kde.plasma.desktop-appletsrc ~/.config/plasma-org.kde.plasma.desktop-appletsrc.bak
+sed -i 's/dockmoid\.plasmoid/com.github.deathrashed.dockmoid/g' ~/.config/plasma-org.kde.plasma.desktop-appletsrc
+systemctl --user start plasma-plasmashell.service
+kpackagetool6 -t Plasma/Applet -r dockmoid.plasmoid
+```
+
+The `sed` line renames the widget's entries in the panel layout, including System Tray entries, and
+keeps their settings. If Plasma does not run under systemd on your system, quit it with
+`kquitapp6 plasmashell` and start it again with `kstart plasmashell` instead. If anything looks wrong,
+stop Plasma, copy the `.bak` file back and start it again. Not wanting to edit the file? Remove the old
+widget, add Dockmoid again from Add Widgets, and set it up again. Settings shared with "share with
+my other Dockmoid widgets" (Settings → General) are stored outside the widget, in
+`~/.local/share/dockmoid`, and the rename does not affect them.
 
 ## Main page and navigation
 
@@ -57,15 +82,40 @@ Search is pinned at the right of the inspector strip. Its look, icon-only and sc
 or Settings → Appearance; the icon inside the field opens the scope choices. Looks:
 a button that opens a box above the strip (press it again to close), a button that becomes a field, or a
 field always shown. Scope **Containers** filters the list; **Go to** opens a page or container;
-**Images** searches Docker Hub and opens the results on Deploy. The scope can also be switched inside the
+**Images** searches Docker Hub and opens the results on Deploy. Go to → Health shows the inspector on
+its Health tab, opening it if it was hidden. The scope can also be switched inside the
 box. Ctrl+F opens search by default; change or clear the key in Settings → Appearance (it works while the
 widget has keyboard focus, not as a desktop-wide shortcut).
-
-The inspector's tabs stay at the bottom. Press the open tab again to hide the pane.
 
 Grid, Table and Groups use the keyboard like List: arrows select (the inspector follows), Enter opens
 Details, and the Menu key or Shift+F10 opens the actions menu. Active filters appear as chips over the
 list; remove one with its ×. Manage Saved Views (More → Saved Views) renames, reorders and deletes views.
+
+## Settings
+
+- **General**: when to check Docker, how often to look for changes (or wait for engine events), and
+  "share with my other Dockmoid widgets", which keeps a panel copy and a System Tray copy in step.
+- **Appearance**: the popup (views, detail levels, toolbar, search look, scope and shortcut, the
+  inspector's default tab and size), the panel icon and label, container rows, and service icons.
+- **Storage**: where new Compose projects and bind-mount data go, deployment defaults, and the
+  engine's own storage location.
+- **Monitoring**: resource warnings, web-page probes, the log watch, image update checks and which
+  notifications to show.
+- **Connections**: browser links and addresses, the terminal and editor commands, and the "Open in"
+  launchers (one per line: label, icon, scope, command; launchers whose program is missing are hidden).
+- **Advanced**: the engine (Docker, Podman or a preset), its context, and every command Dockmoid runs,
+  each editable.
+
+### Service icons
+
+About 120 common service logos ship with Dockmoid, so most containers get an icon with no download. In
+Settings → Appearance → Icons you can download the full Dashboard Icons library (only when you press
+the button; it is stored in Dockmoid's data folder with its licence), pick artwork for one container
+from Dashboard Icons, selfh.st or a local file, and add rules: `text=icon-name` gives every container
+whose name, image or service contains the text that icon, and a rule with no icon hides it.
+
+The "Icon name" of an "Open in" launcher is an icon from your icon theme, such as `konsole` or
+`system-file-manager`.
 
 ## Compose discovery
 

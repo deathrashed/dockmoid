@@ -5,7 +5,7 @@ import QtCore
 
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
-import "../Backend" as Backend
+import "../backend" as Backend
 import "../components" as Components
 
 /* Artwork library settings and per-container custom mappings. */

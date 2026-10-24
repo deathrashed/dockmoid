@@ -1,1 +1,0 @@
-These heading SVGs are Lucide icons retrieved through the Iconify API and tinted to Dockmoid’s palette. Lucide is ISC licensed, with MIT notices for icons derived from Feather. The full notices are in ../../../contents/assets/lucide/LICENSE.md.

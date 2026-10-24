@@ -14,6 +14,7 @@ tests/run.sh
 # Optional GUI smoke suite: PySide6 and Plasma QML imports required
 python3 tests/ui_runtime.py
 # Every page, with screenshots: DOCKMOID_UI_PAGES=1 DOCKMOID_UI_CAPTURE_DIR=/tmp/shots python3 tests/ui_runtime.py
+# The README screenshots (copy them into docs/assets): DOCKMOID_UI_SHOWCASE=/tmp/showcase python3 tests/ui_runtime.py
 # Large inspect/log output stays fast and correct (synthetic data)
 python3 tests/ui_heavy_output.py
 # Only when native QML imports are unavailable; run full lint before a release:
@@ -29,7 +30,7 @@ levels when changing shared components. Document untested engine/version behavio
 Where the rules live: container actions in `contents/lib/actions.js`, status and health wording keys
 in `contents/lib/status.js`, the inspector layout in `contents/lib/inspectorLayout.js`, and the page
 list for navigation and Go to in `contents/lib/pages.js`; each has Node tests. The backend
-(`contents/ui/Backend/DockerBackend.qml`) owns engine reads; image update checks, deployment, Doctor
+(`contents/ui/backend/DockerBackend.qml`) owns engine reads; image update checks, deployment, Doctor
 and multi-select live in their own controllers beside it. Prefer adding a rule to one of these
 modules, with a test, over adding logic to a view.
 

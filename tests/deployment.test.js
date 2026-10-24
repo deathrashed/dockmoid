@@ -37,7 +37,7 @@ try {
 
  const linked=d.recipe({name:'linked',image:'nginx'},cfg,tmp);fs.mkdirSync(linked.directory);fs.writeFileSync(linked.file,linked.json);fs.symlinkSync(existing.directory+'/keep',linked.directory+'/.dockmoid-project');
  result=cp.spawnSync('/bin/sh',['-c',d.buildCommand(linked,d.quote(fake),true)],{env,encoding:'utf8'});assert.notEqual(result.status,0,'marker symlinks never establish project ownership');
- const source=fs.readFileSync(path.join(__dirname,'../contents/ui/Backend/DeploymentController.qml'),'utf8');
+ const source=fs.readFileSync(path.join(__dirname,'../contents/ui/backend/DeploymentController.qml'),'utf8');
  const start=source.indexOf('    function create(plan,start)');const end=source.indexOf('    function createResource',start);
  let dispatched=0;
  const controller={Deploy:d,canDeploy:true,busy:false,cfg:{composeCommand:'docker compose'},backend:{generation:2,expand:s=>s,run:()=>dispatched++},i18n:s=>s};vm.createContext(controller);vm.runInContext(source.slice(start,end),controller);

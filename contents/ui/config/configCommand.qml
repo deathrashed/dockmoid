@@ -6,7 +6,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
 import QtQuick.Dialogs
 import "../../lib/profiles.js" as Profiles
-import "../Backend" as Backend
+import "../backend" as Backend
 
 /*
  * Every command the plasmoid can run.

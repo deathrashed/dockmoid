@@ -1,18 +1,18 @@
 <div align="center">
-<p align="center"><img src="contents/icons/dockmoid.png" width="88" alt="Dockmoid logo"></p>
-<p align="center">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=DOCKMOID&subtitle=Your+containers.+In+your+panel.&mode=dark&align=center&logo=docker&logoColor=2560ff&theme=blue&height=160&border=false" />
-<img alt="DOCKMOID" src="https://shieldcn.dev/header/graph.svg?title=DOCKMOID&subtitle=Your+containers.+In+your+panel.&mode=light&align=center&logo=docker&logoColor=2560ff&theme=blue&height=160&border=false" />
-</picture>
-</p>
+
+<p align="center"><img alt="dockmoid" src="https://shieldcn.dev/header/graph.svg?title=dockmoid&subtitle=deploy+%C2%B7+monitor+%C2%B7+control&logo=https%3A%2F%2Fraw.githubusercontent.com%2Fdeathrashed%2Fdockmoid%2Fmain%2Fcontents%2Ficons%2Fdockmoid.png&mode=dark&align=left&font=jetbrains-mono"></p>
+
 <p align="center"><strong>Monitor containers, manage Compose services and diagnose problems from KDE Plasma.</strong></p>
-<p align="center"><a href="https://kde.org/plasma-desktop/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Plasma%206.svg?variant=secondary&size=sm&logo=kdeplasma&mode=dark&theme=blue&logoColor=ffffff" /><img alt="Plasma 6" src="https://shieldcn.dev/badge/Plasma%206.svg?variant=secondary&size=sm&logo=kdeplasma&mode=light&theme=blue&logoColor=ffffff" /></picture></a><a href="https://docs.docker.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Docker.svg?variant=secondary&size=sm&logo=docker&mode=dark&theme=blue&logoColor=ffffff" /><img alt="Docker" src="https://shieldcn.dev/badge/Docker.svg?variant=secondary&size=sm&logo=docker&mode=light&theme=blue&logoColor=ffffff" /></picture></a><a href="https://podman.io/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Podman.svg?variant=secondary&size=sm&logo=podman&mode=dark&theme=blue&logoColor=ffffff" /><img alt="Podman" src="https://shieldcn.dev/badge/Podman.svg?variant=secondary&size=sm&logo=podman&mode=light&theme=blue&logoColor=ffffff" /></picture></a></p>
-<p align="center"><a href="#quick-start">Quick start</a> | <a href="#features">Features</a> | <a href="#screenshots">Screenshots</a> | <a href="docs/USER_GUIDE.md">Guide</a> | <a href="CHANGELOG.md">Changelog</a> | <a href="#license">License</a></p>
+
+<p align="center"><a href="https://kde.org/plasma-desktop/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Plasma%206.svg?variant=outline&size=sm&logo=kdeplasma&mode=dark&theme=blue&logoColor=ffffff" /><img alt="Plasma 6" src="https://shieldcn.dev/badge/Plasma%206.svg?variant=outline&size=sm&logo=kdeplasma&mode=light&theme=blue&logoColor=ffffff" /></picture></a> <a href="https://docs.docker.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Docker.svg?variant=outline&size=sm&logo=docker&mode=dark&theme=blue&logoColor=ffffff" /><img alt="Docker" src="https://shieldcn.dev/badge/Docker.svg?variant=outline&size=sm&logo=docker&mode=light&theme=blue&logoColor=ffffff" /></picture></a> <a href="https://podman.io/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Podman.svg?variant=outline&size=sm&logo=podman&mode=dark&theme=blue&logoColor=ffffff" /><img alt="Podman" src="https://shieldcn.dev/badge/Podman.svg?variant=outline&size=sm&logo=podman&mode=light&theme=blue&logoColor=ffffff" /></picture></a></p>
+
+<p align="center"><a href="#quick-start">Quick start</a> | <a href="#features">Features</a> | <a href="#screenshots">Screenshots</a> | <a href="#configure">Configure</a> | <a href="#compatibility">Compatibility</a> | <a href="#development">Development</a> | <a href="docs/USER_GUIDE.md">User guide</a> | <a href="CHANGELOG.md">Changelog</a> | <a href="#license">License</a></p>
+
 </div>
 
+---
 
-## <img src="docs/assets/headers/download.svg" height="22" alt="Install"> Quick Start
+## <img src="https://api.iconify.design/lucide/download.svg?color=%232560ff" height="22" alt="Install"> Quick Start
 
 KDE Plasma 6 and an accessible Docker or Podman CLI are required. Python 3 and Docker Compose
 are needed for Compose discovery/recreation; Python 3 is also needed for Docker Hub search.
@@ -40,17 +40,21 @@ kpackagetool6 -t Plasma/Applet -i dockmoid-2.4.0.plasmoid
 kpackagetool6 -t Plasma/Applet -u dockmoid-2.4.0.plasmoid
 ```
 
+Upgrading from a version installed as `dockmoid.plasmoid`? The package ID is now
+`com.github.deathrashed.dockmoid`; see [Upgrading from dockmoid.plasmoid](docs/USER_GUIDE.md#upgrading-from-dockmoidplasmoid)
+to move existing widgets and their settings.
+
 For KDE Store publication, the same `.plasmoid` is the upload package. A Store listing is not yet
 linked here because its public URL has not been assigned. Remove Dockmoid using Plasma's widget tools.
 
 </details>
 
-## <img src="docs/assets/headers/layout-dashboard.svg" height="22" alt="Features"> Features
+## <img src="https://api.iconify.design/lucide/layout-dashboard.svg?color=%23759bff" height="22" alt="Features"> Features
 
 | Workflow | Available controls |
 | --- | --- |
 | Containers | List, Table, Grid and Groups; Minimal, Normal, Detailed and Verbose information; collapsible state sections |
-| Inspector | A dock under the list for the selected container: Overview, live Logs, Events and its Compose file |
+| Inspector | Below or beside the list for the selected container: Overview, live Logs, Events, its Compose file and Health |
 | Actions | Start, Stop, Restart, Pause, Kill, Update and Apply Compose Changes everywhere, with one set of rules and a reason when greyed out |
 | Details | Overview, usage graphs, ports, networks, mounts, logs, Inspect Tree/Raw and a Run tab |
 | Deploy | Docker Hub search with star/download counts, an Official filter, guided Compose deployment and import |
@@ -64,44 +68,43 @@ Compose discovery keeps configured services visible as **Undeployed** (Pending D
 containers have been removed. **Start** starts an existing container; **Create and start** creates only
 the chosen service. Nothing starts every configured service automatically.
 
-## <img src="docs/assets/headers/image.svg" height="22" alt="Screenshots"> Screenshots
+## <img src="https://api.iconify.design/lucide/image.svg?color=%232560ff" height="22" alt="Screenshots"> Screenshots
 
 These previews render the production QML with demonstration records, without exposing a personal host.
 
-![Dockmoid container list with the inspector dock below it](docs/assets/overview.png)
+![Dockmoid container list in Needs Attention, Running, Stopped and Pending Deployment sections, with the inspector beside it](docs/assets/overview.png)
 
 <details>
 <summary><strong>Grid, details, deployment, resources and a narrow tray popup</strong></summary>
 
-![Grid view with state, usage and actions on each card](docs/assets/grid.png)
+| Grid | Details |
+| --- | --- |
+| ![Grid view with state, usage and actions on each card](docs/assets/grid.png) | ![Container details with overview, usage, container and network sections](docs/assets/detail.png) |
+| **Deploy** | **Resources** |
+| ![Deploy page with Docker Hub search results](docs/assets/deploy.png) | ![Resources page listing images and what uses them](docs/assets/resources.png) |
 
-![Container details with overview, usage, container and network sections](docs/assets/detail.png)
-
-![Deploy page with Docker Hub search results](docs/assets/deploy.png)
-
-![Resources page listing images and what uses them](docs/assets/resources.png)
-
-<p align="center"><img src="docs/assets/narrow.png" width="360" alt="The same view in a narrow system tray popup"></p>
+<p align="center"><img src="docs/assets/narrow.png" width="300" alt="The same view in a narrow system tray popup"><br><em>The same view in a narrow System Tray popup</em></p>
 
 </details>
 
-## <img src="docs/assets/headers/settings.svg" height="22" alt="Configure"> Configure
+## <img src="https://api.iconify.design/lucide/settings.svg?color=%23759bff" height="22" alt="Configure"> Configure
 
 Pick the view and detail level from **View** and **Detail** in the toolbar; Filter and Sort sit beside
 them. Select, the inspector's tabs (including Health) and Search sit on the inspector strip, which can
 go below the list or beside it; drag the divider to size the inspector, or collapse it. Refresh and
-Home are at the two ends of the footer. Sizes, collapsed sections and the inspector tab are saved. Right-click a container for every action,
-its links and its Compose project. At narrow widths, toolbar actions move into **More**.
+Home are at the two ends of the footer. Sizes, collapsed sections and the inspector tab are saved.
+Right-click a container for every action, its links and its Compose project. At narrow widths, toolbar
+actions move into **More**.
 
-In **Settings**, configure the connection, panel appearance, storage paths, monitoring and command
-presets. See the [user guide](docs/USER_GUIDE.md) for cleanup choices, logs, connection troubleshooting
+**Settings** has six pages: General, Appearance (including service icons), Storage, Monitoring,
+Connections and Advanced (every engine command). See the [user guide](docs/USER_GUIDE.md) for cleanup choices, logs, connection troubleshooting
 and refresh behavior.
 
 > [!NOTE]
 > Cleanup preserves stopped containers and volumes by default. Removing stopped containers is an
 > explicit choice. Docker access and customized shell commands carry the permissions of your account.
 
-## <img src="docs/assets/headers/info.svg" height="22" alt="Compatibility"> Compatibility
+## <img src="https://api.iconify.design/lucide/info.svg?color=%232560ff" height="22" alt="Compatibility"> Compatibility
 
 - Docker supports local Compose discovery and guided deployments. Discovery skips `_archive`, `_backups`,
   `startup`, hidden directories, `.git` and `node_modules`; it is not a recursive backup/config importer.
@@ -118,18 +121,25 @@ and refresh behavior.
 - No low-memory or measured before/after performance guarantee is made. Background statistics are
   optional, expensive reads are gated, and diagnostic/resource pages reuse short-lived cached results.
 
-## <img src="docs/assets/headers/braces.svg" height="22" alt="Development"> Development
+## <img src="https://api.iconify.design/lucide/braces.svg?color=%23759bff" height="22" alt="Development"> Development
 
 ```text
-contents/
-  ui/          # Plasma views, settings and backend components
-  lib/         # Parsing, commands and presentation helpers
-  scripts/     # Standard-library Python discovery and registry helpers
-  assets/      # Bundled interface and service artwork, with licenses
-tests/         # Isolated regression and packaging checks
-docs/          # User guide, screenshots and Store submission text
-translate/     # Translation template extraction and build
-packaging/     # AppStream metadata and package manifest
+dockmoid/
+├── contents/
+│   ├── config/        # Settings schema (main.xml) and the list of settings pages
+│   ├── ui/
+│   │   ├── backend/     # Engine reads and actions, update checks, deployment, Doctor
+│   │   ├── views/       # Pages: home with the inspector, Details, Diagnose, Doctor, Deploy
+│   │   ├── components/  # Rows, tables, grid tiles, buttons and dialogs
+│   │   └── config/      # Settings pages
+│   ├── lib/           # Pure rules with Node tests: actions, status, inspector layout, pages
+│   ├── scripts/       # Standard-library Python helpers: Compose discovery, Hub search
+│   └── assets/        # Interface icons and service logos, with their licences
+├── tests/             # Node, Python and QML runtime checks
+├── docs/              # User guide, screenshots and Store listing
+├── translate/         # Translation template and extract/build scripts
+├── packaging/         # AppStream metadata and release manifest
+└── install.sh         # Transactional per-user installer
 ```
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites and checks, [SECURITY.md](SECURITY.md)
@@ -138,7 +148,7 @@ for reporting guidance, and [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for pac
 
 Bundled artwork licenses and historical attribution are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-## <a href="https://opensource.org/license/GPL-3.0"><img src="docs/assets/license/logo.svg" height="20" alt="GPL"></a> License
+## <a href="https://opensource.org/license/GPL-3.0"><img src="https://api.iconify.design/lucide/scale.svg?color=%232560ff" height="22" alt="GPL"></a> License
 
 <div align="center">
 

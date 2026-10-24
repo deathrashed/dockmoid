@@ -6,7 +6,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 test("engineName is defined from translated words", () => {
-  const source = fs.readFileSync(path.join(__dirname, "../contents/ui/Backend/DockerBackend.qml"), "utf8");
+  const source = fs.readFileSync(path.join(__dirname, "../contents/ui/backend/DockerBackend.qml"), "utf8");
   const line = source.split("\n").find((l) => /readonly property string engineName:/.test(l));
   assert.ok(line, "engineName property exists");
   assert.match(line, /i18n\("Podman"\)/);

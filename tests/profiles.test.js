@@ -50,7 +50,7 @@ const filtered=c.parseViews('[{"name":"Stopped","mode":3,"state":"stopped"},{"na
 assert.equal(filtered[0].state,'stopped');assert.equal(filtered[1].state,'all');
 
 // Every filter the state menu offers survives Save This View → restore.
-const popup=require('node:fs').readFileSync(require('node:path').join(__dirname,'../contents/ui/Views/PopupView.qml'),'utf8');
+const popup=require('node:fs').readFileSync(require('node:path').join(__dirname,'../contents/ui/views/PopupView.qml'),'utf8');
 const choices=popup.slice(popup.indexOf('stateChoices: ['),popup.indexOf(']',popup.indexOf('stateChoices: ['))).match(/key:"([^"]+)"/g).map(k=>k.slice(5,-1));
 assert.ok(choices.length>=10,'state choices found');
 for(const key of choices){

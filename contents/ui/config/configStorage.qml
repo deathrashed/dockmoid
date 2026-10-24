@@ -7,7 +7,7 @@ import QtCore
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
 import org.kde.kquickcontrolsaddons as KQuickControlsAddons
-import "../Backend" as Backend
+import "../backend" as Backend
 
 /* Defaults and export hints for project deployments and engine storage. */
 KCM.SimpleKCM {

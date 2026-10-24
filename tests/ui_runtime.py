@@ -36,12 +36,19 @@ files=[p.name for p in icon_dir.iterdir() if p.suffix in ['.svg','.png','.webp']
 for i,r in enumerate(records):
  if 12<=i<16:r.update(id='configured:demo:'+r['name'],state='not-created',status='Undeployed',isRunning=False)
 config['toolbarStyle']=3
+if os.environ.get('DOCKMOID_UI_SHOWCASE'):
+ # Varied uptimes and stop times, so the screenshots read like a real host (still fictional).
+ import time;now=int(time.time()*1000);h=3600000
+ for r,hours in zip(records[:8],[13,1,2,14,5,2,1,14]):
+  r.update(startedAtMs=now-hours*h,createdMs=now-hours*h,status=f'Up {hours} hours (healthy)' if hours>1 else 'Up About an hour (healthy)')
+ for r,hours,code in zip(records[8:12],[216,216,17,50],[137,0,0,1]):
+  r.update(finishedAtMs=now-hours*h,startedAtMs=now-hours*h-5*h,status=f'Exited ({code}) {hours//24} days ago' if hours>=24 else f'Exited ({code}) {hours} hours ago')
 # DOCKMOID_UI_SECTIONS=1 keeps the default state order, so the list shows its section headings.
-if os.environ.get('DOCKMOID_UI_SECTIONS'):config['sortRole']='sortKey'
+if os.environ.get('DOCKMOID_UI_SECTIONS') or os.environ.get('DOCKMOID_UI_SHOWCASE'):config['sortRole']='sortKey'
 config_qml='\n'.join('property var '+key+': '+json.dumps(value) for key,value in config.items())
 qml='''import QtQuick
-import "'''+(project/'contents/ui/Backend').as_uri()+'''" as Backend
-import "'''+(project/'contents/ui/Views').as_uri()+'''" as Views
+import "'''+(project/'contents/ui/backend').as_uri()+'''" as Backend
+import "'''+(project/'contents/ui/views').as_uri()+'''" as Views
 import "'''+(project/'contents/lib').as_uri()+'''/icons.js" as Icons
 Rectangle {
  id:root; width:932; height:700; color:"#292e32"
@@ -81,7 +88,7 @@ Rectangle {
 app=QApplication([]);pal=app.palette()
 for role,color in [(QPalette.Window,'#292e32'),(QPalette.WindowText,'#eff0f1'),(QPalette.Base,'#24292d'),(QPalette.Text,'#eff0f1'),(QPalette.Button,'#31363b'),(QPalette.ButtonText,'#eff0f1')]:pal.setColor(role,QColor(color))
 app.setPalette(pal);messages=[];qInstallMessageHandler(lambda t,c,m:messages.append(m))
-qml=qml[:-1]+'''function previewTarget(){function find(item){if(item.containerKey && item.visible && item.width>0 && item.height>0)return item;for(let child of item.children){const found=find(child);if(found)return found}return null}const item=find(root);if(!item)return '{}';const p=item.mapToItem(root,60,14);return JSON.stringify({x:p.x,y:p.y,id:item.containerKey})} function previewSelected(){return backend.previewRecordId} function selectId(id){backend.previewContainer(id,true)} function selectedOnScreen(){function find(item,test){if(test(item))return item;for(let child of item.children){const f=find(child,test);if(f)return f}return null}const pane=find(root,function(i){return i.objectName==='containerListPane'});const item=find(root,function(i){return i.containerKey===backend.previewRecordId&&i.visible&&i.width>0});if(!item||!pane)return false;const p=item.mapToItem(pane,0,item.height/2);return p.y>0&&p.y<pane.height} function hideSelected(){const r=backend.findRecord(backend.previewRecordId);popup.stateFilter=r&&r.state==='running'?'stopped':'running'} function clearAll(){popup.clearFilters()} function setStale(v){backend.dataStale=v} function selectionCheck(){const sel=backend.selection;sel.active=true;const run=backend.records.find(function(r){return r.state==='running'}),stop=backend.records.find(function(r){return r.state==='exited'});sel.toggle(run.id);sel.toggle(stop.id);popup.stateFilter='running';const plan=sel.plan('stop');const r=JSON.stringify({picked:sel.pickedIds.length,targets:plan.targets.map(function(x){return x.name}),skipped:plan.skipped.map(function(x){return x.name}),run:run.name,stopped:stop.name});popup.stateFilter='all';return r} function logSessionCheck(){const comp=Qt.createComponent('''+json.dumps((project/'contents/ui/components/LogSession.qml').as_uri())+''');if(comp.status!==Component.Ready)return comp.errorString();const a=backend.records[0].id,b=backend.records[1].id;const s=comp.createObject(root,{backend:backend,recordId:a});const g=backend.generation,req=s.requestId,out=[];backend.recordOutput('logs',a,g,req,2,'newer');backend.recordOutput('logs',a,g,req,1,'older');out.push(s.text);backend.recordOutput('logs',a,g,'other-request',9,'foreign');out.push(s.text);s.recordId=b;out.push(s.text===''?'cleared':s.text);backend.recordOutput('logs',b,g,req,5,'stale from a');out.push(s.text===''?'cleared':s.text);s.destroy();return out.join('|')} function selectionEnd(){backend.selection.active=false;return backend.selection.pickedIds.length} }'''
+qml=qml[:-1]+'''function rowPoint(id){function find(item){if(item.containerKey===id && item.visible && item.width>0 && item.height>0)return item;for(let child of item.children){const found=find(child);if(found)return found}return null}const item=find(root);if(!item)return '{}';const p=item.mapToItem(root,60,14);return JSON.stringify({x:p.x,y:p.y})} function previewTarget(){function find(item){if(item.containerKey && item.visible && item.width>0 && item.height>0)return item;for(let child of item.children){const found=find(child);if(found)return found}return null}const item=find(root);if(!item)return '{}';const p=item.mapToItem(root,60,14);return JSON.stringify({x:p.x,y:p.y,id:item.containerKey})} function previewSelected(){return backend.previewRecordId} function selectId(id){backend.previewContainer(id,true)} function selectedOnScreen(){function find(item,test){if(test(item))return item;for(let child of item.children){const f=find(child,test);if(f)return f}return null}const pane=find(root,function(i){return i.objectName==='containerListPane'});const item=find(root,function(i){return i.containerKey===backend.previewRecordId&&i.visible&&i.width>0});if(!item||!pane)return false;const p=item.mapToItem(pane,0,item.height/2);return p.y>0&&p.y<pane.height} function hideSelected(){const r=backend.findRecord(backend.previewRecordId);popup.stateFilter=r&&r.state==='running'?'stopped':'running'} function clearAll(){popup.clearFilters()} function setStale(v){backend.dataStale=v} function selectionCheck(){const sel=backend.selection;sel.active=true;const run=backend.records.find(function(r){return r.state==='running'}),stop=backend.records.find(function(r){return r.state==='exited'});sel.toggle(run.id);sel.toggle(stop.id);popup.stateFilter='running';const plan=sel.plan('stop');const r=JSON.stringify({picked:sel.pickedIds.length,targets:plan.targets.map(function(x){return x.name}),skipped:plan.skipped.map(function(x){return x.name}),run:run.name,stopped:stop.name});popup.stateFilter='all';return r} function logSessionCheck(){const comp=Qt.createComponent('''+json.dumps((project/'contents/ui/components/LogSession.qml').as_uri())+''');if(comp.status!==Component.Ready)return comp.errorString();const a=backend.records[0].id,b=backend.records[1].id;const s=comp.createObject(root,{backend:backend,recordId:a});const g=backend.generation,req=s.requestId,out=[];backend.recordOutput('logs',a,g,req,2,'newer');backend.recordOutput('logs',a,g,req,1,'older');out.push(s.text);backend.recordOutput('logs',a,g,'other-request',9,'foreign');out.push(s.text);s.recordId=b;out.push(s.text===''?'cleared':s.text);backend.recordOutput('logs',b,g,req,5,'stale from a');out.push(s.text===''?'cleared':s.text);s.destroy();return out.join('|')} function selectionEnd(){backend.selection.active=false;return backend.selection.pickedIds.length} }'''
 file=out/'Preview.qml';file.write_text(qml)
 view=QQuickView();view.setResizeMode(QQuickView.SizeRootObjectToView);view.setSource(QUrl.fromLocalFile(str(file)));assert view.status()!=QQuickView.Error,[e.toString() for e in view.errors()];view.resize(1050,760);view.show();failures=[]
 def safe(fn):
@@ -270,10 +277,31 @@ def menu_dump():
   view.rootObject().enableCompose();print('--- menu for',rid);print(view.rootObject().menuTree(rid,''),flush=True)
  print('--- menu for 000000000001 as paused');print(view.rootObject().menuTree('000000000001','paused'),flush=True)
  app.quit()
-if os.environ.get('DOCKMOID_UI_MENU'):QTimer.singleShot(800,safe(menu_dump))
+def showcase():
+ # DOCKMOID_UI_SHOWCASE=<folder>: the README screenshots, staged with the demo data.
+ folder=pathlib.Path(os.environ['DOCKMOID_UI_SHOWCASE']);folder.mkdir(parents=True,exist_ok=True)
+ root=view.rootObject();home=root.findChild(QObject,'homeSectionPage')
+ def shot(name,ms=700):
+  QTest.mouseMove(view,QPoint(view.width()-3,view.height()-3));QTest.qWait(ms);view.grabWindow().save(str(folder/name))
+ def pick(name):
+  # Click the row, so the list highlight and the inspector show the same container.
+  rid=[r['id'] for r in records if r['name']==name][0]
+  p=json.loads(root.rowPoint(rid));QTest.mouseClick(view,Qt.LeftButton,Qt.NoModifier,QPoint(round(p['x']),round(p['y'])));QTest.qWait(200)
+ view.resize(1088,834);root.presentation(0,1);home.setDock('side',True);home.setDock('expanded',True);home.setDock('page','preview');QTest.qWait(400)
+ pick('pihole');shot('overview.png')
+ home.setDock('page','health');shot('health.png')
+ home.setDock('page','preview');home.setDock('side',False);root.presentation(3,1);QTest.qWait(300);pick('caddy');shot('grid.png')
+ root.presentation(0,1);QTest.qWait(200);root.showPage('detail');shot('detail.png')
+ root.showPage('deploy-results');shot('deploy.png')
+ root.showPage('resources');shot('resources.png')
+ QMetaObject.invokeMethod(popup(),'goHome');view.resize(360,760);QTest.qWait(400);pick('caddy');shot('narrow.png')
+ print('showcase saved to',folder);app.quit()
+from PySide6.QtCore import QMetaObject
+if os.environ.get('DOCKMOID_UI_SHOWCASE'):QTimer.singleShot(800,safe(showcase))
+elif os.environ.get('DOCKMOID_UI_MENU'):QTimer.singleShot(800,safe(menu_dump))
 elif os.environ.get('DOCKMOID_UI_PERF'):QTimer.singleShot(1500,safe(perf))
 else:QTimer.singleShot(500,safe(step))
 app.exec()
 errors=[m for m in messages if any(e in m for e in ['TypeError','ReferenceError','Cannot assign','Unable to assign','Required property','Binding loop'])]
 (out/'runtime.log').write_text('\n'.join(messages));print('Production QML demo cases:',len(checks),'failures:',failures,'errors:',errors)
-assert (os.environ.get('DOCKMOID_UI_PERF') or os.environ.get('DOCKMOID_UI_MENU') or len(checks)==32) and not failures and not errors
+assert (os.environ.get('DOCKMOID_UI_PERF') or os.environ.get('DOCKMOID_UI_MENU') or os.environ.get('DOCKMOID_UI_SHOWCASE') or len(checks)==32) and not failures and not errors

@@ -22,8 +22,9 @@ Dockmoid brings Docker and Podman container controls into KDE Plasma 6. Use List
 with collapsible Running, Stopped and Pending Deployment sections. Keep configured Docker Compose
 services visible even when their containers have been removed, and create only the service you choose.
 
-An inspector under the list follows the selected container with its overview, live logs, events and
-Compose file. Open Details for usage, ports, networks, mounts, ANSI-colored logs, JSON tree/raw
+An inspector below or beside the list follows the selected container with its overview, live logs,
+events, Compose file and health. A Diagnose tab gathers exit codes, restarts, health output and the log
+lines worth reading first, without guessing a cause. Open Details for usage, ports, networks, mounts, ANSI-colored logs, JSON tree/raw
 inspection and commands. Start, Stop, Restart, Pause, Kill and Update follow the same rules in every
 view. Doctor presents evidence and selected action plans with command previews and visible results;
 no blanket automatic repair runs.

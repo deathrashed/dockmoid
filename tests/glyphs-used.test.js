@@ -34,3 +34,9 @@ test("glyph names used in QML resolve to bundled artwork", () => {
   }
   assert.deepEqual(bad, []);
 });
+
+test("embedded action artwork matches the icons the code names", () => {
+  // Run packaging/generate-action-artwork.py after adding an icon; this fails until then.
+  const result = require("node:child_process").spawnSync("python3", [path.join(root, "packaging/generate-action-artwork.py"), "--check"], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+});

@@ -3,7 +3,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import org.kde.kirigami as Kirigami
-import "../Backend" as Backend
+import "../backend" as Backend
 import "../../lib/iconCatalog.js" as Catalog
 
 Controls.Dialog {

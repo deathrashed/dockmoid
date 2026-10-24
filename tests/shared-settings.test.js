@@ -6,7 +6,7 @@ const vm = require("node:vm");
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const source = fs.readFileSync(path.join(__dirname, "../contents/ui/Backend/SharedSettings.qml"), "utf8");
+const source = fs.readFileSync(path.join(__dirname, "../contents/ui/backend/SharedSettings.qml"), "utf8");
 function shared(extra) {
   const c = Object.assign({ localKeys: ["popupWidth", "serviceSectionSettings", "shareSettings", "sharedSettingsPushAt"],
     lastSnapshot: "", appliedAt: 0, started: true, instanceId: "1", path: "/tmp/s.json", folder: "/tmp",

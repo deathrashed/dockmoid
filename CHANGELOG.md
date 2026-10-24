@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Package ID changed** from `dockmoid.plasmoid` to `com.github.deathrashed.dockmoid`, the
+  reverse-domain form Plasma widgets use. Plasma sees it as a new widget: existing widgets keep the old
+  package until moved. docs/USER_GUIDE.md → "Upgrading from dockmoid.plasmoid" moves them with their
+  settings; `install.sh` says so when the old package is still installed. The translation domain is now
+  `plasma_applet_com.github.deathrashed.dockmoid`.
+- The widget description is now "Deploy · Monitor · Control / Docker & Podman Management" (Add Widgets
+  and AppStream).
+- Lighter start-up: only the ~160 interface icons Dockmoid uses are embedded in its icon data (72 KB,
+  was 900 KB with all 1,958 Lucide icons). Any other bundled Lucide name still loads from its file. A
+  test fails if an icon is used without regenerating.
+- Repository layout: the translation template moved from `po/` to `translate/` beside its scripts, and
+  `contents/ui/Views` and `contents/ui/Backend` are now lowercase `views` and `backend`.
 - The inspector can sit below the list or beside it: the layout button on the inspector strip
   switches, and the divider resizes it either way (sizes are remembered). Hidden while beside the list,
   it folds to the strip below the list. A popup too narrow for two panes stacks them; the search field

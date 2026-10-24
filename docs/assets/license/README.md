@@ -1,1 +1,1 @@
-GPL logo and badge copied without modification from the owner’s license assets in deathrashed/gupload, uploads/files/licenses/gpl. The accompanying license is ../../../LICENSE. The GNU/GPL marks identify the license; see https://www.gnu.org/graphics/license-logos.html for GNU logo information.
+GPL badge copied without modification from the owner’s license assets in deathrashed/gupload, uploads/files/licenses/gpl. The accompanying license is ../../../LICENSE. The GNU/GPL marks identify the license; see https://www.gnu.org/graphics/license-logos.html for GNU logo information.

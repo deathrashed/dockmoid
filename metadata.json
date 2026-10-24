@@ -7,9 +7,9 @@
             }
         ],
         "Category": "System Information",
-        "Description": "Docker and Podman in your panel: live container status, crash alerts and one-click actions.",
+        "Description": "Deploy · Monitor · Control\nDocker & Podman Management",
         "Icon": "dockmoid",
-        "Id": "dockmoid.plasmoid",
+        "Id": "com.github.deathrashed.dockmoid",
         "License": "GPL-3.0+",
         "Name": "Dockmoid",
         "Version": "2.4.0",

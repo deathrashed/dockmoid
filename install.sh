@@ -9,7 +9,7 @@ command -v kpackagetool6 >/dev/null 2>&1 || { echo 'kpackagetool6 is required' >
     echo 'Incomplete package: metadata.json and contents/icons/dockmoid.png are required' >&2; exit 1;
 }
 package_root="$data_home/plasma/plasmoids"
-installed="$package_root/dockmoid.plasmoid"
+installed="$package_root/com.github.deathrashed.dockmoid"
 mkdir -p "$package_root"
 lock="$package_root/.dockmoid-install.lock"
 mkdir "$lock" 2>/dev/null || { echo 'Another Dockmoid installation is in progress' >&2; exit 1; }
@@ -48,7 +48,7 @@ trap 'exit 143' TERM
 transaction=$(mktemp -d "$package_root/.dockmoid-install.XXXXXXXX")
 mkdir "$transaction/source"
 # Complete the staging copy before asking KPackage to touch the destination.
-for entry in metadata.json contents po locale LICENSE THIRD_PARTY_NOTICES.md install.sh; do
+for entry in metadata.json contents locale LICENSE THIRD_PARTY_NOTICES.md install.sh; do
     if [ -e "$source_dir/$entry" ]; then cp -Rp -- "$source_dir/$entry" "$transaction/source/"; fi
 done
 [ ! -L "$installed" ] || { echo 'Refusing a symlink at the installed package path' >&2; exit 1; }
@@ -71,3 +71,8 @@ if command -v gtk-update-icon-cache >/dev/null 2>&1; then
     gtk-update-icon-cache -f -t "$data_home/icons/hicolor" || echo 'Icon cache refresh unavailable; reopen Add Widgets to refresh artwork.' >&2
 fi
 echo 'Dockmoid installed. Reopen Add Widgets if its icon has not refreshed.'
+# Earlier versions used the package ID dockmoid.plasmoid. Point at it rather than remove it: its widgets may hold settings.
+if [ -d "$package_root/dockmoid.plasmoid" ]; then
+    echo 'An older Dockmoid (package ID dockmoid.plasmoid) is still installed. Widgets placed from it keep' >&2
+    echo 'using it; see "Upgrading from dockmoid.plasmoid" in docs/USER_GUIDE.md to move them over.' >&2
+fi

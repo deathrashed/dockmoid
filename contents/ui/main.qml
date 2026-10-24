@@ -10,8 +10,8 @@ import org.kde.plasma.plasmoid
 
 // Aliased relative directory imports: this is the form the QML engine
 // resolves at runtime, and the only form qmllint can type-check.
-import "Backend" as Backend
-import "Views" as Views
+import "backend" as Backend
+import "views" as Views
 import "components" as Components
 
 PlasmoidItem {

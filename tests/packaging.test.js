@@ -9,13 +9,13 @@ function fixture(t) {
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'dockmoid-package-'));
     t.after(() => fs.rmSync(temp, {recursive:true, force:true}));
     const data = path.join(temp, 'data with spaces');
-    const installed = path.join(data, 'plasma/plasmoids/dockmoid.plasmoid');
+    const installed = path.join(data, 'plasma/plasmoids/com.github.deathrashed.dockmoid');
     const bin = path.join(temp, 'bin');
     fs.mkdirSync(bin);
     fs.writeFileSync(path.join(bin, 'kpackagetool6'), `#!/bin/sh
-target="$XDG_DATA_HOME/plasma/plasmoids/dockmoid.plasmoid"
+target="$XDG_DATA_HOME/plasma/plasmoids/com.github.deathrashed.dockmoid"
 while [ "$#" -gt 0 ]; do
- case "$1" in -r) rm -rf "$target"; exit 0;; --packageroot) target="$2/dockmoid.plasmoid"; shift 2;; -u|-i) source="$2"; shift 2;; *) shift;; esac
+ case "$1" in -r) rm -rf "$target"; exit 0;; --packageroot) target="$2/com.github.deathrashed.dockmoid"; shift 2;; -u|-i) source="$2"; shift 2;; *) shift;; esac
 done
 mkdir -p "$target"
 cp -R "$source/." "$target/"
@@ -55,7 +55,7 @@ test('installer stages its own installed source before an update', t => {
 });
 test('release archive includes runtime files and notices, excludes scratch and secrets', t => {
     const f=fixture(t); const source=path.join(f.temp,'source'); fs.mkdirSync(source);
-    for (const name of ['contents','metadata.json','install.sh','packaging','LICENSE','THIRD_PARTY_NOTICES.md','po','translate']) fs.cpSync(path.join(root,name),path.join(source,name),{recursive:true});
+    for (const name of ['contents','metadata.json','install.sh','packaging','LICENSE','THIRD_PARTY_NOTICES.md','translate']) fs.cpSync(path.join(root,name),path.join(source,name),{recursive:true});
     fs.writeFileSync(path.join(source,'contents','.env'),'secret');
     for (const dir of ['work','scratch','.git','tmp']) {
         fs.mkdirSync(path.join(source,'contents',dir));
@@ -67,7 +67,7 @@ test('release archive includes runtime files and notices, excludes scratch and s
     const result=spawnSync('python3',[path.join(source,'packaging/release.py'),output],{encoding:'utf8'});
     assert.equal(result.status,0,result.stderr);
     const listing=spawnSync('python3',['-c','import zipfile,sys; print("\\n".join(zipfile.ZipFile(sys.argv[1]).namelist()))',output],{encoding:'utf8'}).stdout.split('\n');
-    for(const name of ['metadata.json','contents/ui/main.qml','contents/icons/dockmoid.png','contents/assets/library/NOTICE.md','LICENSE','packaging/dockmoid.plasmoid.appdata.xml','locale/en/LC_MESSAGES/dockmoid.mo']) assert.ok(listing.includes(name),name);
+    for(const name of ['metadata.json','contents/ui/main.qml','contents/icons/dockmoid.png','contents/assets/library/NOTICE.md','LICENSE','packaging/com.github.deathrashed.dockmoid.appdata.xml','locale/en/LC_MESSAGES/dockmoid.mo']) assert.ok(listing.includes(name),name);
     assert.equal(listing.some(name=>name.includes('.env')||['/work/','/scratch/','/.git/','/tmp/'].some(part=>name.includes(part))),false);
 });
 

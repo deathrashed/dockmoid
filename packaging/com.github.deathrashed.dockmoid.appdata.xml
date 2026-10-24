@@ -3,7 +3,7 @@
   <id>io.github.deathrashed.dockmoid</id>
   <extends>org.kde.plasmashell</extends>
   <name>Dockmoid</name>
-  <summary>Docker and Podman in your panel: live container status, crash alerts and one-click actions</summary>
+  <summary>Deploy · Monitor · Control: Docker &amp; Podman Management</summary>
   <description>
     <p>Dockmoid keeps an eye on your containers from the Plasma panel. The logo shows overall state as a gauge, containers can be started, stopped, updated and inspected without a terminal, and it tells you when something crashes, turns unhealthy or stops answering.</p>
     <ul>
@@ -11,7 +11,8 @@
       <li>Crash, unhealthy, restart-loop, resource and web-page alerts</li>
       <li>Autostart control, image update checks and Compose up, down, pull and recreate</li>
       <li>Resource inventories distinguish existing containers from configured Compose references</li>
-      <li>Doctor plans, ANSI logs, JSON tree/raw inspection and a detachable window</li>
+      <li>An inspector with overview, live logs, events, Compose file and health for the selected container</li>
+      <li>Diagnose, a background log watch, Doctor plans, ANSI logs, JSON tree/raw inspection and a detachable window</li>
     </ul>
   </description>
   <project_license>GPL-3.0-or-later</project_license>

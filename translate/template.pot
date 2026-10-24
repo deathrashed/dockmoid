@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Dockmoid 2.4.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 12:31+1100\n"
+"POT-Creation-Date: 2026-10-24 12:45+1100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -48,1339 +48,1339 @@ msgctxt "@title"
 msgid "Advanced"
 msgstr ""
 
-#: contents/ui/Backend/CommandRunner.qml:31
+#: contents/ui/backend/CommandRunner.qml:31
 msgid "No command configured"
 msgstr ""
 
-#: contents/ui/Backend/CommandRunner.qml:83
+#: contents/ui/backend/CommandRunner.qml:83
 msgid ""
 "Command timed out; an operation already accepted by the engine may still "
 "complete."
 msgstr ""
 
-#: contents/ui/Backend/CommandRunner.qml:107
+#: contents/ui/backend/CommandRunner.qml:107
 msgid ""
 "Cancelled; an operation already accepted by the engine may still complete."
 msgstr ""
 
-#: contents/ui/Backend/CommandRunner.qml:110
+#: contents/ui/backend/CommandRunner.qml:110
 msgid "Cancelled"
 msgstr ""
 
-#: contents/ui/Backend/CustomIconStore.qml:48
+#: contents/ui/backend/CustomIconStore.qml:48
 msgid "Choose an icon from Dashboard Icons or selfh.st."
 msgstr ""
 
-#: contents/ui/Backend/CustomIconStore.qml:67
+#: contents/ui/backend/CustomIconStore.qml:67
 msgid ""
 "The icon could not be downloaded. Check your connection or choose a local "
 "file."
 msgstr ""
 
-#: contents/ui/Backend/CustomIconStore.qml:74
+#: contents/ui/backend/CustomIconStore.qml:74
 msgid "Choose a local SVG, PNG or WebP image."
 msgstr ""
 
-#: contents/ui/Backend/CustomIconStore.qml:87
+#: contents/ui/backend/CustomIconStore.qml:87
 msgid "Could not copy the image."
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:38
+#: contents/ui/backend/DeploymentController.qml:38
 msgid "Command completed successfully."
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:38
+#: contents/ui/backend/DeploymentController.qml:38
 msgid "Command failed with exit code %1."
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:44
+#: contents/ui/backend/DeploymentController.qml:44
 msgid "Searching Docker Hub…"
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:48
+#: contents/ui/backend/DeploymentController.qml:48
 msgid "%1 image found"
 msgid_plural "%1 images found"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Backend/DeploymentController.qml:55
+#: contents/ui/backend/DeploymentController.qml:55
 msgid "Pulling %1…"
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:56
+#: contents/ui/backend/DeploymentController.qml:56
 msgid "Pull image"
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:56
+#: contents/ui/backend/DeploymentController.qml:56
 msgid "Image pulled"
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:61
+#: contents/ui/backend/DeploymentController.qml:61
 msgid "Connection or permissions changed. Review the project again."
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:65
+#: contents/ui/backend/DeploymentController.qml:65
 msgid "Creating %1… Docker progress will appear when the command finishes."
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:66
+#: contents/ui/backend/DeploymentController.qml:66
 msgid "%1 created. Project: %2"
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:66
+#: contents/ui/backend/DeploymentController.qml:66
 msgid "Creation failed with exit code %1. Project files: %2"
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:66
+#: contents/ui/backend/DeploymentController.qml:66
 msgid "Project created"
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:70
+#: contents/ui/backend/DeploymentController.qml:70
 msgid "Use letters, digits, dots, dashes or underscores."
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:72
+#: contents/ui/backend/DeploymentController.qml:72
 msgid "Creating %1…"
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:73
-#: contents/ui/Views/DetailPage.qml:672
+#: contents/ui/backend/DeploymentController.qml:73
+#: contents/ui/views/DetailPage.qml:672
 msgid "Created"
 msgstr ""
 
-#: contents/ui/Backend/DeploymentController.qml:75
+#: contents/ui/backend/DeploymentController.qml:75
 msgid "Connection changed. Review your deployment for the selected host."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:71
-#: contents/ui/Backend/DockerBackend.qml:2380
-#: contents/ui/Views/HomePage.qml:330
+#: contents/ui/backend/DockerBackend.qml:71
+#: contents/ui/backend/DockerBackend.qml:2380
+#: contents/ui/views/HomePage.qml:330
 msgid "Done"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:71
-#: contents/ui/Backend/DockerBackend.qml:2379
-#: contents/ui/Backend/DoctorController.qml:176
+#: contents/ui/backend/DockerBackend.qml:71
+#: contents/ui/backend/DockerBackend.qml:2379
+#: contents/ui/backend/DoctorController.qml:176
 #: contents/ui/components/ContainerTable.qml:387
 #: contents/ui/components/ServicePreview.qml:101
 #: contents/ui/components/StatusLine.qml:47
 #: contents/ui/components/StatusLine.qml:56
-#: contents/ui/Views/DetailPage.qml:156 contents/ui/Views/PopupView.qml:78
+#: contents/ui/views/DetailPage.qml:156 contents/ui/views/PopupView.qml:78
 msgid "Failed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:93 contents/ui/Tooltip.qml:17
+#: contents/ui/backend/DockerBackend.qml:93 contents/ui/Tooltip.qml:17
 msgid "Podman"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:93 contents/ui/Tooltip.qml:17
+#: contents/ui/backend/DockerBackend.qml:93 contents/ui/Tooltip.qml:17
 msgid "Docker"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:248
-#: contents/ui/Backend/DockerBackend.qml:1634
-#: contents/ui/Backend/DockerBackend.qml:2510
-#: contents/ui/Backend/UpdateController.qml:123
+#: contents/ui/backend/DockerBackend.qml:248
+#: contents/ui/backend/DockerBackend.qml:1634
+#: contents/ui/backend/DockerBackend.qml:2510
+#: contents/ui/backend/UpdateController.qml:123
 msgid "Read-only mode is enabled"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:286
+#: contents/ui/backend/DockerBackend.qml:286
 #: contents/ui/config/configCommand.qml:31
 msgid "Connection"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:286
+#: contents/ui/backend/DockerBackend.qml:286
 msgid "Wait for the current action to finish before switching hosts."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:565
+#: contents/ui/backend/DockerBackend.qml:565
 msgid "The engine is unreachable"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:635
+#: contents/ui/backend/DockerBackend.qml:635
 msgid "Compose discovery could not run. Check Python and Compose availability."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:652
-#: contents/ui/Backend/DoctorController.qml:67
+#: contents/ui/backend/DockerBackend.qml:652
+#: contents/ui/backend/DoctorController.qml:67
 #: contents/ui/components/ServicePreview.qml:102
 #: contents/ui/components/ServicePreview.qml:174
 #: contents/ui/components/StatusLine.qml:50
-#: contents/ui/Views/DetailPage.qml:160 contents/ui/Views/DoctorPage.qml:120
+#: contents/ui/views/DetailPage.qml:160 contents/ui/views/DoctorPage.qml:120
 msgid "Undeployed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:667
+#: contents/ui/backend/DockerBackend.qml:667
 msgid "Could not read containers (exit %1)"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:671
+#: contents/ui/backend/DockerBackend.qml:671
 msgid "The container command did not return valid JSON"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:792
+#: contents/ui/backend/DockerBackend.qml:792
 msgid "Restart policy set to %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:795
+#: contents/ui/backend/DockerBackend.qml:795
 msgid "Could not change the restart policy"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:806
-#: contents/ui/Views/DeploymentPage.qml:35
+#: contents/ui/backend/DockerBackend.qml:806
+#: contents/ui/views/DeploymentPage.qml:35
 msgid "Manual start"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:807
+#: contents/ui/backend/DockerBackend.qml:807
 msgid "Restart on failure"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:808
+#: contents/ui/backend/DockerBackend.qml:808
 msgid "Start automatically"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:809
+#: contents/ui/backend/DockerBackend.qml:809
 msgid "Always restart"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:830
-#: contents/ui/Backend/DockerBackend.qml:870
+#: contents/ui/backend/DockerBackend.qml:830
+#: contents/ui/backend/DockerBackend.qml:870
 msgid "%1 exited with code %2"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:831
-#: contents/ui/Backend/DockerBackend.qml:871
+#: contents/ui/backend/DockerBackend.qml:831
+#: contents/ui/backend/DockerBackend.qml:871
 msgid "%1 is restarting"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:832
-#: contents/ui/Backend/DockerBackend.qml:872
+#: contents/ui/backend/DockerBackend.qml:832
+#: contents/ui/backend/DockerBackend.qml:872
 msgid "%1 became unhealthy"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:833
-#: contents/ui/Backend/DockerBackend.qml:2061
+#: contents/ui/backend/DockerBackend.qml:833
+#: contents/ui/backend/DockerBackend.qml:2061
 msgid "%1: %2"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:834
-#: contents/ui/Backend/DockerBackend.qml:873
+#: contents/ui/backend/DockerBackend.qml:834
+#: contents/ui/backend/DockerBackend.qml:873
 msgid "%1 is healthy again"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:835
-#: contents/ui/Backend/DockerBackend.qml:874
+#: contents/ui/backend/DockerBackend.qml:835
+#: contents/ui/backend/DockerBackend.qml:874
 msgid "%1 started"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:836
-#: contents/ui/Backend/DockerBackend.qml:875
+#: contents/ui/backend/DockerBackend.qml:836
+#: contents/ui/backend/DockerBackend.qml:875
 msgid "%1 stopped"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:880
+#: contents/ui/backend/DockerBackend.qml:880
 msgid "%2: %1 change"
 msgid_plural "%2: %1 changes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Backend/DockerBackend.qml:881
+#: contents/ui/backend/DockerBackend.qml:881
 msgid "…and %1 more"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1228
+#: contents/ui/backend/DockerBackend.qml:1228
 #: contents/ui/components/ContainerActions.qml:380
 #: contents/ui/components/ContainerActions.qml:381 contents/ui/Tooltip.qml:27
-#: contents/ui/Views/DetailPage.qml:68 contents/ui/Views/ResourcesPage.qml:379
+#: contents/ui/views/DetailPage.qml:68 contents/ui/views/ResourcesPage.qml:379
 msgid "%1 · %2"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1301
-#: contents/ui/Backend/DockerBackend.qml:1468
-#: contents/ui/Backend/DockerBackend.qml:2374
+#: contents/ui/backend/DockerBackend.qml:1301
+#: contents/ui/backend/DockerBackend.qml:1468
+#: contents/ui/backend/DockerBackend.qml:2374
 #: contents/ui/components/ContainerActions.qml:380
-#: contents/ui/Views/PopupView.qml:505
+#: contents/ui/views/PopupView.qml:505
 msgid "Starting…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1301
+#: contents/ui/backend/DockerBackend.qml:1301
 msgid "Stopping…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1301
-#: contents/ui/Backend/DockerBackend.qml:2321
+#: contents/ui/backend/DockerBackend.qml:1301
+#: contents/ui/backend/DockerBackend.qml:2321
 msgid "Restarting…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1301
+#: contents/ui/backend/DockerBackend.qml:1301
 msgid "Pausing…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1301
+#: contents/ui/backend/DockerBackend.qml:1301
 msgid "Resuming…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1301
+#: contents/ui/backend/DockerBackend.qml:1301
 msgid "Removing…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1302
+#: contents/ui/backend/DockerBackend.qml:1302
 msgid "Working…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1305
-#: contents/ui/Backend/DockerBackend.qml:2324
+#: contents/ui/backend/DockerBackend.qml:1305
+#: contents/ui/backend/DockerBackend.qml:2324
 msgid "Action failed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1306
-#: contents/ui/Backend/DockerBackend.qml:1774
-#: contents/ui/Backend/DockerBackend.qml:2325
+#: contents/ui/backend/DockerBackend.qml:1306
+#: contents/ui/backend/DockerBackend.qml:1774
+#: contents/ui/backend/DockerBackend.qml:2325
 msgid "Command failed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1343
+#: contents/ui/backend/DockerBackend.qml:1343
 msgid "This container is no longer listed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1344
+#: contents/ui/backend/DockerBackend.qml:1344
 msgid "Read-only monitoring mode is on (Settings → General)"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1345
+#: contents/ui/backend/DockerBackend.qml:1345
 msgid "%1 is not reachable"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1346
+#: contents/ui/backend/DockerBackend.qml:1346
 msgid "Another action on %1 is still running"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1347
+#: contents/ui/backend/DockerBackend.qml:1347
 msgid "Compose actions need a local engine"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1348
+#: contents/ui/backend/DockerBackend.qml:1348
 msgid "Needs Docker Compose"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1348
+#: contents/ui/backend/DockerBackend.qml:1348
 msgid "%1 is not part of a Compose project"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1349
+#: contents/ui/backend/DockerBackend.qml:1349
 msgid "Not possible while %1 is %2"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1355
+#: contents/ui/backend/DockerBackend.qml:1355
 msgid "Killed for using too much memory (the kernel's out-of-memory killer)"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1356
+#: contents/ui/backend/DockerBackend.qml:1356
 msgid "Exited normally (code 0)"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1357
+#: contents/ui/backend/DockerBackend.qml:1357
 msgid ""
 "Code 137: killed with SIGKILL — by `docker kill`, a stop timeout, or the "
 "system"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1358
+#: contents/ui/backend/DockerBackend.qml:1358
 msgid "Code 143: stopped with SIGTERM — usually a normal stop"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1359
+#: contents/ui/backend/DockerBackend.qml:1359
 msgid "Code 130: interrupted (Ctrl+C / SIGINT)"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1360
+#: contents/ui/backend/DockerBackend.qml:1360
 msgid "Code 125: the engine could not run the container"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1361
+#: contents/ui/backend/DockerBackend.qml:1361
 msgid "Code 126: the command exists but cannot be executed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1362
+#: contents/ui/backend/DockerBackend.qml:1362
 msgid "Code 127: the command was not found in the image"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1363
+#: contents/ui/backend/DockerBackend.qml:1363
 msgid "Code 139: the program crashed (segmentation fault)"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1364
+#: contents/ui/backend/DockerBackend.qml:1364
 msgid "Code %1: ended by signal %2"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1365
+#: contents/ui/backend/DockerBackend.qml:1365
 msgid "Code %1: an error reported by the application itself"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1372
+#: contents/ui/backend/DockerBackend.qml:1372
 msgid "Not deployed yet"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1373
+#: contents/ui/backend/DockerBackend.qml:1373
 msgid "Reading…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1374
+#: contents/ui/backend/DockerBackend.qml:1374
 msgid "Unknown: the engine did not describe this container"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1375
+#: contents/ui/backend/DockerBackend.qml:1375
 msgid "No healthcheck is configured for this container"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1376
+#: contents/ui/backend/DockerBackend.qml:1376
 msgid "No healthcheck result"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1377
+#: contents/ui/backend/DockerBackend.qml:1377
 msgid "Healthy"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1378
+#: contents/ui/backend/DockerBackend.qml:1378
 msgid "Starting: waiting for the first passing check"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1379
+#: contents/ui/backend/DockerBackend.qml:1379
 msgid "Unhealthy: %1 failed check in a row"
 msgid_plural "Unhealthy: %1 failed checks in a row"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Backend/DockerBackend.qml:1379
+#: contents/ui/backend/DockerBackend.qml:1379
 #: contents/ui/components/ContainerTable.qml:387
 #: contents/ui/components/ServicePreview.qml:100
 #: contents/ui/components/StatusLine.qml:46
 #: contents/ui/components/StatusLine.qml:57
-#: contents/ui/Views/DetailPage.qml:157 contents/ui/Views/PopupView.qml:77
+#: contents/ui/views/DetailPage.qml:157 contents/ui/views/PopupView.qml:77
 msgid "Unhealthy"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1387
+#: contents/ui/backend/DockerBackend.qml:1387
 msgctxt "container state in a sentence"
 msgid "running"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1388
+#: contents/ui/backend/DockerBackend.qml:1388
 msgctxt "container state in a sentence"
 msgid "paused"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1389
+#: contents/ui/backend/DockerBackend.qml:1389
 msgctxt "container state in a sentence"
 msgid "restarting"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1390
+#: contents/ui/backend/DockerBackend.qml:1390
 msgctxt "container state in a sentence"
 msgid "created but not started"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1391
+#: contents/ui/backend/DockerBackend.qml:1391
 msgctxt "container state in a sentence"
 msgid "not deployed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1392
+#: contents/ui/backend/DockerBackend.qml:1392
 msgctxt "container state in a sentence"
 msgid "dead"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1393
+#: contents/ui/backend/DockerBackend.qml:1393
 msgctxt "container state in a sentence"
 msgid "stopped"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1416
+#: contents/ui/backend/DockerBackend.qml:1416
 msgid "Container started"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1420
+#: contents/ui/backend/DockerBackend.qml:1420
 msgid "Container stopped"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1424
-#: contents/ui/Backend/DockerBackend.qml:2325
+#: contents/ui/backend/DockerBackend.qml:1424
+#: contents/ui/backend/DockerBackend.qml:2325
 msgid "Container restarted"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1428
+#: contents/ui/backend/DockerBackend.qml:1428
 msgid "Container killed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1432
+#: contents/ui/backend/DockerBackend.qml:1432
 msgid "Container paused"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1436
+#: contents/ui/backend/DockerBackend.qml:1436
 msgid "Container unpaused"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1440
+#: contents/ui/backend/DockerBackend.qml:1440
 msgid "Container removed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1451
+#: contents/ui/backend/DockerBackend.qml:1451
 msgid "Renamed to %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1452
+#: contents/ui/backend/DockerBackend.qml:1452
 msgid "Could not rename container"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1466
+#: contents/ui/backend/DockerBackend.qml:1466
 msgid "Pulling %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1467
+#: contents/ui/backend/DockerBackend.qml:1467
 msgid "Pulling image…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1467
-#: contents/ui/Backend/DockerBackend.qml:2351
+#: contents/ui/backend/DockerBackend.qml:1467
+#: contents/ui/backend/DockerBackend.qml:2351
 msgid "An action is already running"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1471
-#: contents/ui/Backend/DockerBackend.qml:1520
-#: contents/ui/Backend/DockerBackend.qml:1838
-#: contents/ui/Backend/DockerBackend.qml:2135
-#: contents/ui/Backend/DockerBackend.qml:2136
-#: contents/ui/Backend/DockerBackend.qml:2378
+#: contents/ui/backend/DockerBackend.qml:1471
+#: contents/ui/backend/DockerBackend.qml:1520
+#: contents/ui/backend/DockerBackend.qml:1838
+#: contents/ui/backend/DockerBackend.qml:2135
+#: contents/ui/backend/DockerBackend.qml:2136
+#: contents/ui/backend/DockerBackend.qml:2378
 msgid "(no output)"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1472
+#: contents/ui/backend/DockerBackend.qml:1472
 msgid "Image pulled only"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1472
-#: contents/ui/Backend/DockerBackend.qml:2480
+#: contents/ui/backend/DockerBackend.qml:1472
+#: contents/ui/backend/DockerBackend.qml:2480
 msgid "Pull failed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1473
+#: contents/ui/backend/DockerBackend.qml:1473
 msgid ""
 "Image pulled. Existing containers keep their current image until recreated."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1474
+#: contents/ui/backend/DockerBackend.qml:1474
 msgid "Pull failed (exit %1)"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1500
+#: contents/ui/backend/DockerBackend.qml:1500
 #: contents/ui/components/ActionDialogs.qml:253
 msgid "Clean up"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1500
+#: contents/ui/backend/DockerBackend.qml:1500
 msgid "Cleanup is unavailable for this engine."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1518
+#: contents/ui/backend/DockerBackend.qml:1518
 msgid "Measured: %1 freed (engine disk use %2 → %3)."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1520
+#: contents/ui/backend/DockerBackend.qml:1520
 msgid "Prune"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1521
+#: contents/ui/backend/DockerBackend.qml:1521
 msgid "Prune finished"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1521
+#: contents/ui/backend/DockerBackend.qml:1521
 msgid "Prune failed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1634
+#: contents/ui/backend/DockerBackend.qml:1634
 #: contents/ui/config/configAbout.qml:18
 #: contents/ui/config/configCommand.qml:751 contents/ui/main.qml:341
-#: contents/ui/Tooltip.qml:80 contents/ui/Views/DetachedWindow.qml:17
+#: contents/ui/Tooltip.qml:80 contents/ui/views/DetachedWindow.qml:17
 msgid "Dockmoid"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1645
+#: contents/ui/backend/DockerBackend.qml:1645
 msgid "Could not open %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1649
+#: contents/ui/backend/DockerBackend.qml:1649
 msgid "This container has no compose project folder"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1653
+#: contents/ui/backend/DockerBackend.qml:1653
 msgid "Start the container before opening a shell"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1656
+#: contents/ui/backend/DockerBackend.qml:1656
 msgid "This container has no supported shell"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1671
+#: contents/ui/backend/DockerBackend.qml:1671
 msgid "Could not open terminal"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1676
+#: contents/ui/backend/DockerBackend.qml:1676
 msgid "Open folder"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1676
+#: contents/ui/backend/DockerBackend.qml:1676
 msgid "Remote folders cannot be opened locally."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1696
+#: contents/ui/backend/DockerBackend.qml:1696
 msgid "Could not locate the container folder."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1702
+#: contents/ui/backend/DockerBackend.qml:1702
 msgid "No local project folder or bind mount was found."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1708
-#: contents/ui/Backend/DockerBackend.qml:2343
+#: contents/ui/backend/DockerBackend.qml:1708
+#: contents/ui/backend/DockerBackend.qml:2343
 #: contents/ui/components/ContainerActions.qml:282
 #: contents/ui/components/ContainerActions.qml:360
-#: contents/ui/config/configDisplay.qml:327 contents/ui/Views/DoctorPage.qml:59
-#: contents/ui/Views/DoctorPage.qml:68 contents/ui/Views/HomePage.qml:117
+#: contents/ui/config/configDisplay.qml:327 contents/ui/views/DoctorPage.qml:59
+#: contents/ui/views/DoctorPage.qml:68 contents/ui/views/HomePage.qml:117
 msgid "Compose"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1708
+#: contents/ui/backend/DockerBackend.qml:1708
 msgid "Remote files cannot be opened as local paths."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1711
+#: contents/ui/backend/DockerBackend.qml:1711
 msgid "This container has no compose file"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1767
+#: contents/ui/backend/DockerBackend.qml:1767
 msgid "Unsupported project name"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1779
+#: contents/ui/backend/DockerBackend.qml:1779
 msgid "Group started"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1780
+#: contents/ui/backend/DockerBackend.qml:1780
 msgid "Group stopped"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1781
+#: contents/ui/backend/DockerBackend.qml:1781
 msgid "Group restarted"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1786
+#: contents/ui/backend/DockerBackend.qml:1786
 msgid "Local service control is unavailable for this connection."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1792
+#: contents/ui/backend/DockerBackend.qml:1792
 msgid "Could not start Docker"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1799
+#: contents/ui/backend/DockerBackend.qml:1799
 msgid "Service control is only available for the local system engine."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1804
+#: contents/ui/backend/DockerBackend.qml:1804
 msgid "Could not stop Docker"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1809
+#: contents/ui/backend/DockerBackend.qml:1809
 msgid "Stop requested; checking engine state…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1810
+#: contents/ui/backend/DockerBackend.qml:1810
 msgid "Could not stop the Docker socket"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1847
-#: contents/ui/Views/PopupView.qml:614
+#: contents/ui/backend/DockerBackend.qml:1847
+#: contents/ui/views/PopupView.qml:614
 msgid "Logs — %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1860
+#: contents/ui/backend/DockerBackend.qml:1860
 #: contents/ui/components/ContainerActions.qml:372
 #: contents/ui/components/ContainerRow.qml:341
 msgid "Inspect — %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1862
+#: contents/ui/backend/DockerBackend.qml:1862
 msgid "Could not inspect container"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1921
+#: contents/ui/backend/DockerBackend.qml:1921
 msgid "%1 has used %2% CPU for a while"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1922
+#: contents/ui/backend/DockerBackend.qml:1922
 msgid "%1 is using %2% of its memory"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1984
+#: contents/ui/backend/DockerBackend.qml:1984
 msgid "%1 stopped answering at %2"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:1985
+#: contents/ui/backend/DockerBackend.qml:1985
 msgid "%1 answers again"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2058
+#: contents/ui/backend/DockerBackend.qml:2058
 msgid "error repeated %1 times in a row"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2058
+#: contents/ui/backend/DockerBackend.qml:2058
 msgid "error repeated %1 times"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2079
+#: contents/ui/backend/DockerBackend.qml:2079
 msgid "Remote Compose files need a verified local project mapping."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2080
+#: contents/ui/backend/DockerBackend.qml:2080
 msgid "Compose or the project's files are unavailable; use Pull image instead."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2087
+#: contents/ui/backend/DockerBackend.qml:2087
 msgid "Compose file or working directory is not accessible on this computer."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2098
+#: contents/ui/backend/DockerBackend.qml:2098
 msgid "Processes — %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2098
+#: contents/ui/backend/DockerBackend.qml:2098
 msgid "Filesystem Changes — %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2099
+#: contents/ui/backend/DockerBackend.qml:2099
 msgid "Port Mappings — %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2099
+#: contents/ui/backend/DockerBackend.qml:2099
 msgid "Health Checks — %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2100
+#: contents/ui/backend/DockerBackend.qml:2100
 msgid "Recent Events — %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2100
+#: contents/ui/backend/DockerBackend.qml:2100
 msgid "Usage Snapshot — %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2127
+#: contents/ui/backend/DockerBackend.qml:2127
 msgid "This container has no health check."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2132
+#: contents/ui/backend/DockerBackend.qml:2132
 msgid "No events in the last 24 hours."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2133
+#: contents/ui/backend/DockerBackend.qml:2133
 msgid "No changes to the container's filesystem."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2134
-#: contents/ui/Backend/DockerBackend.qml:2471
+#: contents/ui/backend/DockerBackend.qml:2134
+#: contents/ui/backend/DockerBackend.qml:2471
 msgid "The command failed (exit %1)."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2207
+#: contents/ui/backend/DockerBackend.qml:2207
 msgid ""
 "This Compose file is on the remote host %1 and cannot be read from here."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2208
+#: contents/ui/backend/DockerBackend.qml:2208
 msgid "No Compose file is recorded for this container."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2210
+#: contents/ui/backend/DockerBackend.qml:2210
 msgid "The file could not be read."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2246
+#: contents/ui/backend/DockerBackend.qml:2246
 msgid ""
 "Review this before sharing it. Paths under your home, your user name, remote "
 "host names and IP addresses were replaced, but check the error lines "
 "yourself."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2257
+#: contents/ui/backend/DockerBackend.qml:2257
 msgid "Choose at least one existing container."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2265
+#: contents/ui/backend/DockerBackend.qml:2265
 msgid "No log lines in this window."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2272
+#: contents/ui/backend/DockerBackend.qml:2272
 msgid "Both containers must exist."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2276
+#: contents/ui/backend/DockerBackend.qml:2276
 msgid "The engine did not describe these containers."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2278
+#: contents/ui/backend/DockerBackend.qml:2278
 msgid ""
 "%1 publishes no ports: only containers on a shared network can reach it."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2280
+#: contents/ui/backend/DockerBackend.qml:2280
 msgid "all interfaces"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2280
+#: contents/ui/backend/DockerBackend.qml:2280
 msgid "this host only"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2281
+#: contents/ui/backend/DockerBackend.qml:2281
 msgid "host %1 → container %2 (%3)"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2284
+#: contents/ui/backend/DockerBackend.qml:2284
 msgid "%1 ↔ %2"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2285
+#: contents/ui/backend/DockerBackend.qml:2285
 msgid ""
 "One of them uses the host's network: it shares the host's addresses and "
 "ports instead of a container network."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2287
+#: contents/ui/backend/DockerBackend.qml:2287
 msgid "Shared networks:"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2291
-#: contents/ui/Backend/DockerBackend.qml:2292
+#: contents/ui/backend/DockerBackend.qml:2291
+#: contents/ui/backend/DockerBackend.qml:2292
 msgid "%1: %2 · reachable as %3"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2294
+#: contents/ui/backend/DockerBackend.qml:2294
 msgid ""
 "On a shared network each can reach the other by those names, on the "
 "container's own port (not the published host port)."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2296
+#: contents/ui/backend/DockerBackend.qml:2296
 msgid ""
 "No shared network: they cannot reach each other by name. Connect one to the "
 "other's network (Resources → Networks), or go through a published host port."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2298
-#: contents/ui/Backend/DockerBackend.qml:2299
+#: contents/ui/backend/DockerBackend.qml:2298
+#: contents/ui/backend/DockerBackend.qml:2299
 msgid "Only %1: %2"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2300
+#: contents/ui/backend/DockerBackend.qml:2300
 msgid "Published ports:"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2301
+#: contents/ui/backend/DockerBackend.qml:2301
 msgid ""
 "Inside a container, localhost is that container itself, not the host or "
 "another container."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2302
+#: contents/ui/backend/DockerBackend.qml:2302
 msgid ""
 "This shows configuration; it does not prove a connection succeeds "
 "(firewalls, the app's listen address and credentials still apply)."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2324
+#: contents/ui/backend/DockerBackend.qml:2324
 msgid "Restarted"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2339
+#: contents/ui/backend/DockerBackend.qml:2339
 #: contents/ui/config/configServices.qml:270
 msgid "project"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2339
+#: contents/ui/backend/DockerBackend.qml:2339
 msgid "Compose %1 — %2"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2341
+#: contents/ui/backend/DockerBackend.qml:2341
 msgid "This Compose action is unavailable."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2350
+#: contents/ui/backend/DockerBackend.qml:2350
 msgid "Pulling and recreating…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2350
+#: contents/ui/backend/DockerBackend.qml:2350
 msgid "Applying Compose action…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2364
+#: contents/ui/backend/DockerBackend.qml:2364
 msgid "The Compose configuration is valid."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2366
+#: contents/ui/backend/DockerBackend.qml:2366
 msgid "Unsupported action"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2379
+#: contents/ui/backend/DockerBackend.qml:2379
 msgid "Updated · left stopped"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2379
-#: contents/ui/Backend/DoctorController.qml:175
+#: contents/ui/backend/DockerBackend.qml:2379
+#: contents/ui/backend/DoctorController.qml:175
 msgid "Completed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2380
+#: contents/ui/backend/DockerBackend.qml:2380
 msgid "Failed — see the output"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2420
-#: contents/ui/Backend/DockerBackend.qml:2447
+#: contents/ui/backend/DockerBackend.qml:2420
+#: contents/ui/backend/DockerBackend.qml:2447
 #: contents/ui/components/SearchControl.qml:90
-#: contents/ui/Views/DoctorPage.qml:182 contents/ui/Views/PopupView.qml:984
-#: contents/ui/Views/ResourcesPage.qml:361
+#: contents/ui/views/DoctorPage.qml:182 contents/ui/views/PopupView.qml:984
+#: contents/ui/views/ResourcesPage.qml:361
 msgid "Resources"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2420
+#: contents/ui/backend/DockerBackend.qml:2420
 msgid "Resource browsing is not supported by this engine yet."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2434
+#: contents/ui/backend/DockerBackend.qml:2434
 msgid "Could not read %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2447
+#: contents/ui/backend/DockerBackend.qml:2447
 msgid "Removal is unavailable in this engine or mode."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2454
+#: contents/ui/backend/DockerBackend.qml:2454
 msgid "Removed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2454
+#: contents/ui/backend/DockerBackend.qml:2454
 msgid "Could not remove"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2469
+#: contents/ui/backend/DockerBackend.qml:2469
 msgid "This resource cannot be inspected."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2478
+#: contents/ui/backend/DockerBackend.qml:2478
 msgid "Pulling…"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2480
+#: contents/ui/backend/DockerBackend.qml:2480
 msgid "Image is up to date"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2492
-#: contents/ui/Views/PopupView.qml:966
+#: contents/ui/backend/DockerBackend.qml:2492
+#: contents/ui/views/PopupView.qml:966
 msgid "Connected to %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2492
+#: contents/ui/backend/DockerBackend.qml:2492
 msgid "Disconnected from %1"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2493
+#: contents/ui/backend/DockerBackend.qml:2493
 msgid "Network change failed"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2504
+#: contents/ui/backend/DockerBackend.qml:2504
 msgid "Nothing is unhealthy"
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2511
+#: contents/ui/backend/DockerBackend.qml:2511
 msgid "A running container and command are required."
 msgstr ""
 
-#: contents/ui/Backend/DockerBackend.qml:2514
+#: contents/ui/backend/DockerBackend.qml:2514
 msgid "This container has no supported shell."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:30
+#: contents/ui/backend/DoctorController.qml:30
 msgid "%1 is unhealthy"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:30
+#: contents/ui/backend/DoctorController.qml:30
 msgid ""
 "Its healthcheck is failing. Open Diagnose for the output and the recent log "
 "errors."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:32
+#: contents/ui/backend/DoctorController.qml:32
 #: contents/ui/components/EnginePlaceholder.qml:34
 msgid "%1 does not answer"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:32
+#: contents/ui/backend/DoctorController.qml:32
 msgid "Its web page did not respond at the last probe."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:35
+#: contents/ui/backend/DoctorController.qml:35
 msgid "%2 stopped unexpectedly once in the last day"
 msgid_plural "%2 stopped unexpectedly %1 times in the last day"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Backend/DoctorController.qml:35
+#: contents/ui/backend/DoctorController.qml:35
 msgid "Diagnose shows the exit codes and the log lines around them."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:40
+#: contents/ui/backend/DoctorController.qml:40
 msgid "%1: errors repeat in its logs"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:44
+#: contents/ui/backend/DoctorController.qml:44
 msgid "%1 restart in the last hour"
 msgid_plural "%1 restarts in the last hour"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Backend/DoctorController.qml:44
+#: contents/ui/backend/DoctorController.qml:44
 msgid ""
 "Repeated restarts usually mean a crash loop. Diagnose names the container."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:45
+#: contents/ui/backend/DoctorController.qml:45
 msgid "%1 image has a newer version"
 msgid_plural "%1 images have newer versions"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Backend/DoctorController.qml:45
+#: contents/ui/backend/DoctorController.qml:45
 msgid ""
 "A newer image is not automatically a safe update: check its changes first."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:46
+#: contents/ui/backend/DoctorController.qml:46
 msgid "%1 Compose service is not deployed"
 msgid_plural "%1 Compose services are not deployed"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Backend/DoctorController.qml:46
+#: contents/ui/backend/DoctorController.qml:46
 msgid ""
 "Services behind a profile are optional by design. Others may be waiting for "
 "a deploy."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:47
+#: contents/ui/backend/DoctorController.qml:47
 #: contents/ui/components/EnginePlaceholder.qml:45
 msgid "The engine does not answer"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:47
+#: contents/ui/backend/DoctorController.qml:47
 msgid "Nothing else can be checked until it does."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:48
+#: contents/ui/backend/DoctorController.qml:48
 msgid "The log watch is off"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:48
+#: contents/ui/backend/DoctorController.qml:48
 msgid ""
 "Turn it on in Settings → Monitoring to be told about error loops in "
 "container logs."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:55
+#: contents/ui/backend/DoctorController.qml:55
 msgid "Connection changed · run Check again"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:60
+#: contents/ui/backend/DoctorController.qml:60
 msgid "Engine connection unavailable"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:60
+#: contents/ui/backend/DoctorController.qml:60
 msgid "The engine did not answer."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:64
+#: contents/ui/backend/DoctorController.qml:64
 #: contents/ui/components/ContainerTable.qml:387
 #: contents/ui/components/ServicePreview.qml:102
 #: contents/ui/components/StatusLine.qml:49
 #: contents/ui/components/StatusLine.qml:59
-#: contents/ui/Views/DetailPage.qml:159 contents/ui/Views/PopupView.qml:75
+#: contents/ui/views/DetailPage.qml:159 contents/ui/views/PopupView.qml:75
 msgid "Restarting"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:64
+#: contents/ui/backend/DoctorController.qml:64
 msgid "Health check failed"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:66
+#: contents/ui/backend/DoctorController.qml:66
 msgid "Optional (profile %1)"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:66
+#: contents/ui/backend/DoctorController.qml:66
 msgid ""
 "Configured service %1/%2 belongs to the Compose profile %3, so Compose only "
 "creates it when that profile is enabled or the service is named. This is "
 "usually intended."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:67
+#: contents/ui/backend/DoctorController.qml:67
 msgid ""
 "Configured service %1/%2 has no existing container. Nothing will start "
 "automatically."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:68
+#: contents/ui/backend/DoctorController.qml:68
 msgid "%1 recorded restarts"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:68
+#: contents/ui/backend/DoctorController.qml:68
 msgid ""
 "Docker reports a restart count of %1. This alone does not prove a restart "
 "loop. State: %2; exit code: %3"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:69
+#: contents/ui/backend/DoctorController.qml:69
 msgid "Image unavailable locally"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:69
+#: contents/ui/backend/DoctorController.qml:69
 msgid ""
 "The selected engine could not inspect this image. It may need pulling or may "
 "require registry access."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:74
+#: contents/ui/backend/DoctorController.qml:74
 msgid "Bind path unavailable"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:74
+#: contents/ui/backend/DoctorController.qml:74
 msgid ""
 "This path was missing or inaccessible to your user during Compose discovery. "
 "Verify mounts and permissions before starting."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:77
+#: contents/ui/backend/DoctorController.qml:77
 msgid "Compose discovery needs attention"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:78
+#: contents/ui/backend/DoctorController.qml:78
 msgid "Recent reported error"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:86
+#: contents/ui/backend/DoctorController.qml:86
 msgid "Reading engine diagnostics…"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:95
+#: contents/ui/backend/DoctorController.qml:95
 msgid "Checks complete · no changes made"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:97
+#: contents/ui/backend/DoctorController.qml:97
 msgid "Checking %1"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:106
+#: contents/ui/backend/DoctorController.qml:106
 msgid "Could not decode diagnostic output for %1"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:116
+#: contents/ui/backend/DoctorController.qml:116
 msgid "Source repository"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:116
+#: contents/ui/backend/DoctorController.qml:116
 #: contents/ui/components/ContainerActions.qml:258
 #: contents/ui/components/ContainerActions.qml:489
 #: contents/ui/components/ContainerTable.qml:55
 #: contents/ui/components/ContainerTable.qml:230
 #: contents/ui/components/ServicePreview.qml:176
-#: contents/ui/Views/DetailPage.qml:606 contents/ui/Views/PopupView.qml:139
+#: contents/ui/views/DetailPage.qml:606 contents/ui/views/PopupView.qml:139
 msgid "Project"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:116
-#: contents/ui/Views/DoctorPage.qml:169
+#: contents/ui/backend/DoctorController.qml:116
+#: contents/ui/views/DoctorPage.qml:169
 msgid "Documentation"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:116
+#: contents/ui/backend/DoctorController.qml:116
 msgid "Release notes"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:116
+#: contents/ui/backend/DoctorController.qml:116
 msgid "Issue tracker"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:120
+#: contents/ui/backend/DoctorController.qml:120
 msgid "Image metadata · %1"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:120
+#: contents/ui/backend/DoctorController.qml:120
 msgid "Compose/container label · %1"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:123
+#: contents/ui/backend/DoctorController.qml:123
 msgid "Compose label · %1"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:124
+#: contents/ui/backend/DoctorController.qml:124
 msgid "User supplied"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:129
+#: contents/ui/backend/DoctorController.qml:129
 msgid "Image registry"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:129
+#: contents/ui/backend/DoctorController.qml:129
 msgid "Derived from image reference; destination not verified"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:140
+#: contents/ui/backend/DoctorController.qml:140
 msgid ""
 "Download the image only. Existing containers and their running state are "
 "unchanged."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:141
+#: contents/ui/backend/DoctorController.qml:141
 msgid "Start this existing container."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:142
+#: contents/ui/backend/DoctorController.qml:142
 msgid "Restart this container. Its service will be interrupted."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:147
+#: contents/ui/backend/DoctorController.qml:147
 msgid ""
 "Create and start only this Compose service. Dependencies are not started."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:147
+#: contents/ui/backend/DoctorController.qml:147
 msgid ""
 "Pull and replace only this service, preserving its running/stopped state. "
 "Container writable-layer changes are lost; mounted data and volumes are "
 "retained."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:153
+#: contents/ui/backend/DoctorController.qml:153
 msgid ""
 "Warning: bind paths were missing or inaccessible during the last scan: %1. "
 "Starting with an unavailable mount can expose an empty directory instead of "
 "the intended data."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:159
+#: contents/ui/backend/DoctorController.qml:159
 msgid "Dangling images"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:159
+#: contents/ui/backend/DoctorController.qml:159
 msgid "Build cache"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:159
+#: contents/ui/backend/DoctorController.qml:159
 msgid ""
 "Remove only the selected unused data. Containers, networks, bind mounts and "
 "volumes are retained."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:168
+#: contents/ui/backend/DoctorController.qml:168
 msgid "Stopped: engine connection changed"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:169
+#: contents/ui/backend/DoctorController.qml:169
 msgid "Selected actions finished · review output"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:171
+#: contents/ui/backend/DoctorController.qml:171
 msgid "Skipped: state changed. Preview this action again."
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:172
+#: contents/ui/backend/DoctorController.qml:172
 msgid "Doctor · working…"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:172
+#: contents/ui/backend/DoctorController.qml:172
 msgid "Skipped: another action is running"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:173
+#: contents/ui/backend/DoctorController.qml:173
 msgid "Running %1"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:175
-#: contents/ui/Views/InspectorHealth.qml:92
+#: contents/ui/backend/DoctorController.qml:175
+#: contents/ui/views/InspectorHealth.qml:92
 msgid "Failed (exit %1)"
 msgstr ""
 
-#: contents/ui/Backend/DoctorController.qml:176
+#: contents/ui/backend/DoctorController.qml:176
 msgid "Doctor action completed"
 msgstr ""
 
-#: contents/ui/Backend/IconCatalog.qml:24
+#: contents/ui/backend/IconCatalog.qml:24
 msgid "%1: request timed out"
 msgstr ""
 
-#: contents/ui/Backend/IconCatalog.qml:50
+#: contents/ui/backend/IconCatalog.qml:50
 msgid "network error (HTTP %1)"
 msgstr ""
 
-#: contents/ui/Backend/SelectionController.qml:45
-#: contents/ui/Backend/SelectionController.qml:77
+#: contents/ui/backend/SelectionController.qml:45
+#: contents/ui/backend/SelectionController.qml:77
 msgid "no longer listed"
 msgstr ""
 
-#: contents/ui/Backend/SelectionController.qml:46
+#: contents/ui/backend/SelectionController.qml:46
 msgid "no newer image known"
 msgstr ""
 
-#: contents/ui/Backend/SelectionController.qml:47
+#: contents/ui/backend/SelectionController.qml:47
 msgid "not a Compose service, so it cannot be recreated safely"
 msgstr ""
 
-#: contents/ui/Backend/SelectionController.qml:86
+#: contents/ui/backend/SelectionController.qml:86
 msgid "refused"
 msgstr ""
 
-#: contents/ui/Backend/SelectionController.qml:111
+#: contents/ui/backend/SelectionController.qml:111
 msgid "no result reported"
 msgstr ""
 
-#: contents/ui/Backend/UpdateController.qml:26
+#: contents/ui/backend/UpdateController.qml:26
 msgid "Update batch cancelled because the connection changed"
 msgstr ""
 
-#: contents/ui/Backend/UpdateController.qml:118
+#: contents/ui/backend/UpdateController.qml:118
 msgid "A newer image is available: %2"
 msgid_plural "Newer images are available: %2"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Backend/UpdateController.qml:130
+#: contents/ui/backend/UpdateController.qml:130
 msgid ""
 "Pull and recreate requires an accessible Compose service. Use Pull image "
 "only, then recreate with the original deployment configuration."
 msgstr ""
 
-#: contents/ui/Backend/UpdateController.qml:156
+#: contents/ui/backend/UpdateController.qml:156
 msgid "Finished %1 selected actions"
 msgstr ""
 
-#: contents/ui/Backend/UpdateController.qml:157
-#: contents/ui/Views/PopupView.qml:505 contents/ui/Views/PopupView.qml:761
+#: contents/ui/backend/UpdateController.qml:157
+#: contents/ui/views/PopupView.qml:505 contents/ui/views/PopupView.qml:761
 msgid "Update results"
 msgstr ""
 
-#: contents/ui/Backend/UpdateController.qml:163
+#: contents/ui/backend/UpdateController.qml:163
 msgid "Processing %1 (%2 of %3)"
 msgstr ""
 
-#: contents/ui/Backend/UpdateController.qml:167
+#: contents/ui/backend/UpdateController.qml:167
 msgid "Pull and recreate"
 msgstr ""
 
-#: contents/ui/Backend/UpdateController.qml:167
+#: contents/ui/backend/UpdateController.qml:167
 msgid "Pull image only"
 msgstr ""
 
@@ -1422,19 +1422,19 @@ msgstr ""
 
 #: contents/ui/components/ActionDialogs.qml:71
 #: contents/ui/config/StructuredRulesEditor.qml:152
-#: contents/ui/Views/ResourcesPage.qml:609
+#: contents/ui/views/ResourcesPage.qml:609
 msgid "Remove"
 msgstr ""
 
 #: contents/ui/components/ActionDialogs.qml:71
 #: contents/ui/components/ActionDialogs.qml:142
 #: contents/ui/components/CustomIconDialog.qml:217
-#: contents/ui/Views/PopupView.qml:1412
+#: contents/ui/views/PopupView.qml:1412
 msgid "Cancel"
 msgstr ""
 
 #: contents/ui/components/ActionDialogs.qml:86
-#: contents/ui/Views/ResourcesPage.qml:230
+#: contents/ui/views/ResourcesPage.qml:230
 msgid "Remove %1?"
 msgstr ""
 
@@ -1532,8 +1532,8 @@ msgstr ""
 #: contents/ui/components/ComposeGroupView.qml:128
 #: contents/ui/components/ContainerList.qml:101
 #: contents/ui/components/ContainerTable.qml:496 contents/ui/main.qml:62
-#: contents/ui/main.qml:66 contents/ui/Views/DetachedPlaceholder.qml:46
-#: contents/ui/Views/HomePage.qml:348
+#: contents/ui/main.qml:66 contents/ui/views/DetachedPlaceholder.qml:46
+#: contents/ui/views/HomePage.qml:348
 msgid "%1 is not running"
 msgstr ""
 
@@ -1554,10 +1554,10 @@ msgstr ""
 #: contents/ui/components/ContainerActions.qml:372
 #: contents/ui/components/ContainerRow.qml:332
 #: contents/ui/components/ContainerRow.qml:341
-#: contents/ui/Views/DetailPage.qml:876 contents/ui/Views/DiagnosePage.qml:159
-#: contents/ui/Views/InspectorCompose.qml:120
-#: contents/ui/Views/InspectorEvents.qml:32 contents/ui/Views/PopupView.qml:615
-#: contents/ui/Views/ResourcesPage.qml:178
+#: contents/ui/views/DetailPage.qml:876 contents/ui/views/DiagnosePage.qml:159
+#: contents/ui/views/InspectorCompose.qml:120
+#: contents/ui/views/InspectorEvents.qml:32 contents/ui/views/PopupView.qml:615
+#: contents/ui/views/ResourcesPage.qml:178
 msgid "Loading…"
 msgstr ""
 
@@ -1593,10 +1593,10 @@ msgstr ""
 #: contents/ui/components/ContainerActions.qml:255
 #: contents/ui/components/ContainerTable.qml:48
 #: contents/ui/components/ContainerTable.qml:223
-#: contents/ui/Views/DeploymentPage.qml:175
-#: contents/ui/Views/DeploymentPage.qml:362
-#: contents/ui/Views/DeploymentPage.qml:371 contents/ui/Views/PopupView.qml:138
-#: contents/ui/Views/ResourcesPage.qml:71
+#: contents/ui/views/DeploymentPage.qml:175
+#: contents/ui/views/DeploymentPage.qml:362
+#: contents/ui/views/DeploymentPage.qml:371 contents/ui/views/PopupView.qml:138
+#: contents/ui/views/ResourcesPage.qml:71
 msgid "Name"
 msgstr ""
 
@@ -1610,8 +1610,8 @@ msgstr ""
 #: contents/ui/components/ContainerTable.qml:53
 #: contents/ui/components/ContainerTable.qml:228
 #: contents/ui/config/configServices.qml:264
-#: contents/ui/Views/DeploymentPage.qml:289
-#: contents/ui/Views/DetailPage.qml:600
+#: contents/ui/views/DeploymentPage.qml:289
+#: contents/ui/views/DetailPage.qml:600
 msgid "Image"
 msgstr ""
 
@@ -1624,7 +1624,7 @@ msgid "Logs Command"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:259
-#: contents/ui/Views/DetailPage.qml:607
+#: contents/ui/views/DetailPage.qml:607
 msgid "Service"
 msgstr ""
 
@@ -1635,7 +1635,7 @@ msgstr ""
 #: contents/ui/components/ContainerActions.qml:284
 #: contents/ui/components/ContainerActions.qml:531
 #: contents/ui/components/ContainerGrid.qml:252
-#: contents/ui/Views/DetailPage.qml:392 contents/ui/Views/ResourcesPage.qml:760
+#: contents/ui/views/DetailPage.qml:392 contents/ui/views/ResourcesPage.qml:760
 msgid "Inspect"
 msgstr ""
 
@@ -1643,7 +1643,7 @@ msgstr ""
 #: contents/ui/components/ContainerTable.qml:50
 #: contents/ui/components/ContainerTable.qml:225
 #: contents/ui/components/ServicePreview.qml:174
-#: contents/ui/Views/DetailPage.qml:570
+#: contents/ui/views/DetailPage.qml:570
 msgid "Status"
 msgstr ""
 
@@ -1652,29 +1652,29 @@ msgstr ""
 #: contents/ui/components/ContainerActions.qml:431
 #: contents/ui/components/ContainerRow.qml:328
 #: contents/ui/config/configDisplay.qml:327
-#: contents/ui/Views/DeploymentPage.qml:432
-#: contents/ui/Views/DetailPage.qml:383 contents/ui/Views/DoctorPage.qml:138
-#: contents/ui/Views/DoctorPage.qml:166 contents/ui/Views/HomePage.qml:115
-#: contents/ui/Views/InspectorHealth.qml:166
+#: contents/ui/views/DeploymentPage.qml:432
+#: contents/ui/views/DetailPage.qml:383 contents/ui/views/DoctorPage.qml:138
+#: contents/ui/views/DoctorPage.qml:166 contents/ui/views/HomePage.qml:115
+#: contents/ui/views/InspectorHealth.qml:166
 msgid "Logs"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:287
 #: contents/ui/components/ContainerActions.qml:302
-#: contents/ui/Views/ResourcesPage.qml:372
+#: contents/ui/views/ResourcesPage.qml:372
 msgid "Images"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:288
 #: contents/ui/components/ContainerActions.qml:534
 #: contents/ui/components/ServicePreview.qml:222
-#: contents/ui/Views/DetailPage.qml:765
+#: contents/ui/views/DetailPage.qml:765
 msgid "Processes"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:289
 #: contents/ui/components/ContainerActions.qml:357
-#: contents/ui/Views/InspectorCompose.qml:52
+#: contents/ui/views/InspectorCompose.qml:52
 msgid "Validate Configuration"
 msgstr ""
 
@@ -1694,17 +1694,17 @@ msgstr ""
 #: contents/ui/components/ContainerActions.qml:296
 #: contents/ui/components/ContainerActions.qml:447
 #: contents/ui/components/ServicePreview.qml:134
-#: contents/ui/Views/DetailPage.qml:237 contents/ui/Views/DiagnosePage.qml:179
-#: contents/ui/Views/HomePage.qml:318 contents/ui/Views/PopupView.qml:670
+#: contents/ui/views/DetailPage.qml:237 contents/ui/views/DiagnosePage.qml:179
+#: contents/ui/views/HomePage.qml:318 contents/ui/views/PopupView.qml:670
 msgid "Start"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:297
 #: contents/ui/components/ContainerActions.qml:448
 #: contents/ui/components/ServicePreview.qml:134
-#: contents/ui/Views/DetailPage.qml:237 contents/ui/Views/HomePage.qml:318
-#: contents/ui/Views/InspectorHealth.qml:165
-#: contents/ui/Views/PopupView.qml:670
+#: contents/ui/views/DetailPage.qml:237 contents/ui/views/HomePage.qml:318
+#: contents/ui/views/InspectorHealth.qml:165
+#: contents/ui/views/PopupView.qml:670
 msgid "Stop"
 msgstr ""
 
@@ -1712,22 +1712,22 @@ msgstr ""
 #: contents/ui/components/ContainerActions.qml:316
 #: contents/ui/components/ContainerActions.qml:451
 #: contents/ui/components/ServicePreview.qml:140
-#: contents/ui/Views/DetailPage.qml:245 contents/ui/Views/DiagnosePage.qml:180
-#: contents/ui/Views/HomePage.qml:319 contents/ui/Views/InspectorHealth.qml:164
-#: contents/ui/Views/PopupView.qml:670
+#: contents/ui/views/DetailPage.qml:245 contents/ui/views/DiagnosePage.qml:180
+#: contents/ui/views/HomePage.qml:319 contents/ui/views/InspectorHealth.qml:164
+#: contents/ui/views/PopupView.qml:670
 msgid "Restart"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:299
 #: contents/ui/components/ContainerActions.qml:449
-#: contents/ui/Views/DetailPage.qml:253
+#: contents/ui/views/DetailPage.qml:253
 msgid "Pause"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:300
 #: contents/ui/components/ContainerActions.qml:450
 #: contents/ui/components/ServicePreview.qml:146
-#: contents/ui/Views/DetailPage.qml:253 contents/ui/Views/DiagnosePage.qml:181
+#: contents/ui/views/DetailPage.qml:253 contents/ui/views/DiagnosePage.qml:181
 msgid "Resume"
 msgstr ""
 
@@ -1902,9 +1902,9 @@ msgstr ""
 #: contents/ui/components/ContainerRow.qml:326
 #: contents/ui/components/ContainerTable.qml:410
 #: contents/ui/components/ServicePreview.qml:155
-#: contents/ui/Views/DeploymentPage.qml:431
-#: contents/ui/Views/DiagnosePage.qml:184 contents/ui/Views/DoctorPage.qml:137
-#: contents/ui/Views/InspectorHealth.qml:167
+#: contents/ui/views/DeploymentPage.qml:431
+#: contents/ui/views/DiagnosePage.qml:184 contents/ui/views/DoctorPage.qml:137
+#: contents/ui/views/InspectorHealth.qml:167
 msgid "Details"
 msgstr ""
 
@@ -1914,21 +1914,21 @@ msgid "Create and Start"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:427
-#: contents/ui/Views/DeploymentPage.qml:285
-#: contents/ui/Views/DetailPage.qml:658
+#: contents/ui/views/DeploymentPage.qml:285
+#: contents/ui/views/DetailPage.qml:658
 msgid "Container"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:430
 #: contents/ui/components/ServicePreview.qml:151
-#: contents/ui/Views/DeploymentPage.qml:436
+#: contents/ui/views/DeploymentPage.qml:436
 msgid "Web"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:433
-#: contents/ui/Views/DetailPage.qml:374 contents/ui/Views/DoctorPage.qml:106
-#: contents/ui/Views/DoctorPage.qml:167
-#: contents/ui/Views/InspectorHealth.qml:163
+#: contents/ui/views/DetailPage.qml:374 contents/ui/views/DoctorPage.qml:106
+#: contents/ui/views/DoctorPage.qml:167
+#: contents/ui/views/InspectorHealth.qml:163
 msgid "Diagnose"
 msgstr ""
 
@@ -1942,7 +1942,7 @@ msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:437
 #: contents/ui/components/ContainerActions.qml:439
-#: contents/ui/Views/HomePage.qml:433
+#: contents/ui/views/HomePage.qml:433
 msgid "Select"
 msgstr ""
 
@@ -1951,12 +1951,12 @@ msgid "Manage"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:452
-#: contents/ui/Views/DetailPage.qml:262
+#: contents/ui/views/DetailPage.qml:262
 msgid "Kill"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:453
-#: contents/ui/Views/DiagnosePage.qml:182 contents/ui/Views/HomePage.qml:319
+#: contents/ui/views/DiagnosePage.qml:182 contents/ui/views/HomePage.qml:319
 msgid "Update…"
 msgstr ""
 
@@ -1983,12 +1983,12 @@ msgid ""
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:464
-#: contents/ui/Views/ResourcesPage.qml:787
+#: contents/ui/views/ResourcesPage.qml:787
 msgid "Remove…"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:469
-#: contents/ui/Views/DetailPage.qml:615
+#: contents/ui/views/DetailPage.qml:615
 msgid "Autostart"
 msgstr ""
 
@@ -2006,7 +2006,7 @@ msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:471
 #: contents/ui/config/configStorage.qml:191
-#: contents/ui/Views/DeploymentPage.qml:35
+#: contents/ui/views/DeploymentPage.qml:35
 msgid "Always"
 msgstr ""
 
@@ -2083,7 +2083,7 @@ msgid "Filesystem Changes"
 msgstr ""
 
 #: contents/ui/components/ContainerActions.qml:539
-#: contents/ui/Views/InspectorHealth.qml:134
+#: contents/ui/views/InspectorHealth.qml:134
 msgid "Recent Events"
 msgstr ""
 
@@ -2129,7 +2129,7 @@ msgstr ""
 
 #: contents/ui/components/ContainerGrid.qml:120
 #: contents/ui/components/ContainerRow.qml:122
-#: contents/ui/Views/PopupView.qml:539
+#: contents/ui/views/PopupView.qml:539
 msgid "Select %1"
 msgstr ""
 
@@ -2199,7 +2199,7 @@ msgstr ""
 #: contents/ui/components/ContainerRow.qml:358
 #: contents/ui/components/ContainerRow.qml:451
 #: contents/ui/components/ContainerTable.qml:415 contents/ui/main.qml:399
-#: contents/ui/Views/PopupView.qml:1412
+#: contents/ui/views/PopupView.qml:1412
 msgid "Stop %1"
 msgstr ""
 
@@ -2232,7 +2232,7 @@ msgstr ""
 
 #: contents/ui/components/ContainerRow.qml:183
 #: contents/ui/components/ServicePreview.qml:109
-#: contents/ui/Views/DetailPage.qml:275 contents/ui/Views/PopupView.qml:670
+#: contents/ui/views/DetailPage.qml:275 contents/ui/views/PopupView.qml:670
 msgid "Update"
 msgstr ""
 
@@ -2331,7 +2331,7 @@ msgid "Recovery options: logs, restart or update"
 msgstr ""
 
 #: contents/ui/components/ContainerRow.qml:467
-#: contents/ui/Views/PopupView.qml:1039
+#: contents/ui/views/PopupView.qml:1039
 msgid "More"
 msgstr ""
 
@@ -2343,7 +2343,7 @@ msgstr ""
 
 #: contents/ui/components/ContainerTable.qml:51
 #: contents/ui/components/ContainerTable.qml:226
-#: contents/ui/Views/PopupView.qml:138
+#: contents/ui/views/PopupView.qml:138
 msgid "CPU"
 msgstr ""
 
@@ -2355,15 +2355,15 @@ msgstr ""
 #: contents/ui/components/ContainerTable.qml:54
 #: contents/ui/components/ContainerTable.qml:229
 #: contents/ui/components/ServicePreview.qml:177
-#: contents/ui/Views/DeploymentPage.qml:304
-#: contents/ui/Views/DetailPage.qml:779
+#: contents/ui/views/DeploymentPage.qml:304
+#: contents/ui/views/DetailPage.qml:779
 msgid "Ports"
 msgstr ""
 
 #: contents/ui/components/ContainerTable.qml:57
 #: contents/ui/components/ContainerTable.qml:232
 #: contents/ui/components/ServicePreview.qml:178
-#: contents/ui/Views/DetailPage.qml:786 contents/ui/Views/ResourcesPage.qml:374
+#: contents/ui/views/DetailPage.qml:786 contents/ui/views/ResourcesPage.qml:374
 msgid "Networks"
 msgstr ""
 
@@ -2400,7 +2400,7 @@ msgstr ""
 #: contents/ui/components/StatusLine.qml:58
 #: contents/ui/config/configDisplay.qml:474
 #: contents/ui/config/configDisplay.qml:516
-#: contents/ui/Views/DetailPage.qml:158 contents/ui/Views/PopupView.qml:74
+#: contents/ui/views/DetailPage.qml:158 contents/ui/views/PopupView.qml:74
 msgid "Paused"
 msgstr ""
 
@@ -2728,8 +2728,8 @@ msgstr ""
 msgid "Pinned"
 msgstr ""
 
-#: contents/ui/components/ListSection.qml:21 contents/ui/Views/HomePage.qml:55
-#: contents/ui/Views/PopupView.qml:72 contents/ui/Views/PopupView.qml:80
+#: contents/ui/components/ListSection.qml:21 contents/ui/views/HomePage.qml:55
+#: contents/ui/views/PopupView.qml:72 contents/ui/views/PopupView.qml:80
 msgid "Needs Attention"
 msgstr ""
 
@@ -2737,20 +2737,20 @@ msgstr ""
 #: contents/ui/components/ServicePreview.qml:100
 #: contents/ui/components/StatusLine.qml:45
 #: contents/ui/config/configDisplay.qml:513
-#: contents/ui/Views/DeploymentPage.qml:30 contents/ui/Views/DetailPage.qml:161
-#: contents/ui/Views/DoctorPage.qml:118 contents/ui/Views/PopupView.qml:69
+#: contents/ui/views/DeploymentPage.qml:30 contents/ui/views/DetailPage.qml:161
+#: contents/ui/views/DoctorPage.qml:118 contents/ui/views/PopupView.qml:69
 msgid "Running"
 msgstr ""
 
 #: contents/ui/components/ListSection.qml:23
 #: contents/ui/components/ServicePreview.qml:102
 #: contents/ui/components/StatusLine.qml:51
-#: contents/ui/Views/DetailPage.qml:162 contents/ui/Views/DoctorPage.qml:119
-#: contents/ui/Views/PopupView.qml:70
+#: contents/ui/views/DetailPage.qml:162 contents/ui/views/DoctorPage.qml:119
+#: contents/ui/views/PopupView.qml:70
 msgid "Stopped"
 msgstr ""
 
-#: contents/ui/components/ListSection.qml:24 contents/ui/Views/PopupView.qml:71
+#: contents/ui/components/ListSection.qml:24 contents/ui/views/PopupView.qml:71
 msgid "Pending Deployment"
 msgstr ""
 
@@ -2890,7 +2890,7 @@ msgid "Go to…"
 msgstr ""
 
 #: contents/ui/components/SearchControl.qml:53
-#: contents/ui/Views/DeploymentPage.qml:165
+#: contents/ui/views/DeploymentPage.qml:165
 msgid "Search Docker Hub…"
 msgstr ""
 
@@ -2911,36 +2911,36 @@ msgstr ""
 #: contents/ui/components/SearchControl.qml:90
 #: contents/ui/components/SearchControl.qml:188
 #: contents/ui/config/configDisplay.qml:35
-#: contents/ui/config/configDisplay.qml:368 contents/ui/Views/DoctorPage.qml:59
-#: contents/ui/Views/DoctorPage.qml:67
+#: contents/ui/config/configDisplay.qml:368 contents/ui/views/DoctorPage.qml:59
+#: contents/ui/views/DoctorPage.qml:67
 msgid "Containers"
 msgstr ""
 
 #: contents/ui/components/SearchControl.qml:90
-#: contents/ui/Views/DeploymentPage.qml:134 contents/ui/Views/PopupView.qml:974
+#: contents/ui/views/DeploymentPage.qml:134 contents/ui/views/PopupView.qml:974
 msgid "Deploy"
 msgstr ""
 
 #: contents/ui/components/SearchControl.qml:91
 #: contents/ui/components/ServicePreview.qml:175
-#: contents/ui/Views/DetailPage.qml:573 contents/ui/Views/DiagnosePage.qml:97
-#: contents/ui/Views/HomePage.qml:118 contents/ui/Views/InspectorHealth.qml:80
+#: contents/ui/views/DetailPage.qml:573 contents/ui/views/DiagnosePage.qml:97
+#: contents/ui/views/HomePage.qml:118 contents/ui/views/InspectorHealth.qml:80
 msgid "Health"
 msgstr ""
 
 #: contents/ui/components/SearchControl.qml:91
-#: contents/ui/Views/DoctorPage.qml:47 contents/ui/Views/PopupView.qml:994
+#: contents/ui/views/DoctorPage.qml:47 contents/ui/views/PopupView.qml:994
 msgid "Doctor"
 msgstr ""
 
 #: contents/ui/components/SearchControl.qml:91
-#: contents/ui/Views/ActivityPage.qml:42 contents/ui/Views/PopupView.qml:1003
-#: contents/ui/Views/PopupView.qml:1218
+#: contents/ui/views/ActivityPage.qml:42 contents/ui/views/PopupView.qml:1003
+#: contents/ui/views/PopupView.qml:1218
 msgid "Activity"
 msgstr ""
 
 #: contents/ui/components/SearchControl.qml:92
-#: contents/ui/Views/PopupView.qml:830 contents/ui/Views/PopupView.qml:832
+#: contents/ui/views/PopupView.qml:830 contents/ui/views/PopupView.qml:832
 msgid "Problem Report"
 msgstr ""
 
@@ -2953,8 +2953,8 @@ msgid "Search in: %1 (press to change)"
 msgstr ""
 
 #: contents/ui/components/SearchControl.qml:171
-#: contents/ui/Views/DeploymentPage.qml:166
-#: contents/ui/Views/PopupView.qml:1225
+#: contents/ui/views/DeploymentPage.qml:166
+#: contents/ui/views/PopupView.qml:1225
 msgid "Search"
 msgstr ""
 
@@ -2967,7 +2967,7 @@ msgid "Docker Hub Images"
 msgstr ""
 
 #: contents/ui/components/SearchControl.qml:232
-#: contents/ui/Views/PopupView.qml:640
+#: contents/ui/views/PopupView.qml:640
 msgctxt "container (project)"
 msgid "%1 (%2)"
 msgstr ""
@@ -3002,33 +3002,33 @@ msgid "Select a container above to see its details here, with quick actions."
 msgstr ""
 
 #: contents/ui/components/ServicePreview.qml:179
-#: contents/ui/Views/DeploymentPage.qml:320
-#: contents/ui/Views/DetailPage.qml:696
+#: contents/ui/views/DeploymentPage.qml:320
+#: contents/ui/views/DetailPage.qml:696
 msgid "Mounts"
 msgstr ""
 
 #: contents/ui/components/ServicePreview.qml:187
-#: contents/ui/Views/DetailPage.qml:714
+#: contents/ui/views/DetailPage.qml:714
 msgid "Usage"
 msgstr ""
 
 #: contents/ui/components/ServicePreview.qml:197
-#: contents/ui/Views/DetailPage.qml:729
+#: contents/ui/views/DetailPage.qml:729
 msgid "CPU %1"
 msgstr ""
 
 #: contents/ui/components/ServicePreview.qml:210
-#: contents/ui/Views/DetailPage.qml:677 contents/ui/Views/DetailPage.qml:743
+#: contents/ui/views/DetailPage.qml:677 contents/ui/views/DetailPage.qml:743
 msgid "Memory %1"
 msgstr ""
 
 #: contents/ui/components/ServicePreview.qml:220
-#: contents/ui/Views/DetailPage.qml:762
+#: contents/ui/views/DetailPage.qml:762
 msgid "Memory used"
 msgstr ""
 
 #: contents/ui/components/ServicePreview.qml:221
-#: contents/ui/Views/DetailPage.qml:763
+#: contents/ui/views/DetailPage.qml:763
 msgid "Net I/O"
 msgstr ""
 
@@ -3050,10 +3050,10 @@ msgstr ""
 
 #: contents/ui/components/StatusBar.qml:78
 #: contents/ui/config/configGeneral.qml:31 contents/ui/main.qml:379
-#: contents/ui/Views/DetachedPlaceholder.qml:58
-#: contents/ui/Views/PopupView.qml:790 contents/ui/Views/PopupView.qml:1069
-#: contents/ui/Views/ResourcesPage.qml:397
-#: contents/ui/Views/ResourcesPage.qml:630
+#: contents/ui/views/DetachedPlaceholder.qml:58
+#: contents/ui/views/PopupView.qml:790 contents/ui/views/PopupView.qml:1069
+#: contents/ui/views/ResourcesPage.qml:397
+#: contents/ui/views/ResourcesPage.qml:630
 msgid "Refresh"
 msgstr ""
 
@@ -3205,8 +3205,8 @@ msgstr ""
 msgid "Profiles"
 msgstr ""
 
-#: contents/ui/config/configCommand.qml:61 contents/ui/Views/DoctorPage.qml:59
-#: contents/ui/Views/DoctorPage.qml:70
+#: contents/ui/config/configCommand.qml:61 contents/ui/views/DoctorPage.qml:59
+#: contents/ui/views/DoctorPage.qml:70
 msgid "About"
 msgstr ""
 
@@ -3642,7 +3642,7 @@ msgstr ""
 
 #: contents/ui/config/configDisplay.qml:168
 #: contents/ui/config/configDisplay.qml:333
-#: contents/ui/Views/PopupView.qml:1266
+#: contents/ui/views/PopupView.qml:1266
 msgid "Nothing"
 msgstr ""
 
@@ -3724,19 +3724,19 @@ msgstr ""
 msgid "Open with:"
 msgstr ""
 
-#: contents/ui/config/configDisplay.qml:232 contents/ui/Views/PopupView.qml:131
+#: contents/ui/config/configDisplay.qml:232 contents/ui/views/PopupView.qml:131
 msgid "List"
 msgstr ""
 
-#: contents/ui/config/configDisplay.qml:232 contents/ui/Views/PopupView.qml:132
+#: contents/ui/config/configDisplay.qml:232 contents/ui/views/PopupView.qml:132
 msgid "Table"
 msgstr ""
 
-#: contents/ui/config/configDisplay.qml:232 contents/ui/Views/PopupView.qml:134
+#: contents/ui/config/configDisplay.qml:232 contents/ui/views/PopupView.qml:134
 msgid "Groups"
 msgstr ""
 
-#: contents/ui/config/configDisplay.qml:232 contents/ui/Views/PopupView.qml:133
+#: contents/ui/config/configDisplay.qml:232 contents/ui/views/PopupView.qml:133
 msgid "Grid"
 msgstr ""
 
@@ -3746,25 +3746,25 @@ msgstr ""
 
 #: contents/ui/config/configDisplay.qml:238
 #: contents/ui/config/configDisplay.qml:243
-#: contents/ui/config/configDisplay.qml:250 contents/ui/Views/PopupView.qml:45
+#: contents/ui/config/configDisplay.qml:250 contents/ui/views/PopupView.qml:45
 msgid "Minimal"
 msgstr ""
 
 #: contents/ui/config/configDisplay.qml:238
 #: contents/ui/config/configDisplay.qml:243
-#: contents/ui/config/configDisplay.qml:250 contents/ui/Views/PopupView.qml:45
+#: contents/ui/config/configDisplay.qml:250 contents/ui/views/PopupView.qml:45
 msgid "Normal"
 msgstr ""
 
 #: contents/ui/config/configDisplay.qml:238
 #: contents/ui/config/configDisplay.qml:243
-#: contents/ui/config/configDisplay.qml:250 contents/ui/Views/PopupView.qml:45
+#: contents/ui/config/configDisplay.qml:250 contents/ui/views/PopupView.qml:45
 msgid "Detailed"
 msgstr ""
 
 #: contents/ui/config/configDisplay.qml:238
 #: contents/ui/config/configDisplay.qml:243
-#: contents/ui/config/configDisplay.qml:250 contents/ui/Views/PopupView.qml:45
+#: contents/ui/config/configDisplay.qml:250 contents/ui/views/PopupView.qml:45
 msgid "Verbose"
 msgstr ""
 
@@ -3804,22 +3804,22 @@ msgid "Toolbar buttons:"
 msgstr ""
 
 #: contents/ui/config/configDisplay.qml:274
-#: contents/ui/Views/PopupView.qml:1160
+#: contents/ui/views/PopupView.qml:1160
 msgid "Icons only"
 msgstr ""
 
 #: contents/ui/config/configDisplay.qml:274
-#: contents/ui/Views/PopupView.qml:1160
+#: contents/ui/views/PopupView.qml:1160
 msgid "Text beside icons"
 msgstr ""
 
 #: contents/ui/config/configDisplay.qml:274
-#: contents/ui/Views/PopupView.qml:1160
+#: contents/ui/views/PopupView.qml:1160
 msgid "Text only"
 msgstr ""
 
 #: contents/ui/config/configDisplay.qml:274
-#: contents/ui/Views/PopupView.qml:1160
+#: contents/ui/views/PopupView.qml:1160
 msgid "Text below icons"
 msgstr ""
 
@@ -3909,13 +3909,13 @@ msgid "Opens on:"
 msgstr ""
 
 #: contents/ui/config/configDisplay.qml:327
-#: contents/ui/Views/DetailPage.qml:364 contents/ui/Views/DetailPage.qml:567
-#: contents/ui/Views/DoctorPage.qml:59 contents/ui/Views/DoctorPage.qml:66
-#: contents/ui/Views/HomePage.qml:114
+#: contents/ui/views/DetailPage.qml:364 contents/ui/views/DetailPage.qml:567
+#: contents/ui/views/DoctorPage.qml:59 contents/ui/views/DoctorPage.qml:66
+#: contents/ui/views/HomePage.qml:114
 msgid "Overview"
 msgstr ""
 
-#: contents/ui/config/configDisplay.qml:327 contents/ui/Views/HomePage.qml:116
+#: contents/ui/config/configDisplay.qml:327 contents/ui/views/HomePage.qml:116
 msgid "Events"
 msgstr ""
 
@@ -4186,7 +4186,7 @@ msgstr ""
 msgid "Middle click:"
 msgstr ""
 
-#: contents/ui/config/configDisplay.qml:605 contents/ui/Views/OutputPage.qml:92
+#: contents/ui/config/configDisplay.qml:605 contents/ui/views/OutputPage.qml:92
 msgid "Refresh now"
 msgstr ""
 
@@ -4211,7 +4211,7 @@ msgstr ""
 #: contents/ui/config/configMonitoring.qml:145
 #: contents/ui/config/configMonitoring.qml:154
 #: contents/ui/config/configMonitoring.qml:299
-#: contents/ui/Views/PopupView.qml:793
+#: contents/ui/views/PopupView.qml:793
 msgid "%1 second"
 msgid_plural "%1 seconds"
 msgstr[0] ""
@@ -4535,7 +4535,7 @@ msgid "never"
 msgstr ""
 
 #: contents/ui/config/configMonitoring.qml:173
-#: contents/ui/Views/PopupView.qml:794
+#: contents/ui/views/PopupView.qml:794
 msgid "%1 minute"
 msgid_plural "%1 minutes"
 msgstr[0] ""
@@ -4803,8 +4803,8 @@ msgid "Scope"
 msgstr ""
 
 #: contents/ui/config/configNetwork.qml:166
-#: contents/ui/Views/DeploymentPage.qml:297
-#: contents/ui/Views/DetailPage.qml:670
+#: contents/ui/views/DeploymentPage.qml:297
+#: contents/ui/views/DetailPage.qml:670
 msgid "Command"
 msgstr ""
 
@@ -5081,12 +5081,12 @@ msgid "Restart policy:"
 msgstr ""
 
 #: contents/ui/config/configStorage.qml:190
-#: contents/ui/Views/DeploymentPage.qml:35
+#: contents/ui/views/DeploymentPage.qml:35
 msgid "Unless stopped"
 msgstr ""
 
 #: contents/ui/config/configStorage.qml:192
-#: contents/ui/Views/DeploymentPage.qml:35
+#: contents/ui/views/DeploymentPage.qml:35
 msgid "On failure"
 msgstr ""
 
@@ -5120,11 +5120,11 @@ msgstr ""
 msgid "Reported storage root:"
 msgstr ""
 
-#: contents/ui/config/configStorage.qml:230 contents/ui/Views/PopupView.qml:548
+#: contents/ui/config/configStorage.qml:230 contents/ui/views/PopupView.qml:548
 msgid "Not checked"
 msgstr ""
 
-#: contents/ui/config/configStorage.qml:236 contents/ui/Views/PopupView.qml:559
+#: contents/ui/config/configStorage.qml:236 contents/ui/views/PopupView.qml:559
 msgid "Checking…"
 msgstr ""
 
@@ -5275,13 +5275,13 @@ msgid_plural "%1 seconds ago"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Tooltip.qml:44 contents/ui/Views/DetailPage.qml:66
+#: contents/ui/Tooltip.qml:44 contents/ui/views/DetailPage.qml:66
 msgid "%1 minute ago"
 msgid_plural "%1 minutes ago"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Tooltip.qml:46 contents/ui/Views/DetailPage.qml:67
+#: contents/ui/Tooltip.qml:46 contents/ui/views/DetailPage.qml:67
 msgid "%1 hour ago"
 msgid_plural "%1 hours ago"
 msgstr[0] ""
@@ -5356,931 +5356,931 @@ msgstr ""
 msgid "Middle-click to refresh containers and usage"
 msgstr ""
 
-#: contents/ui/Views/ActivityPage.qml:43
+#: contents/ui/views/ActivityPage.qml:43
 msgid "Nothing has changed since Dockmoid started"
 msgstr ""
 
-#: contents/ui/Views/ActivityPage.qml:44
+#: contents/ui/views/ActivityPage.qml:44
 msgid "%1 recent change"
 msgid_plural "%1 recent changes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/ActivityPage.qml:47 contents/ui/Views/HomePage.qml:329
+#: contents/ui/views/ActivityPage.qml:47 contents/ui/views/HomePage.qml:329
 msgid "Clear"
 msgstr ""
 
-#: contents/ui/Views/ActivityPage.qml:97
+#: contents/ui/views/ActivityPage.qml:97
 msgid "Open %1 on its logs"
 msgstr ""
 
-#: contents/ui/Views/ActivityPage.qml:97 contents/ui/Views/DetailPage.qml:321
+#: contents/ui/views/ActivityPage.qml:97 contents/ui/views/DetailPage.qml:321
 msgid "Open %1"
 msgstr ""
 
-#: contents/ui/Views/ActivityPage.qml:105
+#: contents/ui/views/ActivityPage.qml:105
 msgid "No activity yet"
 msgstr ""
 
-#: contents/ui/Views/ActivityPage.qml:106
+#: contents/ui/views/ActivityPage.qml:106
 msgid ""
 "Crashes, restarts, health changes, starts and stops appear here while "
 "Dockmoid is running."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:26
+#: contents/ui/views/DeploymentPage.qml:26
 msgid "Created · waiting for the container list"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:29
+#: contents/ui/views/DeploymentPage.qml:29
 msgid "Running · healthy"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:29
+#: contents/ui/views/DeploymentPage.qml:29
 msgid "Running · health check starting"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:30
+#: contents/ui/views/DeploymentPage.qml:30
 msgid "Running · unhealthy"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:31
+#: contents/ui/views/DeploymentPage.qml:31
 msgid "Exited right after starting: check its logs"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:32
+#: contents/ui/views/DeploymentPage.qml:32
 msgid "Created, not started"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:53 contents/ui/Views/DoctorPage.qml:178
-#: contents/ui/Views/DoctorPage.qml:191
+#: contents/ui/views/DeploymentPage.qml:53 contents/ui/views/DoctorPage.qml:178
+#: contents/ui/views/DoctorPage.qml:191
 msgid "Unavailable"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:124
+#: contents/ui/views/DeploymentPage.qml:124
 msgid "Choose the restart policy manually: %1"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:135
+#: contents/ui/views/DeploymentPage.qml:135
 msgid "Find an image, configure a container and deploy it · %1"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:144
+#: contents/ui/views/DeploymentPage.qml:144
 msgid "Find Image"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:145
+#: contents/ui/views/DeploymentPage.qml:145
 msgid "Configure"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:146
+#: contents/ui/views/DeploymentPage.qml:146
 msgid "Import"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:147
-#: contents/ui/Views/DeploymentPage.qml:318
-#: contents/ui/Views/DetailPage.qml:694 contents/ui/Views/DoctorPage.qml:59
-#: contents/ui/Views/DoctorPage.qml:69
+#: contents/ui/views/DeploymentPage.qml:147
+#: contents/ui/views/DeploymentPage.qml:318
+#: contents/ui/views/DetailPage.qml:694 contents/ui/views/DoctorPage.qml:59
+#: contents/ui/views/DoctorPage.qml:69
 msgid "Storage"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:158
+#: contents/ui/views/DeploymentPage.qml:158
 msgid "Search Docker Hub"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:159
+#: contents/ui/views/DeploymentPage.qml:159
 msgid "A specific image"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:171
+#: contents/ui/views/DeploymentPage.qml:171
 msgid "Popular"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:171
+#: contents/ui/views/DeploymentPage.qml:171
 msgid ""
 "Browse Docker Hub results ranked by downloads. Sorting applies to the first "
 "50 returned images."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:172
+#: contents/ui/views/DeploymentPage.qml:172
 msgid "Official only"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:174 contents/ui/Views/PopupView.qml:940
-#: contents/ui/Views/ResourcesPage.qml:488
+#: contents/ui/views/DeploymentPage.qml:174 contents/ui/views/PopupView.qml:940
+#: contents/ui/views/ResourcesPage.qml:488
 msgid "Sort"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:175
+#: contents/ui/views/DeploymentPage.qml:175
 msgid "Most stars"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:175
+#: contents/ui/views/DeploymentPage.qml:175
 msgid "Most downloads"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:186
+#: contents/ui/views/DeploymentPage.qml:186
 msgid "Searching…"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:188
+#: contents/ui/views/DeploymentPage.qml:188
 msgid "%1 image · click one to set it up"
 msgid_plural "%1 images · click one to set it up"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/DeploymentPage.qml:189
+#: contents/ui/views/DeploymentPage.qml:189
 msgid "No images match this search"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:189
+#: contents/ui/views/DeploymentPage.qml:189
 msgid "Search Docker Hub, or choose “A specific image” above."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:212
+#: contents/ui/views/DeploymentPage.qml:212
 msgid "Set up a container from %1"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:223
+#: contents/ui/views/DeploymentPage.qml:223
 msgid "Official"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:230
+#: contents/ui/views/DeploymentPage.qml:230
 msgid "No description"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:242
+#: contents/ui/views/DeploymentPage.qml:242
 msgid "↓ unavailable"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:245
+#: contents/ui/views/DeploymentPage.qml:245
 msgid "%1 downloads"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:250
+#: contents/ui/views/DeploymentPage.qml:250
 msgid "Similar"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:261
+#: contents/ui/views/DeploymentPage.qml:261
 msgid ""
 "Pull an image you already know the name of, from any registry. Use a fully "
 "qualified name such as registry.example.com/image:tag."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:268
+#: contents/ui/views/DeploymentPage.qml:268
 msgid "registry.example.com/image:tag"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:269
+#: contents/ui/views/DeploymentPage.qml:269
 msgid "Pull"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:270
+#: contents/ui/views/DeploymentPage.qml:270
 msgid "Configure…"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:276
+#: contents/ui/views/DeploymentPage.qml:276
 msgid ""
 "Project creation requires local Docker with Compose and write actions "
 "enabled. Image pulls remain available for other connected engines."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:287
+#: contents/ui/views/DeploymentPage.qml:287
 msgid "Project name"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:287
+#: contents/ui/views/DeploymentPage.qml:287
 msgid "project-name"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:287
+#: contents/ui/views/DeploymentPage.qml:287
 msgid "Folder: %1/%2"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:291
+#: contents/ui/views/DeploymentPage.qml:291
 msgid "Restart policy"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:297
+#: contents/ui/views/DeploymentPage.qml:297
 msgid "Optional; replaces the image's default command."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:298
+#: contents/ui/views/DeploymentPage.qml:298
 msgid "Executable and arguments"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:302
-#: contents/ui/Views/DeploymentPage.qml:306
-#: contents/ui/Views/DeploymentPage.qml:369
-#: contents/ui/Views/DetailPage.qml:773
+#: contents/ui/views/DeploymentPage.qml:302
+#: contents/ui/views/DeploymentPage.qml:306
+#: contents/ui/views/DeploymentPage.qml:369
+#: contents/ui/views/DetailPage.qml:773
 msgid "Network"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:304
+#: contents/ui/views/DeploymentPage.qml:304
 msgid "One per line: [address:]host:container"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:306
+#: contents/ui/views/DeploymentPage.qml:306
 msgid "Custom networks must already exist."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:307
+#: contents/ui/views/DeploymentPage.qml:307
 msgid "Default Compose network"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:311
+#: contents/ui/views/DeploymentPage.qml:311
 msgid "Environment"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:313
+#: contents/ui/views/DeploymentPage.qml:313
 msgid "Variables"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:313
+#: contents/ui/views/DeploymentPage.qml:313
 msgid "One NAME=value per line."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:320
+#: contents/ui/views/DeploymentPage.qml:320
 msgid "One per line. Named volumes are created or reused."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:322
+#: contents/ui/views/DeploymentPage.qml:322
 msgid "Create a data folder in my storage directory"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:323
+#: contents/ui/views/DeploymentPage.qml:323
 msgid "Mount the data folder at"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:330
+#: contents/ui/views/DeploymentPage.qml:330
 msgid "Start the container after creating it"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:331
+#: contents/ui/views/DeploymentPage.qml:331
 msgid "Discard Draft"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:332
+#: contents/ui/views/DeploymentPage.qml:332
 msgid ""
 "Clear the form. Drafts are kept only while Plasma runs and never saved to "
 "disk."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:333
+#: contents/ui/views/DeploymentPage.qml:333
 msgid "Existing project files are never overwritten."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:339
+#: contents/ui/views/DeploymentPage.qml:339
 msgid "Import a docker run Command"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:341
+#: contents/ui/views/DeploymentPage.qml:341
 msgid ""
 "Paste a docker run command to fill the Configure form. It is parsed into a "
 "Compose project and never executed as a shell command. Unsupported flags are "
 "reported."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:346
+#: contents/ui/views/DeploymentPage.qml:346
 msgid "Fill the Form"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:360
+#: contents/ui/views/DeploymentPage.qml:360
 msgid "Named Volume"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:362
+#: contents/ui/views/DeploymentPage.qml:362
 msgid "Docker keeps its contents in its own data directory."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:365
-#: contents/ui/Views/DeploymentPage.qml:374
+#: contents/ui/views/DeploymentPage.qml:365
+#: contents/ui/views/DeploymentPage.qml:374
 msgid "Create"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:371
+#: contents/ui/views/DeploymentPage.qml:371
 msgid "Containers on the same network reach each other by name."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:377
+#: contents/ui/views/DeploymentPage.qml:377
 msgid ""
 "Default project folders, bind-mount storage and the registry are set under "
 "Settings → Storage."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:388
+#: contents/ui/views/DeploymentPage.qml:388
 msgid "Drag to resize command output"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:418
+#: contents/ui/views/DeploymentPage.qml:418
 msgid "%1 was not created"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:425
+#: contents/ui/views/DeploymentPage.qml:425
 msgid ""
 "Its project files are kept in %1. Fix the options and review again, or "
 "remove the folder."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:441
+#: contents/ui/views/DeploymentPage.qml:441
 msgid "Project Folder"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:449
+#: contents/ui/views/DeploymentPage.qml:449
 msgid "Command output"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:451
+#: contents/ui/views/DeploymentPage.qml:451
 msgid "Running…"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:451
+#: contents/ui/views/DeploymentPage.qml:451
 msgid "Ready"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:452
+#: contents/ui/views/DeploymentPage.qml:452
 msgid "Hide"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:452
+#: contents/ui/views/DeploymentPage.qml:452
 msgid "Show"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:453
+#: contents/ui/views/DeploymentPage.qml:453
 msgid "Edit options"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:462
+#: contents/ui/views/DeploymentPage.qml:462
 msgid ""
 "Search for an image or configure a deployment to see command output here."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:473
+#: contents/ui/views/DeploymentPage.qml:473
 msgid "Review deployment…"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:484
+#: contents/ui/views/DeploymentPage.qml:484
 msgid "Review new project"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:486
-#: contents/ui/Views/DetailPage.qml:237
+#: contents/ui/views/DeploymentPage.qml:486
+#: contents/ui/views/DetailPage.qml:237
 msgid "Create and start"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:486
+#: contents/ui/views/DeploymentPage.qml:486
 msgid "Create stopped"
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:489
+#: contents/ui/views/DeploymentPage.qml:489
 msgid "The container will start."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:489
+#: contents/ui/views/DeploymentPage.qml:489
 msgid "The container will remain stopped."
 msgstr ""
 
-#: contents/ui/Views/DeploymentPage.qml:489
+#: contents/ui/views/DeploymentPage.qml:489
 msgid ""
 "Engine: %1\n"
 "Project: %2\n"
 "The image will be pulled. %3"
 msgstr ""
 
-#: contents/ui/Views/DetachedPlaceholder.qml:34
+#: contents/ui/views/DetachedPlaceholder.qml:34
 msgid "The view is open in its own window"
 msgstr ""
 
-#: contents/ui/Views/DetachedPlaceholder.qml:44
+#: contents/ui/views/DetachedPlaceholder.qml:44
 msgid "%1 of %2 containers running"
 msgid_plural "%1 of %2 containers running"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/DetachedPlaceholder.qml:64
+#: contents/ui/views/DetachedPlaceholder.qml:64
 msgid "Reattach"
 msgstr ""
 
-#: contents/ui/Views/DetachedWindow.qml:82
+#: contents/ui/views/DetachedWindow.qml:82
 msgid "Minimize window"
 msgstr ""
 
-#: contents/ui/Views/DetachedWindow.qml:87
+#: contents/ui/views/DetachedWindow.qml:87
 msgid "Restore window"
 msgstr ""
 
-#: contents/ui/Views/DetachedWindow.qml:87
+#: contents/ui/views/DetachedWindow.qml:87
 msgid "Maximize window"
 msgstr ""
 
-#: contents/ui/Views/DetachedWindow.qml:92
+#: contents/ui/views/DetachedWindow.qml:92
 msgid "Close window"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:66
+#: contents/ui/views/DetailPage.qml:66
 msgid "just now"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:67
+#: contents/ui/views/DetailPage.qml:67
 msgid "%1 day ago"
 msgid_plural "%1 days ago"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/DetailPage.qml:79
+#: contents/ui/views/DetailPage.qml:79
 msgid "Exit code %1"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:80
+#: contents/ui/views/DetailPage.qml:80
 msgid "out of memory"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:102
+#: contents/ui/views/DetailPage.qml:102
 msgid "exit code %1"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:168
+#: contents/ui/views/DetailPage.qml:168
 msgid "%1 · Healthy"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:169
+#: contents/ui/views/DetailPage.qml:169
 msgid "%1 · Starting"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:177
+#: contents/ui/views/DetailPage.qml:177
 msgid "no healthcheck configured"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:178
+#: contents/ui/views/DetailPage.qml:178
 msgid "%1 (when it last ran)"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:180
+#: contents/ui/views/DetailPage.qml:180
 msgid "starting · waiting for the first passing check"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:181
+#: contents/ui/views/DetailPage.qml:181
 msgid "unhealthy · %1 failed check in a row"
 msgid_plural "unhealthy · %1 failed checks in a row"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/DetailPage.qml:181
+#: contents/ui/views/DetailPage.qml:181
 msgid "unhealthy"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:182
+#: contents/ui/views/DetailPage.qml:182
 msgid "healthy"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:202 contents/ui/Views/DiagnosePage.qml:63
+#: contents/ui/views/DetailPage.qml:202 contents/ui/views/DiagnosePage.qml:63
 msgid "Container is gone"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:223 contents/ui/Views/PopupView.qml:548
+#: contents/ui/views/DetailPage.qml:223 contents/ui/views/PopupView.qml:548
 msgid "Update available"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:263
+#: contents/ui/views/DetailPage.qml:263
 msgid "Force stop now, without a graceful shutdown"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:277
+#: contents/ui/views/DetailPage.qml:277
 msgid "A newer image is available: pull it and recreate the container"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:278
+#: contents/ui/views/DetailPage.qml:278
 msgid "Pull the latest image and recreate the container"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:286 contents/ui/Views/PopupView.qml:1040
-#: contents/ui/Views/ResourcesPage.qml:602
+#: contents/ui/views/DetailPage.qml:286 contents/ui/views/PopupView.qml:1040
+#: contents/ui/views/ResourcesPage.qml:602
 msgid "More actions"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:296
+#: contents/ui/views/DetailPage.qml:296
 msgid "This container no longer exists. Go back to see the current list."
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:319 contents/ui/Views/DetailPage.qml:800
+#: contents/ui/views/DetailPage.qml:319 contents/ui/views/DetailPage.qml:800
 msgid "Web UI"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:400 contents/ui/Views/DetailPage.qml:845
+#: contents/ui/views/DetailPage.qml:400 contents/ui/views/DetailPage.qml:845
 msgid "Run"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:413
+#: contents/ui/views/DetailPage.qml:413
 msgid "Refresh logs"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:420 contents/ui/Views/OutputPage.qml:98
+#: contents/ui/views/DetailPage.qml:420 contents/ui/views/OutputPage.qml:98
 msgid "Follow in terminal"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:427
+#: contents/ui/views/DetailPage.qml:427
 msgid "Refresh inspect output"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:553
+#: contents/ui/views/DetailPage.qml:553
 msgid ""
 "This Compose service is configured, but its container has not been created "
 "yet. Create and start it to inspect logs or run commands."
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:578
-#: contents/ui/Views/InspectorHealth.qml:88
+#: contents/ui/views/DetailPage.qml:578
+#: contents/ui/views/InspectorHealth.qml:88
 msgid "Last check"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:581
+#: contents/ui/views/DetailPage.qml:581
 msgid "passed · %1"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:582
+#: contents/ui/views/DetailPage.qml:582
 msgid "failed (exit %1) · %2"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:586
+#: contents/ui/views/DetailPage.qml:586
 msgid "Started"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:588 contents/ui/Views/DiagnosePage.qml:92
-#: contents/ui/Views/InspectorHealth.qml:97
+#: contents/ui/views/DetailPage.qml:588 contents/ui/views/DiagnosePage.qml:92
+#: contents/ui/views/InspectorHealth.qml:97
 msgid "Restarts"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:590
+#: contents/ui/views/DetailPage.qml:590
 msgid "%1 restart since created"
 msgid_plural "%1 restarts since created"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/DetailPage.qml:593 contents/ui/Views/DiagnosePage.qml:86
-#: contents/ui/Views/InspectorHealth.qml:102
+#: contents/ui/views/DetailPage.qml:593 contents/ui/views/DiagnosePage.qml:86
+#: contents/ui/views/InspectorHealth.qml:102
 msgid "Last exit"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:630
-#: contents/ui/Views/InspectorHealth.qml:108
+#: contents/ui/views/DetailPage.qml:630
+#: contents/ui/views/InspectorHealth.qml:108
 msgid "Web page"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:631
+#: contents/ui/views/DetailPage.qml:631
 msgid "answers (%1 ms)"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:631
+#: contents/ui/views/DetailPage.qml:631
 msgid "does not answer"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:636
+#: contents/ui/views/DetailPage.qml:636
 msgid "Image update"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:643
+#: contents/ui/views/DetailPage.qml:643
 msgid "a newer image is available · checked %1"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:643
+#: contents/ui/views/DetailPage.qml:643
 msgid "a newer image is available"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:644
+#: contents/ui/views/DetailPage.qml:644
 msgid "up to date · checked %1"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:644
+#: contents/ui/views/DetailPage.qml:644
 msgid "up to date"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:645
+#: contents/ui/views/DetailPage.qml:645
 msgid "the check failed · %1"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:645
+#: contents/ui/views/DetailPage.qml:645
 msgid "the check failed"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:646
+#: contents/ui/views/DetailPage.qml:646
 msgid "checking…"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:647
+#: contents/ui/views/DetailPage.qml:647
 msgid "not checked: needs docker buildx"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:648
+#: contents/ui/views/DetailPage.qml:648
 msgid "not checked: a local or pinned image"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:649
+#: contents/ui/views/DetailPage.qml:649
 msgid "not checked yet"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:649
+#: contents/ui/views/DetailPage.qml:649
 msgid "checks are off (Settings → Monitoring)"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:664
+#: contents/ui/views/DetailPage.qml:664
 msgid "ID"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:671
+#: contents/ui/views/DetailPage.qml:671
 msgid "Compose file"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:673
+#: contents/ui/views/DetailPage.qml:673
 msgid "Platform"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:675
+#: contents/ui/views/DetailPage.qml:675
 msgid "Limits"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:678
+#: contents/ui/views/DetailPage.qml:678
 msgid "%1 CPU"
 msgid_plural "%1 CPUs"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/DetailPage.qml:679
+#: contents/ui/views/DetailPage.qml:679
 msgid "None (may use the whole host)"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:682
+#: contents/ui/views/DetailPage.qml:682
 msgid "Health check"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:683
+#: contents/ui/views/DetailPage.qml:683
 msgid "(every %1 s)"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:686
+#: contents/ui/views/DetailPage.qml:686
 msgid "User"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:687
+#: contents/ui/views/DetailPage.qml:687
 msgid "Working dir"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:697
+#: contents/ui/views/DetailPage.qml:697
 msgid "Local volumes"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:698
+#: contents/ui/views/DetailPage.qml:698
 msgid "Size"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:764
+#: contents/ui/views/DetailPage.qml:764
 msgid "Block I/O"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:775
+#: contents/ui/views/DetailPage.qml:775
 msgid "%1 link"
 msgid_plural "%1 links"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/DetailPage.qml:820 contents/ui/Views/InspectorLogs.qml:47
+#: contents/ui/views/DetailPage.qml:820 contents/ui/views/InspectorLogs.qml:47
 msgid "No log output yet."
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:838
+#: contents/ui/views/DetailPage.qml:838
 msgid "A command to run inside the container, e.g. ls /app"
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:855
+#: contents/ui/views/DetailPage.qml:855
 msgid ""
 "Not interactive: it runs once with sh -c and shows the output. For a real "
 "shell use Open in → Konsole."
 msgstr ""
 
-#: contents/ui/Views/DetailPage.qml:866
+#: contents/ui/views/DetailPage.qml:866
 msgid "Nothing run yet."
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:63
+#: contents/ui/views/DiagnosePage.qml:63
 msgid "Diagnose %1"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:64
+#: contents/ui/views/DiagnosePage.qml:64
 msgid "What the engine reports, what happened lately, and what can be done"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:65
-#: contents/ui/Views/InspectorHealth.qml:60
+#: contents/ui/views/DiagnosePage.qml:65
+#: contents/ui/views/InspectorHealth.qml:60
 msgid "Reload"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:81
+#: contents/ui/views/DiagnosePage.qml:81
 msgid "What the Engine Reports"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:84
+#: contents/ui/views/DiagnosePage.qml:84
 msgid "State"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:90
+#: contents/ui/views/DiagnosePage.qml:90
 msgid "Engine error"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:94
+#: contents/ui/views/DiagnosePage.qml:94
 msgid "%1 since created"
 msgid_plural "%1 since created"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/DiagnosePage.qml:103
+#: contents/ui/views/DiagnosePage.qml:103
 msgid "Memory limit"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:112
+#: contents/ui/views/DiagnosePage.qml:112
 msgid ""
 "Exit codes follow common conventions; an application may use them "
 "differently. These are observations, not a diagnosis."
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:120
-#: contents/ui/Views/InspectorHealth.qml:119
+#: contents/ui/views/DiagnosePage.qml:120
+#: contents/ui/views/InspectorHealth.qml:119
 msgid "What the Logs Show"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:128
+#: contents/ui/views/DiagnosePage.qml:128
 msgid "Reading the last 300 lines…"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:136
-#: contents/ui/Views/InspectorLogs.qml:38
+#: contents/ui/views/DiagnosePage.qml:136
+#: contents/ui/views/InspectorLogs.qml:38
 msgid "Full Logs"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:143
+#: contents/ui/views/DiagnosePage.qml:143
 msgid "What Happened Lately"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:172
+#: contents/ui/views/DiagnosePage.qml:172
 msgid "Possible Next Steps"
 msgstr ""
 
-#: contents/ui/Views/DiagnosePage.qml:183
+#: contents/ui/views/DiagnosePage.qml:183
 msgid "Edit Compose File"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:48
+#: contents/ui/views/DoctorPage.qml:48
 msgid "Checked %1"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:48 contents/ui/Views/PopupView.qml:514
+#: contents/ui/views/DoctorPage.qml:48 contents/ui/views/PopupView.qml:514
 msgid "Not checked yet"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:49
+#: contents/ui/views/DoctorPage.qml:49
 msgid "Check"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:58
+#: contents/ui/views/DoctorPage.qml:58
 msgid "Doctor section"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:82
+#: contents/ui/views/DoctorPage.qml:82
 msgid "What Dockmoid Already Knows"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:86
+#: contents/ui/views/DoctorPage.qml:86
 msgid ""
 "Nothing stands out from the state Dockmoid already has. Run checks for a "
 "full look at the engine, the Compose projects and the storage."
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:112
+#: contents/ui/views/DoctorPage.qml:112
 msgid "Run checks"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:121
+#: contents/ui/views/DoctorPage.qml:121
 msgid "Need attention"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:132
+#: contents/ui/views/DoctorPage.qml:132
 msgid ""
 "No container exists. Health checks, logs and exit details are unavailable "
 "until it is created."
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:133
+#: contents/ui/views/DoctorPage.qml:133
 msgid ""
 "Diagnostic details unavailable. Run Check to read state, health-check "
 "output, exit reason, restart count, ports, mounts and networks."
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:139
+#: contents/ui/views/DoctorPage.qml:139
 msgid "Preview start"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:140
+#: contents/ui/views/DoctorPage.qml:140
 msgid "Preview restart"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:141
+#: contents/ui/views/DoctorPage.qml:141
 msgid "Preview pull"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:142
+#: contents/ui/views/DoctorPage.qml:142
 msgid "Preview recreate"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:159
+#: contents/ui/views/DoctorPage.qml:159
 msgid "Error"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:159
+#: contents/ui/views/DoctorPage.qml:159
 msgid "Warning"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:159
+#: contents/ui/views/DoctorPage.qml:159
 msgid "Info"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:165
+#: contents/ui/views/DoctorPage.qml:165
 msgid "Evidence"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:168
+#: contents/ui/views/DoctorPage.qml:168
 msgid "Preview fix"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:174
+#: contents/ui/views/DoctorPage.qml:174
 msgid "Checks in progress…"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:174
+#: contents/ui/views/DoctorPage.qml:174
 msgid ""
 "No findings in this section. This is a point-in-time check, not a guarantee "
 "of service health."
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:177
+#: contents/ui/views/DoctorPage.qml:177
 msgid "Engine-reported disk usage"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:178
+#: contents/ui/views/DoctorPage.qml:178
 msgid "Reclaimable: %1"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:179
+#: contents/ui/views/DoctorPage.qml:179
 msgid "Disk usage unavailable. Check the engine connection and run Check."
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:183
+#: contents/ui/views/DoctorPage.qml:183
 msgid "Preview dangling images"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:184
+#: contents/ui/views/DoctorPage.qml:184
 msgid "Preview build cache"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:185
+#: contents/ui/views/DoctorPage.qml:185
 msgid "Review other cleanup…"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:187
+#: contents/ui/views/DoctorPage.qml:187
 msgid ""
 "Compose references are intentions, not existing-container usage. Review "
 "referenced images before removal. Default cleanup retains stopped "
 "containers, networks and volumes."
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:191
+#: contents/ui/views/DoctorPage.qml:191
 msgid ""
 "Dockmoid · Engine %1\n"
 "Connection: %2\n"
 "Platform: %3"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:192
+#: contents/ui/views/DoctorPage.qml:192
 msgid "Service links"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:202
+#: contents/ui/views/DoctorPage.qml:202
 msgid ""
 "Link provenance is shown on hover. Metadata establishes the declared origin, "
 "not website ownership or reachability. Add or replace a link below when "
 "metadata is missing or incorrect."
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:203
+#: contents/ui/views/DoctorPage.qml:203
 msgid "Link label, e.g. Documentation"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:205
+#: contents/ui/views/DoctorPage.qml:205
 msgid "Save service link"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:209
+#: contents/ui/views/DoctorPage.qml:209
 msgid "Plan only · selected actions"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:210
+#: contents/ui/views/DoctorPage.qml:210
 msgid ""
 "No changes have been made by previewing. Docker has no native dry run for "
 "these commands. A plan cannot guarantee the outcome; permissions, mounts, "
@@ -6288,990 +6288,990 @@ msgid ""
 "effects before running."
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:224
+#: contents/ui/views/DoctorPage.qml:224
 msgid "Downtime expected."
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:230
+#: contents/ui/views/DoctorPage.qml:230
 msgid "Run selected…"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:231
+#: contents/ui/views/DoctorPage.qml:231
 msgid "Clear plan"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:234
+#: contents/ui/views/DoctorPage.qml:234
 msgid "No action output"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:240
+#: contents/ui/views/DoctorPage.qml:240
 msgid "Run only the selected actions?"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:243
+#: contents/ui/views/DoctorPage.qml:243
 msgid "Run selected actions"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:245
+#: contents/ui/views/DoctorPage.qml:245
 msgid "downtime"
 msgstr ""
 
-#: contents/ui/Views/DoctorPage.qml:245
+#: contents/ui/views/DoctorPage.qml:245
 msgid ""
 "Only selected commands in the reviewed plan will run. Recreated container "
 "writable layers are replaced; mounted data and volumes are retained."
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:290
+#: contents/ui/views/HomePage.qml:290
 msgid "Remove this filter"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:314
+#: contents/ui/views/HomePage.qml:314
 msgid "%1 selected · %2 hidden by filters"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:315
+#: contents/ui/views/HomePage.qml:315
 msgid "%1 selected"
 msgid_plural "%1 selected"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/HomePage.qml:348
+#: contents/ui/views/HomePage.qml:348
 msgid "Connecting…"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:355
+#: contents/ui/views/HomePage.qml:355
 msgid "Loading containers…"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:355
+#: contents/ui/views/HomePage.qml:355
 msgid "No containers yet"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:355
+#: contents/ui/views/HomePage.qml:355
 msgid "No containers match the active filters"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:356
+#: contents/ui/views/HomePage.qml:356
 msgid "Create a container from an image, or refresh the engine."
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:356
+#: contents/ui/views/HomePage.qml:356
 msgid "Clear filters to see all containers."
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:358
+#: contents/ui/views/HomePage.qml:358
 msgid "Deploy a Container…"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:358 contents/ui/Views/PopupView.qml:1120
+#: contents/ui/views/HomePage.qml:358 contents/ui/views/PopupView.qml:1120
 msgid "Clear filters"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:392
+#: contents/ui/views/HomePage.qml:392
 msgid "%1 is hidden by the list's filters."
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:395
+#: contents/ui/views/HomePage.qml:395
 msgid "Show in List"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:433
+#: contents/ui/views/HomePage.qml:433
 msgid "Select (%1)"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:473
+#: contents/ui/views/HomePage.qml:473
 msgid "Put the inspector below the list"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:473
+#: contents/ui/views/HomePage.qml:473
 msgid "Put the inspector beside the list"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:480
+#: contents/ui/views/HomePage.qml:480
 msgid "Hide the inspector"
 msgstr ""
 
-#: contents/ui/Views/HomePage.qml:480
+#: contents/ui/views/HomePage.qml:480
 msgid "Show the inspector"
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:37
+#: contents/ui/views/InspectorCompose.qml:37
 msgid "Select a container to see its Compose file."
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:37
+#: contents/ui/views/InspectorCompose.qml:37
 msgid "This container was not started from a Compose file."
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:50
+#: contents/ui/views/InspectorCompose.qml:50
 msgid "Validate"
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:61
+#: contents/ui/views/InspectorCompose.qml:61
 msgid "Preview"
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:63
+#: contents/ui/views/InspectorCompose.qml:63
 msgid "Preview Changes"
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:65
+#: contents/ui/views/InspectorCompose.qml:65
 msgid "Nothing would change."
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:70
+#: contents/ui/views/InspectorCompose.qml:70
 msgid "Apply"
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:76
+#: contents/ui/views/InspectorCompose.qml:76
 msgid "Apply Changes · %1"
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:78
+#: contents/ui/views/InspectorCompose.qml:78
 msgid "Applied. Compose recreated what the files changed."
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:84
+#: contents/ui/views/InspectorCompose.qml:84
 msgid "Edit…"
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:88
+#: contents/ui/views/InspectorCompose.qml:88
 msgid "Reload file"
 msgstr ""
 
-#: contents/ui/Views/InspectorCompose.qml:104
+#: contents/ui/views/InspectorCompose.qml:104
 msgid "%1 on %2"
 msgstr ""
 
-#: contents/ui/Views/InspectorEvents.qml:39
+#: contents/ui/views/InspectorEvents.qml:39
 msgid "Select a container to see what happened to it."
 msgstr ""
 
-#: contents/ui/Views/InspectorEvents.qml:49
+#: contents/ui/views/InspectorEvents.qml:49
 msgid "Reload events"
 msgstr ""
 
-#: contents/ui/Views/InspectorEvents.qml:63
+#: contents/ui/views/InspectorEvents.qml:63
 msgid "Alerts"
 msgstr ""
 
-#: contents/ui/Views/InspectorEvents.qml:71
+#: contents/ui/views/InspectorEvents.qml:71
 msgid "No crashes, health changes or actions recorded since Dockmoid started."
 msgstr ""
 
-#: contents/ui/Views/InspectorEvents.qml:95
+#: contents/ui/views/InspectorEvents.qml:95
 msgid "Engine Events · Last 24 Hours"
 msgstr ""
 
-#: contents/ui/Views/InspectorEvents.qml:101
-#: contents/ui/Views/InspectorLogs.qml:47
+#: contents/ui/views/InspectorEvents.qml:101
+#: contents/ui/views/InspectorLogs.qml:47
 msgid "This service has no container yet."
 msgstr ""
 
-#: contents/ui/Views/InspectorHealth.qml:72
+#: contents/ui/views/InspectorHealth.qml:72
 msgid "Select a container to see its health."
 msgstr ""
 
-#: contents/ui/Views/InspectorHealth.qml:84
+#: contents/ui/views/InspectorHealth.qml:84
 msgid "Healthcheck"
 msgstr ""
 
-#: contents/ui/Views/InspectorHealth.qml:92
+#: contents/ui/views/InspectorHealth.qml:92
 msgid "Passed"
 msgstr ""
 
-#: contents/ui/Views/InspectorHealth.qml:99
+#: contents/ui/views/InspectorHealth.qml:99
 msgid "%1 since it was created"
 msgid_plural "%1 since it was created"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/InspectorHealth.qml:110
+#: contents/ui/views/InspectorHealth.qml:110
 msgid "Answers"
 msgstr ""
 
-#: contents/ui/Views/InspectorHealth.qml:110
+#: contents/ui/views/InspectorHealth.qml:110
 msgid "Does not answer"
 msgstr ""
 
-#: contents/ui/Views/InspectorHealth.qml:142
+#: contents/ui/views/InspectorHealth.qml:142
 msgid "Nothing recorded for this container since Dockmoid started."
 msgstr ""
 
-#: contents/ui/Views/InspectorLogs.qml:26
+#: contents/ui/views/InspectorLogs.qml:26
 msgid "Select a container to follow its log here."
 msgstr ""
 
-#: contents/ui/Views/OutputPage.qml:84
+#: contents/ui/views/OutputPage.qml:84
 msgid "Following"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:66
+#: contents/ui/views/PopupView.qml:66
 msgid "Read-only monitoring mode"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:68
+#: contents/ui/views/PopupView.qml:68
 msgid "All Containers"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:73
+#: contents/ui/views/PopupView.qml:73
 msgid "Updates Available"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:76
+#: contents/ui/views/PopupView.qml:76
 msgid "Not Started"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:137
+#: contents/ui/views/PopupView.qml:137
 msgid "By State, in Sections"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:139
+#: contents/ui/views/PopupView.qml:139
 msgid "Memory"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:334
+#: contents/ui/views/PopupView.qml:334
 msgid "Updates"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:335
+#: contents/ui/views/PopupView.qml:335
 msgid "Check for Updates"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:336
+#: contents/ui/views/PopupView.qml:336
 msgid "Review Updates…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:337
+#: contents/ui/views/PopupView.qml:337
 msgid "Pull Images…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:339
+#: contents/ui/views/PopupView.qml:339
 msgid "Diagnostics"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:340
+#: contents/ui/views/PopupView.qml:340
 msgid "Check Engine Connection"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:341
+#: contents/ui/views/PopupView.qml:341
 msgid "Inspect Unhealthy Services"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:343
+#: contents/ui/views/PopupView.qml:343
 msgid "Cleanup"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:344
+#: contents/ui/views/PopupView.qml:344
 msgid "Remove Dangling Images…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:345
+#: contents/ui/views/PopupView.qml:345
 msgid "Clear Build Cache…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:346
+#: contents/ui/views/PopupView.qml:346
 msgid "More Cleanup Options…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:353
+#: contents/ui/views/PopupView.qml:353
 msgid "Compact"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:354
+#: contents/ui/views/PopupView.qml:354
 msgid "Standard"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:355
+#: contents/ui/views/PopupView.qml:355
 msgid "Everything"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:457
+#: contents/ui/views/PopupView.qml:457
 msgid "Switch to descending order"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:457
+#: contents/ui/views/PopupView.qml:457
 msgid "Switch to ascending order"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:476
+#: contents/ui/views/PopupView.qml:476
 msgid "Update %1 container"
 msgid_plural "Update %1 containers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/PopupView.qml:477
+#: contents/ui/views/PopupView.qml:477
 msgid "Pull %1 image"
 msgid_plural "Pull %1 images"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/PopupView.qml:478
+#: contents/ui/views/PopupView.qml:478
 msgid "Run %1 action"
 msgid_plural "Run %1 actions"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/PopupView.qml:495
+#: contents/ui/views/PopupView.qml:495
 msgid "Review Image Updates"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:513
+#: contents/ui/views/PopupView.qml:513
 msgid "Checking image updates…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:514
+#: contents/ui/views/PopupView.qml:514
 msgid "Last checked: %1"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:519
+#: contents/ui/views/PopupView.qml:519
 msgid "Check now"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:524
+#: contents/ui/views/PopupView.qml:524
 msgid "Include containers without an update badge"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:525
+#: contents/ui/views/PopupView.qml:525
 msgid "Include stopped containers · keep them stopped"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:549
+#: contents/ui/views/PopupView.qml:549
 msgid "Pull and recreate · keep running"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:549
+#: contents/ui/views/PopupView.qml:549
 msgid "Pull and recreate · leave stopped"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:549
+#: contents/ui/views/PopupView.qml:549
 msgid "Pull image only · container unchanged"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:559
+#: contents/ui/views/PopupView.qml:559
 msgid "No update candidates. Check now or include containers without a badge."
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:569
+#: contents/ui/views/PopupView.qml:569
 msgid "Save Current View"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:580
+#: contents/ui/views/PopupView.qml:580
 msgid "View name"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:590
+#: contents/ui/views/PopupView.qml:590
 msgid "Logs Across Containers"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:596
+#: contents/ui/views/PopupView.qml:596
 msgid "Last 15 minutes"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:596
+#: contents/ui/views/PopupView.qml:596
 msgid "Last hour"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:596
+#: contents/ui/views/PopupView.qml:596
 msgid "Last 6 hours"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:596
+#: contents/ui/views/PopupView.qml:596
 msgid "Last 24 hours"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:609
+#: contents/ui/views/PopupView.qml:609
 msgid "Show Logs"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:652
+#: contents/ui/views/PopupView.qml:652
 msgid ""
 "Lines are ordered by the engine's timestamps and capped at the newest 3000."
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:664
+#: contents/ui/views/PopupView.qml:664
 msgid "Review: %1"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:672
+#: contents/ui/views/PopupView.qml:672
 msgid "Run on %1 container"
 msgid_plural "Run on %1 containers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/PopupView.qml:681
+#: contents/ui/views/PopupView.qml:681
 msgid "%1 will run on, one at a time:"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:681
+#: contents/ui/views/PopupView.qml:681
 msgid "None of the selected containers allow this now."
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:693
+#: contents/ui/views/PopupView.qml:693
 msgid "Skipped:"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:701
+#: contents/ui/views/PopupView.qml:701
 msgid ""
 "Each Compose service is pulled and recreated on its own; files written "
 "inside a container (outside its mounts) are lost."
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:711
+#: contents/ui/views/PopupView.qml:711
 msgid "Results — %1"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:718 contents/ui/Views/PopupView.qml:1133
+#: contents/ui/views/PopupView.qml:718 contents/ui/views/PopupView.qml:1133
 msgid "Saved Views"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:737
+#: contents/ui/views/PopupView.qml:737
 msgid "No saved views yet. Use Save This View… to add one."
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:751
+#: contents/ui/views/PopupView.qml:751
 msgid "Move up"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:752
+#: contents/ui/views/PopupView.qml:752
 msgid "Move down"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:753
+#: contents/ui/views/PopupView.qml:753
 msgid "Delete %1"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:792
+#: contents/ui/views/PopupView.qml:792
 msgid "Refresh — just updated"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:793
+#: contents/ui/views/PopupView.qml:793
 msgid "Refresh — updated %1 ago"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:830
+#: contents/ui/views/PopupView.qml:830
 msgid "Collecting…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:883
+#: contents/ui/views/PopupView.qml:883
 msgid "Back to previous page"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:883
+#: contents/ui/views/PopupView.qml:883
 msgid "Back to containers"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:904
+#: contents/ui/views/PopupView.qml:904
 msgid "View"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:905
+#: contents/ui/views/PopupView.qml:905
 msgid "Change container view"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:915
+#: contents/ui/views/PopupView.qml:915
 msgid "Columns"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:915
+#: contents/ui/views/PopupView.qml:915
 msgid "Detail"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:917
+#: contents/ui/views/PopupView.qml:917
 msgid "Which table columns show"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:917
+#: contents/ui/views/PopupView.qml:917
 msgid "Detail level: %1"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:927
+#: contents/ui/views/PopupView.qml:927
 msgid "Filter"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:928
+#: contents/ui/views/PopupView.qml:928
 msgid "Filter: %1"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:941
+#: contents/ui/views/PopupView.qml:941
 msgid "Sort containers"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:964
+#: contents/ui/views/PopupView.qml:964
 msgid "Remote host"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:966
+#: contents/ui/views/PopupView.qml:966
 msgid "a remote host"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:975
+#: contents/ui/views/PopupView.qml:975
 msgid "Find images on Docker Hub and deploy containers"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:985
+#: contents/ui/views/PopupView.qml:985
 msgid "Images, volumes and networks"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:995 contents/ui/Views/PopupView.qml:1107
+#: contents/ui/views/PopupView.qml:995 contents/ui/views/PopupView.qml:1107
 msgid "Open Doctor"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1004
+#: contents/ui/views/PopupView.qml:1004
 msgid "Crashes, health changes and actions, newest first"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1013 contents/ui/Views/PopupView.qml:1113
+#: contents/ui/views/PopupView.qml:1013 contents/ui/views/PopupView.qml:1113
 msgid "Maintain"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1015
+#: contents/ui/views/PopupView.qml:1015
 msgid "Updates, diagnostics and cleanup"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1028
+#: contents/ui/views/PopupView.qml:1028
 msgid "Attach"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1028
+#: contents/ui/views/PopupView.qml:1028
 msgid "Detach"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1029
+#: contents/ui/views/PopupView.qml:1029
 msgid "Return to panel popup"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1029 contents/ui/Views/PopupView.qml:1199
+#: contents/ui/views/PopupView.qml:1029 contents/ui/views/PopupView.qml:1199
 msgid "Open in a separate window"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1057
+#: contents/ui/views/PopupView.qml:1057
 msgid "Filter containers…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1063
+#: contents/ui/views/PopupView.qml:1063
 msgid "Sort containers…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1077
+#: contents/ui/views/PopupView.qml:1077
 msgid "Deploy…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1085
+#: contents/ui/views/PopupView.qml:1085
 msgid "Detail: %1"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1092
+#: contents/ui/views/PopupView.qml:1092
 msgid "Only containers that need attention"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1101
+#: contents/ui/views/PopupView.qml:1101
 msgid "Images, volumes and networks…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1150
+#: contents/ui/views/PopupView.qml:1150
 msgid "Save This View…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1151
+#: contents/ui/views/PopupView.qml:1151
 msgid "Manage Saved Views…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1152
+#: contents/ui/views/PopupView.qml:1152
 msgid "Clear Saved Views…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1152
+#: contents/ui/views/PopupView.qml:1152
 msgid "Clear saved views?"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1152
+#: contents/ui/views/PopupView.qml:1152
 msgid "Only saved view shortcuts are removed."
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1156
+#: contents/ui/views/PopupView.qml:1156
 msgid "Toolbar Labels"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1178
+#: contents/ui/views/PopupView.qml:1178
 msgid "Host"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1181
+#: contents/ui/views/PopupView.qml:1181
 msgid "Default"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1206
+#: contents/ui/views/PopupView.qml:1206
 msgid "Start the %1 service"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1213
+#: contents/ui/views/PopupView.qml:1213
 msgid "Stop the %1 service…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1230
+#: contents/ui/views/PopupView.qml:1230
 msgid "Button That Opens a Box"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1230
+#: contents/ui/views/PopupView.qml:1230
 msgid "Button That Slides Out a Field"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1230
+#: contents/ui/views/PopupView.qml:1230
 msgid "Field Always Shown"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1241
+#: contents/ui/views/PopupView.qml:1241
 msgid "Icon Only"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1248
+#: contents/ui/views/PopupView.qml:1248
 msgid "Search Containers"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1248
+#: contents/ui/views/PopupView.qml:1248
 msgid "Go to a Page or Container"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1248
+#: contents/ui/views/PopupView.qml:1248
 msgid "Search Docker Hub Images"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1261
+#: contents/ui/views/PopupView.qml:1261
 msgid "Inspector Follows"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1264
+#: contents/ui/views/PopupView.qml:1264
 msgid "Selection"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1265
+#: contents/ui/views/PopupView.qml:1265
 msgid "Mouse Hover"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1269
+#: contents/ui/views/PopupView.qml:1269
 msgid "Read-only mode"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1279
+#: contents/ui/views/PopupView.qml:1279
 msgid "Problem Report…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1285
+#: contents/ui/views/PopupView.qml:1285
 msgid "Configure Dockmoid…"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1408
+#: contents/ui/views/PopupView.qml:1408
 msgid "Stop %1?"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1420
+#: contents/ui/views/PopupView.qml:1420
 msgid "Stop the %1 service?"
 msgstr ""
 
-#: contents/ui/Views/PopupView.qml:1426
+#: contents/ui/views/PopupView.qml:1426
 msgid ""
 "Every running container will be stopped. Services you depend on may go down."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:72
+#: contents/ui/views/ResourcesPage.qml:72
 msgid "Newest"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:73
+#: contents/ui/views/ResourcesPage.qml:73
 msgid "Largest"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:143
-#: contents/ui/Views/ResourcesPage.qml:304
+#: contents/ui/views/ResourcesPage.qml:143
+#: contents/ui/views/ResourcesPage.qml:304
 msgid "Usage unknown"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:144
+#: contents/ui/views/ResourcesPage.qml:144
 msgid "No existing containers"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:144
-#: contents/ui/Views/ResourcesPage.qml:298
+#: contents/ui/views/ResourcesPage.qml:144
+#: contents/ui/views/ResourcesPage.qml:298
 msgid "Unused"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:145
-#: contents/ui/Views/ResourcesPage.qml:278
+#: contents/ui/views/ResourcesPage.qml:145
+#: contents/ui/views/ResourcesPage.qml:278
 msgid "%1 container"
 msgid_plural "%1 containers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/ResourcesPage.qml:151
+#: contents/ui/views/ResourcesPage.qml:151
 msgid "%1 · containers not loaded"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:157
+#: contents/ui/views/ResourcesPage.qml:157
 msgid ""
 "Referenced by %1 configured Compose service(s). Removing this image can make "
 "a later deployment fail."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:159
+#: contents/ui/views/ResourcesPage.qml:159
 msgid ""
 "Docker reports this resource is in use, but no matching containers are "
 "loaded."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:160
+#: contents/ui/views/ResourcesPage.qml:160
 msgid "Usage could not be verified. Removal stays disabled."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:161
+#: contents/ui/views/ResourcesPage.qml:161
 msgid "Show the containers using this resource."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:177
+#: contents/ui/views/ResourcesPage.qml:177
 msgid "Layers of %1"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:177
+#: contents/ui/views/ResourcesPage.qml:177
 msgid "Inspect %1"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:206
-#: contents/ui/Views/ResourcesPage.qml:566
+#: contents/ui/views/ResourcesPage.qml:206
+#: contents/ui/views/ResourcesPage.qml:566
 msgid "untagged image"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:217
+#: contents/ui/views/ResourcesPage.qml:217
 msgid "The Docker engine is unavailable."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:218
+#: contents/ui/views/ResourcesPage.qml:218
 msgid "Removal is disabled in read-only mode."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:219
+#: contents/ui/views/ResourcesPage.qml:219
 msgid "Resource removal is unavailable for this engine."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:220
+#: contents/ui/views/ResourcesPage.qml:220
 msgid "Built-in networks cannot be removed."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:222
+#: contents/ui/views/ResourcesPage.qml:222
 msgid "Usage is unknown, so removal stays disabled."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:223
+#: contents/ui/views/ResourcesPage.qml:223
 msgid "This resource is in use by %1."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:224
+#: contents/ui/views/ResourcesPage.qml:224
 msgid ""
 "Removal is disabled because %1 configured Compose service(s) reference this "
 "image."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:225
+#: contents/ui/views/ResourcesPage.qml:225
 msgid "Remove this unused resource."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:232
+#: contents/ui/views/ResourcesPage.qml:232
 msgid ""
 "The Docker volume and everything stored in it will be deleted permanently."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:233
+#: contents/ui/views/ResourcesPage.qml:233
 msgid "This cannot be undone."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:266
+#: contents/ui/views/ResourcesPage.qml:266
 msgid "Pull Image…"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:266
+#: contents/ui/views/ResourcesPage.qml:266
 msgid "Create Volume…"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:266
+#: contents/ui/views/ResourcesPage.qml:266
 msgid "Create Network…"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:289
+#: contents/ui/views/ResourcesPage.qml:289
 msgid "Compose · %1"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:362
+#: contents/ui/views/ResourcesPage.qml:362
 msgid "Images, volumes and networks on %1"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:373
+#: contents/ui/views/ResourcesPage.qml:373
 msgid "Volumes"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:406
+#: contents/ui/views/ResourcesPage.qml:406
 msgid "Clean Up…"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:436
+#: contents/ui/views/ResourcesPage.qml:436
 msgid "images"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:436
+#: contents/ui/views/ResourcesPage.qml:436
 msgid "volumes"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:436
+#: contents/ui/views/ResourcesPage.qml:436
 msgid "networks"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:441
+#: contents/ui/views/ResourcesPage.qml:441
 msgid "in use"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:446
+#: contents/ui/views/ResourcesPage.qml:446
 msgid "unused · shown alone"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:446
+#: contents/ui/views/ResourcesPage.qml:446
 msgid "unused · click to filter"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:456
+#: contents/ui/views/ResourcesPage.qml:456
 msgid "%1 reclaimable"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:457
+#: contents/ui/views/ResourcesPage.qml:457
 msgid "on disk"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:457
+#: contents/ui/views/ResourcesPage.qml:457
 msgid "click to measure reclaimable space"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:475
+#: contents/ui/views/ResourcesPage.qml:475
 msgid "Search images…"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:475
+#: contents/ui/views/ResourcesPage.qml:475
 msgid "Search volumes…"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:475
+#: contents/ui/views/ResourcesPage.qml:475
 msgid "Search networks…"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:498
+#: contents/ui/views/ResourcesPage.qml:498
 msgid ""
 "Volumes live inside Docker’s data directory. Use a bind mount when files "
 "should sit in a folder you choose."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:510
+#: contents/ui/views/ResourcesPage.qml:510
 msgid "Refresh failed: %1. Showing the last successful results."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:624
+#: contents/ui/views/ResourcesPage.qml:624
 msgid "No resources match this search."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:625
+#: contents/ui/views/ResourcesPage.qml:625
 msgid "No unused resources."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:626
+#: contents/ui/views/ResourcesPage.qml:626
 msgid "No images yet"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:627
+#: contents/ui/views/ResourcesPage.qml:627
 msgid "No Docker volumes yet"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:627
+#: contents/ui/views/ResourcesPage.qml:627
 msgid "No networks found"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:640
+#: contents/ui/views/ResourcesPage.qml:640
 msgid "Could not load %1: %2"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:642
+#: contents/ui/views/ResourcesPage.qml:642
 msgid "Retry"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:648
+#: contents/ui/views/ResourcesPage.qml:648
 msgid "Loading %1…"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:663
+#: contents/ui/views/ResourcesPage.qml:663
 msgid "Back to %1"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:664
+#: contents/ui/views/ResourcesPage.qml:664
 msgid "References for %1"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:671
+#: contents/ui/views/ResourcesPage.qml:671
 msgid "No output."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:678
+#: contents/ui/views/ResourcesPage.qml:678
 msgid ""
 "Docker reports this resource is in use, but its containers are not in the "
 "current container list."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:679
+#: contents/ui/views/ResourcesPage.qml:679
 msgid ""
 "Usage is unknown. Refresh the containers and this resource before removal."
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:685
+#: contents/ui/views/ResourcesPage.qml:685
 msgid "Configured Compose services · %1"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:705
+#: contents/ui/views/ResourcesPage.qml:705
 msgid "Configured · %1"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:707
-#: contents/ui/Views/ResourcesPage.qml:735
+#: contents/ui/views/ResourcesPage.qml:707
+#: contents/ui/views/ResourcesPage.qml:735
 msgid "Open details"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:720
+#: contents/ui/views/ResourcesPage.qml:720
 msgid "Existing containers · %1"
 msgid_plural "Existing containers · %1"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/Views/ResourcesPage.qml:753
+#: contents/ui/views/ResourcesPage.qml:753
 msgid "Deploy from This Image…"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:755
+#: contents/ui/views/ResourcesPage.qml:755
 msgid "Pull Latest"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:757
+#: contents/ui/views/ResourcesPage.qml:757
 msgid "Show Containers"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:761
+#: contents/ui/views/ResourcesPage.qml:761
 msgid "Layer History"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:764
+#: contents/ui/views/ResourcesPage.qml:764
 msgid "Connect a Container"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:775
+#: contents/ui/views/ResourcesPage.qml:775
 msgid "Disconnect a Container"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:785
+#: contents/ui/views/ResourcesPage.qml:785
 msgid "Copy Reference"
 msgstr ""
 
-#: contents/ui/Views/ResourcesPage.qml:785
+#: contents/ui/views/ResourcesPage.qml:785
 msgid "Copy Name"
 msgstr ""

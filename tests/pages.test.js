@@ -27,7 +27,7 @@ test("SearchControl words every page with a literal i18n call", () => {
   for (const p of pages) assert.match(qml, new RegExp(`\\b${p.key}: i18n\\("[^"]+"\\)`), p.key);
 });
 test("goToPage opens every stack page", () => {
-  const qml = fs.readFileSync(path.join(root, "contents/ui/Views/PopupView.qml"), "utf8");
+  const qml = fs.readFileSync(path.join(root, "contents/ui/views/PopupView.qml"), "utf8");
   const body = qml.slice(qml.indexOf("function goToPage("), qml.indexOf("function searchImages("));
   for (const p of pages.filter((p) => p.kind === "stack")) assert.match(body, new RegExp(`\\b${p.key}: function`), p.key);
 });
